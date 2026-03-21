@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IMPERIUM — Civilización, Poder y Consecuencias</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- PANTALLA DE INICIO -->
+  <div id="screen-start" class="screen active">
+    <div class="start-bg"></div>
+    <div class="start-content">
+      <div class="title-block">
+        <div class="title-eyebrow">ANNO DOMINI · ESTRATEGIA SISTÉMICA</div>
+        <h1 class="game-title">IMPERIUM</h1>
+        <div class="title-subtitle">Civilización · Poder · Consecuencias</div>
+      </div>
+      <div class="start-menu">
+        <button class="menu-btn primary" onclick="Game.startNewGame()">
+          <span class="btn-icon">⚔</span>Nueva Partida
+        </button>
+        <button class="menu-btn" onclick="showScreen('screen-codex')">
+          <span class="btn-icon">📜</span>Codex del Sistema
+        </button>
+      </div>
+      <div class="start-footer">
+        <span>Diseño sistémico profundo · IA adaptativa · Decisiones con consecuencias reales</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SELECCIÓN DE CIVILIZACIÓN -->
+  <div id="screen-civselect" class="screen">
+    <div class="screen-header">
+      <h2>Elige tu Civilización</h2>
+      <p>Cada pueblo tiene ventajas, debilidades y sistema político inicial diferente</p>
+    </div>
+    <div class="civ-grid" id="civ-grid"></div>
+  </div>
+
+  <!-- PANTALLA PRINCIPAL DE JUEGO -->
+  <div id="screen-game" class="screen">
+    
+    <!-- TOP BAR: recursos globales -->
+    <div id="top-bar">
+      <div class="resource-block" id="res-food">
+        <span class="res-icon">🌾</span>
+        <span class="res-label">Alimentos</span>
+        <span class="res-val" id="val-food">0</span>
+        <span class="res-delta" id="dlt-food">+0</span>
+      </div>
+      <div class="resource-block" id="res-gold">
+        <span class="res-icon">◈</span>
+        <span class="res-label">Oro</span>
+        <span class="res-val" id="val-gold">0</span>
+        <span class="res-delta" id="dlt-gold">+0</span>
+      </div>
+      <div class="resource-block" id="res-wood">
+        <span class="res-icon">🪵</span>
+        <span class="res-label">Madera</span>
+        <span class="res-val" id="val-wood">0</span>
+        <span class="res-delta" id="dlt-wood">+0</span>
+      </div>
+      <div class="resource-block" id="res-stone">
+        <span class="res-icon">⬡</span>
+        <span class="res-label">Piedra</span>
+        <span class="res-val" id="val-stone">0</span>
+        <span class="res-delta" id="dlt-stone">+0</span>
+      </div>
+      <div class="resource-block" id="res-iron">
+        <span class="res-icon">⚙</span>
+        <span class="res-label">Hierro</span>
+        <span class="res-val" id="val-iron">0</span>
+        <span class="res-delta" id="dlt-iron">+0</span>
+      </div>
+
+      <div class="separator"></div>
+
+      <div class="stat-pill" id="pill-pop">
+        <span>👥</span><span id="val-pop">0</span>
+      </div>
+      <div class="stat-pill stability" id="pill-stab">
+        <span>⚖</span><span id="val-stab">0</span><span>Estab.</span>
+      </div>
+      <div class="stat-pill morale" id="pill-moral">
+        <span>❤</span><span id="val-moral">0</span><span>Moral</span>
+      </div>
+      <div class="stat-pill military" id="pill-army">
+        <span>⚔</span><span id="val-army">0</span><span>Ejército</span>
+      </div>
+
+      <div class="separator"></div>
+
+      <div class="turn-block">
+        <div class="turn-season" id="turn-season">🌱 Primavera</div>
+        <div class="turn-num">Año <span id="val-year">1</span>, Turno <span id="val-turn">1</span></div>
+        <button id="btn-endturn" onclick="Game.endTurn()">Terminar Turno →</button>
+      </div>
+    </div>
+
+    <!-- CUERPO PRINCIPAL -->
+    <div id="main-body">
+
+      <!-- PANEL IZQUIERDO: Mapa + Facciones -->
+      <div id="left-panel">
+        <div class="panel-tabs">
+          <button class="ptab active" onclick="switchPanelTab('map')">🗺 Mapa</button>
+          <button class="ptab" onclick="switchPanelTab('factions')">⚖ Facciones</button>
+          <button class="ptab" onclick="switchPanelTab('military')">⚔ Ejército</button>
+        </div>
+
+        <div id="ptab-map" class="ptab-content active">
+          <div id="map-info-bar"></div>
+          <div id="world-map" style="overflow:auto; max-height:calc(100vh - 220px)"></div>
+          <div id="map-legend">
+            <span class="leg-item"><span class="leg-color" style="background:#4ab464"></span>Tuyo</span>
+            <span class="leg-item"><span class="leg-color" style="background:#c83c3c"></span>Rival</span>
+            <span class="leg-item"><span class="leg-color" style="background:#555"></span>Neutral</span>
+            <span id="map-seed-label" style="margin-left:auto;font-family:var(--font-mono);font-size:9px;color:var(--text3)"></span>
+          </div>
+        </div>
+
+        <div id="ptab-factions" class="ptab-content">
+          <div id="factions-list"></div>
+        </div>
+
+        <div id="ptab-military" class="ptab-content">
+          <div id="military-panel"></div>
+        </div>
+      </div>
+
+      <!-- PANEL CENTRAL: Eventos + Decisiones -->
+      <div id="center-panel">
+        <div id="event-area">
+          <div id="event-queue-header">
+            <span>📋 Agenda del Turno</span>
+            <span id="event-count" class="badge">0</span>
+          </div>
+          <div id="event-queue"></div>
+        </div>
+
+        <div id="decision-area">
+          <div id="active-event"></div>
+        </div>
+
+        <div id="log-area">
+          <div class="log-header">📜 Registro Histórico</div>
+          <div id="game-log"></div>
+        </div>
+      </div>
+
+      <!-- PANEL DERECHO: Política + Diplomacia + Economía -->
+      <div id="right-panel">
+        <div class="panel-tabs">
+          <button class="ptab active" onclick="switchRightTab('politics')">🏛 Política</button>
+          <button class="ptab" onclick="switchRightTab('diplomacy')">🤝 Diplo.</button>
+          <button class="ptab" onclick="switchRightTab('economy')">📊 Eco.</button>
+          <button class="ptab" onclick="switchRightTab('climate')">🌤 Clima</button>
+          <button class="ptab" onclick="switchRightTab('spies')">🕵 Espías</button>
+          <button class="ptab" onclick="switchRightTab('trade')">🏪 Comercio</button>
+        </div>
+
+        <div id="rtab-politics" class="rtab-content active">
+          <div id="politics-panel"></div>
+        </div>
+        <div id="rtab-diplomacy" class="rtab-content">
+          <div id="diplomacy-panel"></div>
+        </div>
+        <div id="rtab-economy" class="rtab-content">
+          <div id="economy-panel"></div>
+        </div>
+        <div id="rtab-climate" class="rtab-content">
+          <div id="climate-panel"></div>
+        </div>
+        <div id="rtab-spies" class="rtab-content">
+          <div id="spies-panel"></div>
+        </div>
+        <div id="rtab-trade" class="rtab-content">
+          <div id="trade-panel"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- CODEX -->
+  <div id="screen-codex" class="screen">
+    <div class="codex-header">
+      <button onclick="showScreen('screen-start')" class="back-btn">← Volver</button>
+      <h2>Codex del Sistema</h2>
+    </div>
+    <div class="codex-body" id="codex-body"></div>
+  </div>
+
+  <!-- MODAL: Game Over / Victoria -->
+  <div id="modal-overlay" class="hidden">
+    <div id="modal-box">
+      <div id="modal-title"></div>
+      <div id="modal-body"></div>
+      <button onclick="location.reload()" class="menu-btn primary">Nueva Partida</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="data.js"></script>
+<script src="map.js"></script>
+<script src="systems.js"></script>
+<script src="ai.js"></script>
+<script src="ui.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
