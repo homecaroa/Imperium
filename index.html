@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚔ IMPERIUM — Civilización, Poder y Consecuencias</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Cinzel:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ╔══════════════════════════════╗ -->
+  <!-- ║  PANTALLA LOGIN              ║ -->
+  <!-- ╚══════════════════════════════╝ -->
+  <div id="screen-login" class="screen active">
+    <canvas id="login-canvas"></canvas>
+    <div class="login-overlay"></div>
+    <div class="login-center">
+      <div class="login-logo-wrap">
+        <div class="login-crest-animated">⚔</div>
+        <h1 class="login-title">IMPERIUM</h1>
+        <div class="login-divider"><span></span><span class="login-div-icon">✦</span><span></span></div>
+        <p class="login-sub">Civilización &nbsp;·&nbsp; Poder &nbsp;·&nbsp; Consecuencias</p>
+      </div>
+      <div class="login-box">
+        <div class="login-field">
+          <label>NOMBRE DEL GOBERNANTE</label>
+          <input type="text" id="login-name" placeholder="Escribe tu nombre…" maxlength="24" autocomplete="off"
+                 onkeydown="if(event.key==='Enter')Auth.login()">
+        </div>
+        <div class="login-btn-row">
+          <button class="menu-btn primary login-enter-btn" onclick="Auth.login()">
+            <span class="btn-icon-big">⚔</span>
+            <span>Entrar al Reino</span>
+          </button>
+          <button class="menu-btn login-guest-btn" onclick="Auth.loginGuest()">
+            <span>🎭 Invitado</span>
+          </button>
+        </div>
+        <div id="login-saves" class="login-saves"></div>
+      </div>
+    </div>
+    <div class="login-footer-bar">
+      <span>⚜ Estrategia sistémica profunda</span>
+      <span class="lf-sep">·</span>
+      <span>🗺️ Mapas procedurales únicos</span>
+      <span class="lf-sep">·</span>
+      <span>🤖 IA con personalidad adaptativa</span>
+      <span class="lf-sep">·</span>
+      <span>💾 3 partidas guardadas por jugador</span>
+    </div>
+  </div>
+
+  <!-- ╔══════════════════════════════╗ -->
+  <!-- ║  PANTALLA INICIO             ║ -->
+  <!-- ╚══════════════════════════════╝ -->
+  <div id="screen-start" class="screen">
+    <canvas id="start-canvas"></canvas>
+    <div class="start-particles" id="start-particles"></div>
+    <div class="start-vignette"></div>
+    <div class="start-content">
+      <div class="title-block">
+        <div class="title-eyebrow">
+          <span class="eyebrow-line"></span>
+          <span>ANNO DOMINI · ESTRATEGIA MEDIEVAL SISTÉMICA</span>
+          <span class="eyebrow-line"></span>
+        </div>
+        <h1 class="game-title start-title-anim">IMPERIUM</h1>
+        <div class="title-ornament">⸻ ✦ ⸻</div>
+        <div class="title-subtitle">Civilización &nbsp;·&nbsp; Poder &nbsp;·&nbsp; Consecuencias</div>
+        <div id="welcome-name" class="welcome-name"></div>
+      </div>
+      <div class="start-menu">
+        <button class="menu-btn primary start-btn-anim" onclick="Game.startNewGame()" style="animation-delay:0.1s">
+          <span class="btn-icon">⚔</span> Nueva Partida
+        </button>
+        <button class="menu-btn start-btn-anim" id="btn-load-save" onclick="SaveSystem.showLoadMenu()" style="animation-delay:0.2s">
+          <span class="btn-icon">📜</span> Cargar Partida
+        </button>
+        <button class="menu-btn start-btn-anim" onclick="showScreen('screen-codex')" style="animation-delay:0.3s">
+          <span class="btn-icon">📖</span> Codex del Saber
+        </button>
+        <button class="menu-btn danger start-btn-anim" onclick="Auth.logout()" style="animation-delay:0.4s">
+          <span class="btn-icon">🚪</span> Cambiar Gobernante
+        </button>
+      </div>
+      <div class="start-stats-row">
+        <div class="start-stat"><span class="ss-icon">🗺️</span><span>Mapas únicos<br>por semilla</span></div>
+        <div class="start-stat"><span class="ss-icon">⚖️</span><span>Política<br>sistémica</span></div>
+        <div class="start-stat"><span class="ss-icon">🤖</span><span>IA con<br>personalidad</span></div>
+        <div class="start-stat"><span class="ss-icon">⚔️</span><span>4 naciones<br>en conflicto</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ╔══════════════════════════════╗ -->
+  <!-- ║  SELECCIÓN DE CIVILIZACIÓN  ║ -->
+  <!-- ╚══════════════════════════════╝ -->
+  <div id="screen-civselect" class="screen">
+    <div class="screen-header">
+      <h2>⚜ Elige tu Civilización ⚜</h2>
+      <p>Cada pueblo tiene sus virtudes, sus maldiciones y su destino</p>
+    </div>
+    <div class="civ-grid" id="civ-grid"></div>
+  </div>
+
+  <!-- ╔══════════════════════════════════════════════════════╗ -->
+  <!-- ║  PANTALLA PRINCIPAL DE JUEGO                         ║ -->
+  <!-- ╚══════════════════════════════════════════════════════╝ -->
+  <div id="screen-game" class="screen">
+
+    <!-- TOP BAR -->
+    <div id="top-bar">
+      <div class="res-group">
+        <div class="resource-block tb-tip" data-tip="🌾 Alimentos&#10;Sustento de tu población y ejército.&#10;Si llega a 0 durante 3 turnos → derrota por hambruna.&#10;Producción: población ÷ 12 × modificador climático."><span class="res-icon">🌾</span><span class="res-val" id="val-food">0</span><span class="res-delta" id="dlt-food">+0</span></div>
+        <div class="resource-block tb-tip" data-tip="💰 Oro&#10;Financia el ejército, políticas y diplomacia.&#10;Si el saldo es negativo, vende recursos o toma deuda.&#10;Producción: población ÷ 20 + comercio − mantenimiento."><span class="res-icon">💰</span><span class="res-val" id="val-gold">0</span><span class="res-delta" id="dlt-gold">+0</span></div>
+        <div class="resource-block tb-tip" data-tip="🪵 Madera&#10;Para construcción, barcos y balistas.&#10;Se consume al construir edificios y reclutar arqueros.&#10;Producción: población ÷ 30, más con trabajo forzado."><span class="res-icon">🪵</span><span class="res-val" id="val-wood">0</span><span class="res-delta" id="dlt-wood">+0</span></div>
+        <div class="resource-block tb-tip" data-tip="🪨 Piedra&#10;Para murallas, fortificaciones y construcción pesada.&#10;Las montañas y canteras son su principal fuente.&#10;Producción: población ÷ 40, más con trabajo forzado."><span class="res-icon">🪨</span><span class="res-val" id="val-stone">0</span><span class="res-delta" id="dlt-stone">+0</span></div>
+        <div class="resource-block tb-tip" data-tip="⚙️ Hierro&#10;Para armas, armaduras y maquinaria de guerra.&#10;Esencial para unidades de élite y balistas.&#10;Producción: población ÷ 50, más con economía de guerra."><span class="res-icon">⚙️</span><span class="res-val" id="val-iron">0</span><span class="res-delta" id="dlt-iron">+0</span></div>
+      </div>
+
+      <div class="stat-pills">
+        <div class="stat-pill tb-tip" data-tip="👥 Población&#10;Número total de habitantes de tu reino.&#10;Determina la producción de todos los recursos.&#10;Crece con comida abundante, decrece con hambruna."><span>👥</span><span id="val-pop">0</span></div>
+        <div class="stat-pill stability tb-tip" id="pill-stab" data-tip="⚖️ Estabilidad Política&#10;Refleja la cohesión de tus instituciones.&#10;Si llega a 0 durante 2 turnos → colapso del estado.&#10;La suben: facciones contentas, buena economía."><span>⚖️</span><span id="val-stab">0</span></div>
+        <div class="stat-pill morale tb-tip" id="pill-moral" data-tip="❤️ Moral Popular&#10;Estado de ánimo de tu pueblo y ejército.&#10;Afecta directamente la fuerza de combate efectiva.&#10;Si llega a 10 con estabilidad baja → revolución."><span>❤️</span><span id="val-moral">0</span></div>
+        <div class="stat-pill military tb-tip" data-tip="⚔️ Ejército Total&#10;Número de soldados bajo tu mando.&#10;La fuerza real depende de moral, corrupción y equipo.&#10;Coste: 0.5 oro por soldado por turno."><span>⚔️</span><span id="val-army">0</span></div>
+      </div>
+
+      <div class="turn-block">
+        <div class="turn-season tb-tip" id="turn-season" data-tip="🌤️ Estación Actual&#10;Cada año tiene 4 estaciones de 4 turnos.&#10;Afecta producción de alimentos, moral y ejército.&#10;Invierno: -28% comida. Primavera: +18% comida.">🌱 Primavera</div>
+        <div class="turn-num tb-tip" data-tip="📅 Año y Turno&#10;1 año = 16 turnos (4 estaciones × 4 turnos).&#10;Las condiciones de victoria se miden en años.">📅 Año <span id="val-year">1</span> · Turno <span id="val-turn">1</span></div>
+        <button id="btn-endturn" onclick="Game.endTurn()">⏭ Fin de Turno</button>
+        <button id="btn-althoria" onclick="AlthoriаMap.toggle(Game.state)">🗺️ Althoria</button>
+        <button class="btn-save" onclick="SaveSystem.quickSave()">💾 Guardar</button>
+        <button class="btn-save btn-load" onclick="SaveSystem.showLoadMenu()">📂 Cargar</button>
+      </div>
+    </div>
+
+    <!-- MAIN BODY: mapa grande + panel derecho -->
+    <div id="main-body">
+
+      <!-- MAPA: ocupa ~65% del ancho -->
+      <div id="map-area">
+        <!-- Tabs del mapa -->
+        <div class="map-tabs">
+          <button class="mtab active"   onclick="switchMapTab('factions')">⚔️ Facciones</button>
+          <button class="mtab"          onclick="switchMapTab('military')">🛡️ Ejército</button>
+          <div class="map-tab-right">
+            <span id="map-seed-label" class="seed-label"></span>
+          </div>
+        </div>
+
+
+
+        <!-- FACCIONES -->
+        <div id="mtab-factions" class="mtab-content active">
+          <div id="factions-list"></div>
+        </div>
+
+        <!-- EJÉRCITO -->
+        <div id="mtab-military" class="mtab-content">
+          <div id="military-panel"></div>
+        </div>
+
+        <!-- AGENDA DE TURNO (barra compacta al fondo del mapa) -->
+        <div id="agenda-bar">
+          <div id="agenda-header">
+            <span>📋 Agenda</span>
+            <span id="event-count" class="badge">0</span>
+            <span id="agenda-warning" class="agenda-warn hidden">⚠ Decide antes de continuar</span>
+          </div>
+          <div id="event-queue"></div>
+        </div>
+      </div>
+
+      <!-- PANEL DERECHO: 50% pantalla en desplegable o fijo -->
+      <div id="right-panel">
+        <!-- DECISIÓN ACTIVA (cuando hay evento) -->
+        <div id="decision-area">
+          <div id="active-event">
+            <div class="no-events">
+              <div class="no-events-icon">⚖️</div>
+              <div>Sin eventos pendientes</div>
+              <div class="no-events-sub">Pasa el ratón sobre el mapa<br>para ver información del territorio</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PANEL DE INFO (hover mapa) -->
+        <div id="hover-info-panel">
+          <div id="hover-content"></div>
+        </div>
+
+        <!-- TABS DE GESTIÓN -->
+        <div class="panel-tabs">
+          <button class="ptab active" onclick="switchRightTab('politics')">🏛️</button>
+          <button class="ptab" onclick="switchRightTab('diplomacy')">🤝</button>
+          <button class="ptab" onclick="switchRightTab('economy')">💰</button>
+          <button class="ptab" onclick="switchRightTab('climate')">🌤️</button>
+          <button class="ptab" onclick="switchRightTab('spies')">🕵️</button>
+          <button class="ptab" onclick="switchRightTab('trade')">⚓</button>
+          <button class="ptab" onclick="switchRightTab('spending')">🏗️</button>
+          <button class="ptab" onclick="switchRightTab('log')">📜</button>
+        </div>
+        <div class="tab-labels">
+          <span>Política</span><span>Diplo.</span><span>Economía</span>
+          <span>Clima</span><span>Espías</span><span>Comercio</span>
+          <span>Gasto</span><span>Crónica</span>
+        </div>
+
+        <div id="rtab-politics"  class="rtab-content active"><div id="politics-panel"></div></div>
+        <div id="rtab-diplomacy" class="rtab-content"><div id="diplomacy-panel"></div></div>
+        <div id="rtab-economy"   class="rtab-content"><div id="economy-panel"></div></div>
+        <div id="rtab-climate"   class="rtab-content"><div id="climate-panel"></div></div>
+        <div id="rtab-spies"     class="rtab-content"><div id="spies-panel"></div></div>
+        <div id="rtab-trade"     class="rtab-content"><div id="trade-panel"></div></div>
+        <div id="rtab-spending"  class="rtab-content"><div id="spending-panel"></div></div>
+        <div id="rtab-log"       class="rtab-content">
+          <div class="log-header">📜 Crónica del Reino</div>
+          <div id="game-log"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ╔═══════════════╗ -->
+  <!-- ║  CODEX        ║ -->
+  <!-- ╚═══════════════╝ -->
+  <div id="screen-codex" class="screen">
+    <div class="codex-header">
+      <button onclick="showScreen('screen-start')" class="back-btn">⬅ Volver</button>
+      <h2>📖 Codex del Saber</h2>
+    </div>
+    <div class="codex-body" id="codex-body"></div>
+  </div>
+
+  <!-- ╔══════════════════════════════╗ -->
+  <!-- ║  MODAL BATALLA EN MAPA       ║ -->
+  <!-- ╚══════════════════════════════╝ -->
+  <div id="modal-battle" class="modal-overlay hidden">
+    <div class="modal-box battle-box">
+      <div class="battle-header">
+        <span class="battle-icon">⚔️</span>
+        <h2 id="battle-title">Batalla por el Territorio</h2>
+        <span class="battle-icon">⚔️</span>
+      </div>
+      <div id="battle-map-mini"></div>
+      <div id="battle-info"></div>
+      <div id="battle-progress" class="battle-progress hidden">
+        <div class="battle-bar-wrap">
+          <div class="battle-bar-attacker" id="bar-attacker"></div>
+          <div class="battle-bar-defender" id="bar-defender"></div>
+        </div>
+        <div id="battle-result-text"></div>
+      </div>
+      <div id="battle-actions"></div>
+    </div>
+  </div>
+
+  <!-- ╔══════════════════════════════╗ -->
+  <!-- ║  MODAL GUARDAR/CARGAR        ║ -->
+  <!-- ╚══════════════════════════════╝ -->
+  <div id="modal-save" class="modal-overlay hidden">
+    <div class="modal-box save-box">
+      <h2>💾 Guardar Partida</h2>
+      <div id="save-slots"></div>
+      <button class="menu-btn" onclick="SaveSystem.closeModal()">✖ Cancelar</button>
+    </div>
+  </div>
+
+  <!-- ╔══════════════════════════════╗ -->
+  <!-- ║  MODAL VICTORIA / DERROTA    ║ -->
+  <!-- ╚══════════════════════════════╝ -->
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div class="modal-box">
+      <div id="modal-title"></div>
+      <div id="modal-body"></div>
+      <button onclick="location.reload()" class="menu-btn primary">⚔ Nueva Partida</button>
+    </div>
+  </div>
+
+</div><!-- #app -->
+
+<div id="tb-tooltip" class="tb-tooltip-box"></div>
+<script src="visual.js"></script>
+<script src="althoria.js"></script>
+<script src="data.js"></script>
+<script src="map.js"></script>
+<script src="systems.js"></script>
+<script src="ai.js"></script>
+<script src="ui.js"></script>
+<script src="game.js"></script>
+<script src="save.js"></script>
+<script src="battle.js"></script>
+</body>
+</html>
