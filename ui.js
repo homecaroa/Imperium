@@ -10,6 +10,30 @@ const UI = {
   // TOP BAR
   // ══════════════════════════════════════════════
   updateTopBar(state) {
+    // Visual feedback
+    if (typeof VisualFeedback !== 'undefined') VisualFeedback.apply(state);
+    // AP display
+    const apEl = document.getElementById('ap-display');
+    if (apEl && state.actionPoints !== undefined) {
+      const filled = state.actionPoints;
+      const empty  = Math.max(0, (state.actionPointsMax||3) - filled);
+      apEl.innerHTML = '<span class="ap-pip filled">⚡</span>'.repeat(filled)
+                     + '<span class="ap-pip empty">○</span>'.repeat(empty);
+    }
+    // XP bar
+    const xpEl = document.getElementById('xp-bar-slot');
+    if (xpEl && typeof Progression !== 'undefined') xpEl.innerHTML = Progression.renderXPBar(state);
+    // Blitz countdown
+    const blitzEl = document.getElementById('blitz-countdown');
+    if (blitzEl) {
+      if (state._blitzMode) {
+        const left = (state._blitzMaxTurns||20) - state.turn;
+        blitzEl.innerHTML = `<span class="blitz-badge tb-tip" data-tip="⚡ Modo Blitz — Quedan ${left} turnos">⚡ T${state.turn}/${state._blitzMaxTurns||20}</span>`;
+        blitzEl.style.display = '';
+      } else {
+        blitzEl.style.display = 'none';
+      }
+    }
     const rates = state.rates || {};
     const setRes = (id, val, rate) => {
       const ve = document.getElementById('val-' + id);
@@ -189,15 +213,34 @@ const UI = {
       </div>
       <div class="rpanel-section">
         <div class="rpanel-title">🪖 Reclutar Unidades</div>
-        ${Object.entries(MILITARY_UNITS).map(([id, def]) => {
-          const restricted = def.civRestrict && state.civId && !def.civRestrict.includes(state.civId);
-          if (restricted) return '';
-          const needsPolicy = def.requires && !def.requires.some(r => state.activePolicies.includes(r));
-          return `<button class="policy-btn" onclick="Game.recruitUnit('${id}',50)" ${needsPolicy?'disabled':''} title="${def.description}">
-            <span>${def.icon} ${def.name} ×50</span>
-            <span class="policy-cost">${def.cost.gold}💰${def.cost.iron?' '+def.cost.iron+'⚙️':''}${def.cost.wood?' '+def.cost.wood+'🪵':''}</span>
-          </button>`;
-        }).join('')}
+        ${(function(){
+          var unlockMap = {
+            levas:'recluta_levas', infanteria:'recluta_infanteria', arqueros:'recluta_arqueros',
+            caballeria:'recluta_caballeria', caballeria_pesada:'recluta_caballeria',
+            legionarios:'recluta_elite', berserkers:'recluta_elite', guerreros_jaguar:'recluta_elite',
+            ballistas:'ballistas'
+          };
+          return Object.entries(MILITARY_UNITS).map(([id, def]) => {
+            const restricted = def.civRestrict && state.civId && !def.civRestrict.includes(state.civId);
+            if (restricted) return '';
+            const unlockId = unlockMap[id] || 'recluta_levas';
+            const isUnlocked = (typeof UnlockSystem !== 'undefined') ? UnlockSystem.isUnlocked(state, unlockId) : true;
+            const needsPolicy = def.requires && !def.requires.some(r => state.activePolicies.includes(r));
+            if (!isUnlocked) {
+              const hint = (typeof UnlockSystem !== 'undefined') ? UnlockSystem.getHint(unlockId) : '';
+              return '<button class="policy-btn locked-action tb-tip" disabled data-tip="🔒 BLOQUEADO&#10;'+hint+'">'
+                +'<span>🔒 '+def.name+'</span>'
+                +'<span class="lock-hint">'+hint.split('.')[0]+'</span>'
+                +'</button>';
+            }
+            var onclk='Game.recruitUnit(\"'+id+'\",50)';
+            return '<button class="policy-btn" onclick="'+onclk+'" '+(needsPolicy?'disabled':'')
+              +' title="'+def.description+'">'
+              +'<span>'+def.icon+' '+def.name+' ×50</span>'
+              +'<span class="policy-cost">'+def.cost.gold+'💰'+(def.cost.iron?' '+def.cost.iron+'⚙️':'')+(def.cost.wood?' '+def.cost.wood+'🪵':'')+'</span>'
+              +'</button>';
+          }).join('');
+        })()}
       </div>
       ${!state.legendaryUnit ? `
       <div class="rpanel-section">
@@ -221,11 +264,17 @@ const UI = {
       </div>`}
       <div class="rpanel-section">
         <div class="rpanel-title">📜 Política Militar</div>
-        ${POLICIES.militar.map(p => `
-          <button class="policy-btn ${state.activePolicies.includes(p.id)?'active':''}" onclick="Game.togglePolicy('${p.id}','militar')">
-            <span>${p.name}</span><span class="policy-cost">${p.cost_gold>0?p.cost_gold+'💰':'gratis'}</span>
-          </button>`).join('')}
-      </div>`;
+        ${(function(){
+          var milUnlock = {standing_army:'ejercito_permanente', militia:'politica_basica', mercenaries:'mercenarios'};
+          return POLICIES.militar.map(function(p){
+            var uid=milUnlock[p.id]||'politica_basica';
+            var ok=(typeof UnlockSystem==='undefined')||UnlockSystem.isUnlocked(state,uid);
+            if(!ok){var h=(typeof UnlockSystem!=='undefined')?UnlockSystem.getHint(uid):'';return '<button class="policy-btn locked-action tb-tip" disabled data-tip="🔒 BLOQUEADO&#10;'+h+'"><span>🔒 '+p.name+'</span><span class="lock-hint">'+h.split('.')[0]+'</span></button>';}
+            return '<button class="policy-btn '+(state.activePolicies.includes(p.id)?'active':'')+'" onclick="Game.togglePolicy(\'' + p.id + '\',\'militar\')"><span>'+p.name+'</span><span class="policy-cost">'+(p.cost_gold>0?p.cost_gold+'💰':'gratis')+'</span></button>';
+          }).join('');
+        })()}
+      </div>
+      ${typeof TacticalMap !== 'undefined' ? TacticalMap.renderGarrisonPanel(state) : ''}`;
   },
 
   // ══════════════════════════════════════════════
@@ -254,17 +303,27 @@ const UI = {
       </div>
       <div class="rpanel-section">
         <div class="rpanel-title">📋 Política Económica</div>
-        ${POLICIES.economia.map(p => `
-          <button class="policy-btn ${state.activePolicies.includes(p.id)?'active':''}" onclick="Game.togglePolicy('${p.id}','economia')">
-            <span>${p.name}</span>
-          </button>`).join('')}
+        ${(function(){
+          var econUnlock={free_market:'politica_basica',state_control:'economia_dirigida',war_economy:'guerra_economica'};
+          return POLICIES.economia.map(function(p){
+            var uid=econUnlock[p.id]||'politica_basica';
+            var ok=(typeof UnlockSystem==='undefined')||UnlockSystem.isUnlocked(state,uid);
+            if(!ok){var h=(typeof UnlockSystem!=='undefined')?UnlockSystem.getHint(uid):'';return '<button class="policy-btn locked-action tb-tip" disabled data-tip="🔒 BLOQUEADO&#10;'+h+'"><span>🔒 '+p.name+'</span></button>';}
+            return '<button class="policy-btn '+(state.activePolicies.includes(p.id)?'active':'')+'" onclick="Game.togglePolicy(\'' + p.id + '\',\'economia\')"><span>'+p.name+'</span></button>';
+          }).join('');
+        })()}
       </div>
       <div class="rpanel-section">
         <div class="rpanel-title">👥 Política Social</div>
-        ${POLICIES.social.map(p => `
-          <button class="policy-btn ${state.activePolicies.includes(p.id)?'active':''}" onclick="Game.togglePolicy('${p.id}','social')">
-            <span>${p.name}</span>${p.cost_gold>0?`<span class="policy-cost">${p.cost_gold}💰</span>`:''}
-          </button>`).join('')}
+        ${(function(){
+          var socUnlock={bread_circus:'politica_social_avanzada',forced_labor:'economia_dirigida',education:'politica_social_avanzada'};
+          return POLICIES.social.map(function(p){
+            var uid=socUnlock[p.id]||'politica_basica';
+            var ok=(typeof UnlockSystem==='undefined')||UnlockSystem.isUnlocked(state,uid);
+            if(!ok){var h=(typeof UnlockSystem!=='undefined')?UnlockSystem.getHint(uid):'';return '<button class="policy-btn locked-action tb-tip" disabled data-tip="🔒 BLOQUEADO&#10;'+h+'"><span>🔒 '+p.name+'</span></button>';}
+            return '<button class="policy-btn '+(state.activePolicies.includes(p.id)?'active':'')+'" onclick="Game.togglePolicy(\'' + p.id + '\',\'social\')"><span>'+p.name+'</span>'+(p.cost_gold>0?'<span class="policy-cost">'+p.cost_gold+'💰</span>':'')+'</button>';
+          }).join('');
+        })()}
       </div>
       <div class="rpanel-section">
         <div class="rpanel-title">📉 Indicadores</div>
@@ -284,6 +343,20 @@ const UI = {
     if (!container || !state.diplomacy) return;
     // Inicializar personajes si es primera vez
     if (typeof DiplomacySystem !== 'undefined') DiplomacySystem.initCharacters(state);
+    // Inject sabotage/attack actions into each nation card via post-render
+    // Route sabotage buttons injected into nation cards
+    const _origCard = typeof DiplomacySystem !== 'undefined' ? DiplomacySystem.renderNationCard.bind(DiplomacySystem) : null;
+    if (_origCard) DiplomacySystem.renderNationCard = function(nation, st, i) {
+      var html = _origCard(nation, st, i);
+      var natId = 'ai_' + (i+1);
+      var sabHtml = '<div class="dnc-actions" style="border-top:1px solid var(--border2);">'
+        + '<button class="diplo-btn danger" style="font-size:10px" title="Atacar ruta comercial (2AP)"'
+        + ' onclick="RouteSabotage.attackRoute(Game.state,Game.state.diplomacy[' + i + '].id)">⚔️ Ruta</button>'
+        + '<button class="diplo-btn" style="font-size:10px" title="Sabotear ruta con espias (1AP, 120 oro)"'
+        + '<button class="diplo-btn" style="font-size:10px" title="Sabotear ruta con espias (1AP, 120 oro)"'
+        + ' onclick="RouteSabotage.sabotageRoute(Game.state,Game.state.diplomacy[' + i + '].id)">Spy Ruta</button>'
+      return html + sabHtml;
+    };
     // Contar mensajes sin leer
     const unread = (state.diplomacyInbox||[]).filter(m=>!m.read).length;
     const inboxHeader = unread ? `<div style="font-family:var(--font-mono);font-size:10px;color:var(--gold);padding:6px 10px;border-bottom:1px solid var(--border);background:rgba(200,160,48,0.08)">✉️ ${unread} mensaje${unread>1?'s':''} sin leer</div>` : '';
@@ -427,13 +500,23 @@ const UI = {
               ${nation.icon} ${nation.name} ${nation.revealed?'<span style="color:var(--green2);font-size:10px">🔍 '+nation.army+' soldados</span>':'<span style="color:var(--text3);font-size:10px">❓ ejército desconocido</span>'}
             </div>
             <div style="display:flex;flex-wrap:wrap;gap:4px">
-              ${Object.entries(SPY_MISSIONS).map(([id,m])=>`
-                <button class="diplo-btn" onclick="Game.sendSpy('${id}','${nation.id}')" title="${m.description} (${Math.round(m.successChance*100)}% éxito)">
-                  ${m.icon} ${m.cost.gold}💰
-                </button>`).join('')}
+              ${(function(){
+                var adv=['sabotaje_economico','intriga_politica','robo_planos','envenenar_lider'];
+                return Object.entries(SPY_MISSIONS).map(function(e){var id=e[0],m=e[1];
+                  var uid=adv.indexOf(id)>=0?'sabotaje':'reconocimiento';
+                  if(adv.indexOf(id)>=2) uid='robo_planos';
+                  var ok=(typeof UnlockSystem==='undefined')||UnlockSystem.isUnlocked(state,uid);
+                  if(!ok){var h=(typeof UnlockSystem!=='undefined')?UnlockSystem.getHint(uid):'';return '<button class="diplo-btn tb-tip" disabled data-tip="🔒 '+h+'">🔒 '+m.icon+'</button>';}
+                  var oc='Game.sendSpy("'+id+'","'+nation.id+'")'; return '<button class="diplo-btn" onclick="'+oc+'" title="'+m.description+' ('+Math.round(m.successChance*100)+'% éxito)">'+m.icon+' '+m.cost.gold+'💰</button>';
+                }).join('');
+              })()}
             </div>
           </div>`).join('')}
-        <button class="policy-btn" onclick="Game.trainSpy()">🎓 Entrenar espía adicional (200💰)</button>
+        ${(function(){
+          var ok=(typeof UnlockSystem==='undefined')||UnlockSystem.isUnlocked(state,'espias_basico');
+          if(!ok){var h=(typeof UnlockSystem!=='undefined')?UnlockSystem.getHint('espias_basico'):'';return '<div class="locked-panel tb-tip" data-tip="🔒 ESPIONAJE BLOQUEADO&#10;'+h+'"><span>🔒 Espionaje no disponible aún</span><div class="lock-hint">'+h+'</div></div>';}
+          return '<button class="policy-btn" onclick="Game.trainSpy()">🎓 Entrenar espía adicional (200💰)</button>';
+        })()}
       </div>`;
   },
 
@@ -447,16 +530,25 @@ const UI = {
     container.innerHTML = `
       <div class="rpanel-section">
         <div class="rpanel-title">⚓ Rutas Activas</div>
-        ${routes.length ? routes.map(rt => `
-          <div style="background:var(--bg4);border:1px solid var(--border);padding:7px;margin-bottom:6px">
-            <div style="display:flex;justify-content:space-between;align-items:center">
-              <span style="font-family:var(--font-title);font-size:12px;color:var(--gold)">${rt.icon} ${rt.routeName}</span>
-              <button class="diplo-btn danger" onclick="Game.closeTradeRoute('${rt.routeId}','${rt.nationId}')">✕</button>
-            </div>
-            <div style="font-family:var(--font-mono);font-size:10px;color:var(--text3)">
-              🏰 ${rt.nationName} · ${Object.entries(rt.income||{}).map(([k,v])=>`${v>0?'+':''}${v} ${k}`).join(', ')} · Rel +${rt.relationBonus}/t
-            </div>
-          </div>`).join('') : '<div style="font-family:var(--font-mono);font-size:10px;color:var(--text3)">Sin rutas activas</div>'}
+        ${routes.length ? routes.map(rt => {
+          const health = rt.health !== undefined ? rt.health : 100;
+          const hColor = health > 70 ? 'var(--green2)' : health > 40 ? 'var(--gold)' : 'var(--red2)';
+          const guardsHtml = rt.guards > 0 ? '<span style="font-family:var(--font-mono);font-size:9px;color:var(--green2)">🛡️' + rt.guards + '</span>' : '';
+          return '<div style="background:var(--bg4);border:1px solid var(--border);padding:7px;margin-bottom:6px">'
+            + '<div style="display:flex;justify-content:space-between;align-items:center">'
+            + '<span style="font-family:var(--font-title);font-size:12px;color:var(--gold)">' + rt.icon + ' ' + rt.routeName + '</span>'
+            + '<button class="diplo-btn danger" style="font-size:9px" data-rid="' + rt.routeId + '" data-nid="' + rt.nationId + '" onclick="Game.closeTradeRoute(this.dataset.rid,this.dataset.nid)">✕</button>'
+            + '</div>'
+            + '<div style="font-family:var(--font-mono);font-size:10px;color:var(--text3)">'
+            + '🏰 ' + rt.nationName + ' · ' + Object.entries(rt.income||{}).map(([k,v])=>(v>0?'+':'')+v+' '+k).join(', ') + ' · Rel +' + rt.relationBonus + '/t'
+            + '</div>'
+            + '<div style="display:flex;align-items:center;gap:6px;margin-top:4px">'
+            + '<span style="font-family:var(--font-mono);font-size:9px;color:' + hColor + '">Salud: ' + health + '%</span>'
+            + '<div style="flex:1;height:3px;background:rgba(255,255,255,0.1);border-radius:2px"><div style="width:' + health + '%;height:100%;background:' + hColor + ';border-radius:2px"></div></div>'
+            + guardsHtml
+            + '</div>'
+            + '</div>';
+        }).join('') : '<div style="font-family:var(--font-mono);font-size:10px;color:var(--text3)">Sin rutas activas</div>'}
       </div>
       <div class="rpanel-section">
         <div class="rpanel-title">📋 Abrir Ruta</div>
@@ -466,12 +558,16 @@ const UI = {
               ${nation.icon} ${nation.name} (Rel: ${nation.relation>0?'+':''}${nation.relation})
             </div>
             <div style="display:flex;flex-wrap:wrap;gap:4px">
-              ${Object.entries(TRADE_ROUTES).map(([id,rt])=>{
-                const locked = nation.relation < rt.requires.relation;
-                return `<button class="diplo-btn" onclick="Game.openTradeRoute('${id}','${nation.id}')" title="${rt.description}" ${locked?'style="opacity:0.4"':''}>
-                  ${rt.icon} ${rt.name} (${rt.cost.gold}💰)
-                </button>`;
-              }).join('')}
+              ${(function(){
+                var tradeUnlock={basico:'comercio_basico',intercambio_grano:'comercio_basico',ruta_seda:'rutas_avanzadas',comercio_hierro:'rutas_avanzadas',ruta_maritima:'rutas_maritimas',flota_mercante:'rutas_maritimas',alianza_economica:'alianza_economica'};
+                return Object.entries(TRADE_ROUTES).map(function(e){var id=e[0],rt=e[1];
+                  var uid=tradeUnlock[id]||'comercio_basico';
+                  var ok=(typeof UnlockSystem==='undefined')||UnlockSystem.isUnlocked(state,uid);
+                  var relLocked=nation.relation<rt.requires.relation;
+                  if(!ok){var h=(typeof UnlockSystem!=='undefined')?UnlockSystem.getHint(uid):'';return '<button class="diplo-btn tb-tip" disabled data-tip="🔒 '+h+'">🔒 '+rt.name+'</button>';}
+                  return '<button class="diplo-btn'+(relLocked?' disabled':'')+'" data-id="'+id+'" data-nid="'+nation.id+'" onclick="Game.openTradeRoute(this.dataset.id,this.dataset.nid)" title="'+rt.description+'"'+(relLocked?' style="opacity:0.4"':'')+'>'+rt.icon+' '+rt.name+' ('+rt.cost.gold+'💰)</button>';
+                }).join('');
+              })()}
             </div>
           </div>`).join('')}
       </div>`;
@@ -627,6 +723,14 @@ const UI = {
   // ══════════════════════════════════════════════
   // FULL RENDER
   // ══════════════════════════════════════════════
+  // ── ÁRBOL DE DESBLOQUEOS (renderiza en pestaña spending por ahora) ──
+  renderUnlocks(state) {
+    if (typeof UnlockSystem === 'undefined') return;
+    var container = document.getElementById('unlocks-panel');
+    if (!container) return;
+    container.innerHTML = UnlockSystem.renderProgressPanel(state);
+  },
+
   fullRender(state) {
     this.updateTopBar(state);
     this.renderFactions(state);
@@ -638,6 +742,7 @@ const UI = {
     this.renderSpies(state);
     this.renderTrade(state);
     this.renderSpending(state);
+    this.renderUnlocks(state);
     this.renderEventQueue(state);
     this.renderActiveEvent(state);
     this.renderLog(state);

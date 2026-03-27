@@ -68,26 +68,66 @@ const AI = {
   // ============================================================
   // TICK PRINCIPAL DE IA — ejecutar cada fin de turno
   // ============================================================
+  // Power score of player
+  _playerPower(state) {
+    return (state.army||0) * 0.4
+         + (state.stability||50) * 2
+         + (state.morale||50) * 1.5
+         + (state.resources?.gold||0) * 0.1
+         + (state.althoriaRegions||1) * 150;
+  },
+
   tick(state) {
     if (!state.diplomacy) return;
 
+    const playerPower = this._playerPower(state);
     state.diplomacy.forEach(nation => {
       const personality = this.personalities[nation.personality];
       if (!personality) return;
 
       // 1. EVALUAR SITUACIÓN
       const playerStrength = Systems.Military.calculateEffectiveStrength(state);
-      const aiStrength = nation.army * (nation.morale / 100);
+      const aiStrength  = (nation.army||300) * ((nation.morale||60) / 100);
       const strengthRatio = aiStrength / Math.max(1, playerStrength);
+      const myPower     = aiStrength * 0.4 + 50;
+      const powerRatio  = playerPower / (myPower + 1);  // >1 = player stronger
 
       const playerWeakness = state.morale < 40 || state.stability < 30 || state.resources.food < 100;
-      const playerStrong = state.morale > 70 && state.stability > 60 && playerStrength > 600;
+      const playerStrong   = state.morale > 70 && state.stability > 60 && playerStrength > 600;
 
       // 2. ACTUALIZAR RELACIÓN (deriva natural)
       this.updateRelation(state, nation, personality, playerWeakness, playerStrong);
 
-      // 3. DECIDIR ACCIÓN
-      const action = this.decideAction(state, nation, personality, strengthRatio, playerWeakness);
+      // 2b. TRAICIÓN — oportunista traiciona aliados cuando el jugador está débil
+      if (nation.personality === 'oportunista' && !nation.atWar
+          && (nation.treaties||[]).includes('alliance')
+          && powerRatio < 0.6 && Math.random() < 0.12) {
+        nation.atWar = true;
+        nation.treaties = (nation.treaties||[]).filter(t => t !== 'alliance');
+        nation.relation = -80;
+        const betrayalLoss = Math.floor((state.army||0) * 0.15);
+        state.army = Math.max(0, (state.army||0) - betrayalLoss);
+        Systems.Log.add(state, '💔 ¡TRAICIÓN! ' + nation.name + ' rompe la alianza y ataca. Aprovecharon tu debilidad.', 'crisis');
+      }
+
+      // 2c. Sabotaje económico si oportunista/agresiva y jugador tiene rutas activas
+      if (!nation.atWar && (state.activeTradeRoutes||[]).length > 0 && Math.random() < 0.12) {
+        if (nation.personality === 'oportunista' || (nation.personality === 'agresiva' && nation.relation < -30)) {
+          const richRoute = (state.activeTradeRoutes||[]).sort((a,b)=>(b.income?.gold||0)-(a.income?.gold||0))[0];
+          if (richRoute) {
+            richRoute.health = Math.max(0, (richRoute.health||100) - 15);
+            if (richRoute.health < 50) Systems.Log.add(state, '🗡️ ' + nation.name + ' saboteó tu ruta "' + (richRoute.routeName||richRoute.routeId) + '" (' + richRoute.health + '% salud).', 'crisis');
+          }
+        }
+      }
+
+      // 2d. Construcción silenciosa cuando jugador es más fuerte
+      if (powerRatio > 1.4 && !nation.atWar && personality.expansionWeight > 0.5) {
+        nation.army = Math.floor((nation.army||300) * 1.10);
+      }
+
+      // 3. DECIDIR ACCIÓN (con prob ajustada por powerRatio)
+      const action = this.decideAction(state, nation, personality, strengthRatio, playerWeakness, powerRatio);
       this.executeAction(state, nation, action);
 
       // 4. CRECIMIENTO INTERNO DE IA
@@ -129,7 +169,7 @@ const AI = {
     nation.relation = Math.max(-100, Math.min(100, nation.relation + delta));
   },
 
-  decideAction(state, nation, personality, strengthRatio, playerWeakness) {
+  decideAction(state, nation, personality, strengthRatio, playerWeakness, powerRatio) {
     const roll = Math.random();
 
     // GUERRA: condiciones para atacar

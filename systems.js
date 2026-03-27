@@ -32,8 +32,11 @@ const Systems = {
       let food_consumed = Math.floor(state.population * 0.06);
       let food_rate = food_produced - food_consumed;
 
-      // GOLD
+      // GOLD — impuestos en % sobre ingresos base
+      const taxRate   = (state.economy.taxRate || 20) / 100;  // default 20%
       let gold_base = Math.floor(state.population / 20) + state.economy.trade_income;
+      // Los impuestos multiplican los ingresos base de oro
+      gold_base = Math.floor(gold_base * (1 + (taxRate - 0.20)));  // 20% es la línea base
       // Rutas comerciales activas
       let trade_bonus = 0;
       (state.activeTradeRoutes || []).forEach(rt => {
@@ -89,6 +92,29 @@ const Systems = {
       state.resources.stone = Math.max(0, state.resources.stone + rates.stone);
       state.resources.iron  = Math.max(0, state.resources.iron  + rates.iron);
       state.rates = rates;
+
+      // Efecto de impuestos en moral (se aplica cada turno)
+      const tax = state.economy.taxRate || 20;
+      let moralTaxDelta = 0;
+      if      (tax <= 5)  moralTaxDelta = +3;   // impuestos muy bajos: pueblo feliz
+      else if (tax <= 15) moralTaxDelta = +1;
+      else if (tax <= 25) moralTaxDelta = 0;    // zona normal sin efecto
+      else if (tax <= 35) moralTaxDelta = -2;
+      else if (tax <= 50) moralTaxDelta = -5;
+      else if (tax <= 70) moralTaxDelta = -10;
+      else                moralTaxDelta = -18;  // impuestos opresivos
+      // Facciones también se ven afectadas
+      if (tax > 40) {
+        const pueblo = (state.factions||[]).find(f=>f.id==='pueblo');
+        if (pueblo) pueblo.satisfaction = Math.max(0, pueblo.satisfaction - 2);
+        const comerciantes = (state.factions||[]).find(f=>f.id==='comerciantes');
+        if (comerciantes) comerciantes.satisfaction = Math.max(0, comerciantes.satisfaction - 1);
+      } else if (tax < 10) {
+        const burocracia = (state.factions||[]).find(f=>f.id==='burocracia');
+        if (burocracia) burocracia.satisfaction = Math.max(0, burocracia.satisfaction - 1);
+      }
+      if (moralTaxDelta !== 0)
+        state.morale = Math.max(0, Math.min(100, state.morale + moralTaxDelta));
 
       // Inflación
       if (state.economy.debt > 200)  state.economy.inflation = Math.min(100, state.economy.inflation + 3);
@@ -766,6 +792,19 @@ const Systems = {
     },
 
     // Si la nación entra en guerra, cerrar sus rutas
+    decayRouteHealth(state) {
+      (state.activeTradeRoutes||[]).forEach(rt => {
+        if (rt.health === undefined) rt.health = 100;
+        // Decay if under attack or guards below threshold
+        const underAttack = (state.diplomacy||[]).some(n=>n.atWar && n.id===rt.nationId);
+        if (underAttack) rt.health = Math.max(0, rt.health - 8);
+        // Guards slow decay
+        if (rt.guards > 200) rt.health = Math.min(100, rt.health + 3);
+        // Auto-repair
+        if (!underAttack && rt.health < 100) rt.health = Math.min(100, rt.health + 5);
+      });
+    },
+
     closeRoutesForNation(state, nationId) {
       const closed = (state.activeTradeRoutes || []).filter(r => r.nationId === nationId);
       if (closed.length) {
@@ -801,6 +840,12 @@ const Systems = {
         state.pendingClimateEvent = null;
       }
 
+      // Eventos dinámicos encadenados (pendientes de turnos anteriores)
+      if (typeof DynamicEvents !== 'undefined') {
+        const chained = DynamicEvents.processPendingEvents(state);
+        pending.push(...chained);
+      }
+
       const eligible = EVENT_POOL.filter(ev => {
         if (state.resolvedEvents && state.resolvedEvents.includes(ev.id) && ev.id !== 'trade_caravan' && ev.id !== 'legendary_available') return false;
         try { return ev.condition ? ev.condition(state) : true; } catch(e) { return false; }
@@ -810,10 +855,27 @@ const Systems = {
       const high     = eligible.filter(e => e.priority === 'high').slice(0, 1);
       const normal   = eligible.filter(e => e.priority === 'normal').sort(() => Math.random() - 0.5).slice(0, 1);
 
-      return [...pending, ...critical, ...high, ...normal].filter((e, i, a) => a.findIndex(x => x.id === e.id) === i).slice(0, 4);
+      // Inject one dynamic event if available
+      let dynamicEv = null;
+      if (typeof DynamicEvents !== 'undefined') {
+        const freq = state._blitzMode ? 2 : 4;
+        if (state.turn % freq === 0) {
+          const d = DynamicEvents.selectForTurn(state);
+          if (d) dynamicEv = DynamicEvents.toGameEvent(d);
+        }
+      }
+
+      const combined = [...pending, ...critical, ...high, ...normal];
+      if (dynamicEv) combined.push(dynamicEv);
+      return combined.filter((e, i, a) => a.findIndex(x => x.id === e.id) === i).slice(0, 4);
     },
 
     applyDecision(state, event, optionIndex) {
+      // Dynamic events get their own handler
+      if (event._dynamic && typeof DynamicEvents !== 'undefined') {
+        DynamicEvents.applyDecision(state, event, optionIndex);
+        return;
+      }
       const option = event.options[optionIndex];
       const effects = option.effects;
       if (!effects) return;

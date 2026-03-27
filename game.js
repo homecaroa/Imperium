@@ -11,6 +11,11 @@ const Game = {
   // ══════════════════════════════════════════════
   // INICIO
   // ══════════════════════════════════════════════
+  startBlitzMode() {
+    this._blitzMode = true;
+    this.startNewGame();
+  },
+
   startNewGame() {
     showScreen('screen-civselect');
     this.renderCivSelect();
@@ -62,6 +67,7 @@ const Game = {
     Systems.Log.add(this.state, '⚔️ ' + civ.name + ' comienza su historia. Que los dioses os guíen.', 'good');
     UI.renderLog(this.state);
     if (typeof DiplomacySystem !== "undefined") DiplomacySystem.initCharacters(this.state);
+    if (this._blitzMode) BlitzMode.apply(this.state);
     this.generateTurnEvents();
   },
 
@@ -186,6 +192,9 @@ const Game = {
     const state = this.state;
     if (!state) return;
 
+    // ── Puntos de Acción: resetear al inicio del siguiente turno ──
+    ActionPoints.reset(state);
+
     // ⚠️ BLOQUEO: No se puede pasar turno si hay eventos sin decidir
     const pending = state.currentEvents || [];
     if (pending.length > 0) {
@@ -246,6 +255,15 @@ const Game = {
     state.turn++;
     if (state.turn % 4 === 1) state.year++;
 
+    // 10b. XP por turno supervivido
+    Progression.awardXP(state, 'turn_survived');
+    // 10c. Degradar salud de rutas bajo ataque
+    Systems.Trade.decayRouteHealth(state);
+    // 10d. Aplicar costes ocultos acumulados
+    HiddenCosts.applyAccumulated(state);
+    // 10e. Cooldowns
+    ActionPoints.tickCooldowns(state);
+
     // 11. Limpiar eventos
     state.currentEvents  = [];
     state.activeEventIndex = null;
@@ -268,6 +286,7 @@ const Game = {
       StoryArcSystem.processPendingChains(state);
     }
     // 16. Mensajes diplomáticos del turno
+    if (typeof UnlockSystem !== "undefined") UnlockSystem.processTurn(state);
     if (typeof DiplomacySystem !== "undefined") {
       DiplomacySystem.generateTurnMessages(state);
     }
@@ -416,8 +435,21 @@ const Game = {
   // ══════════════════════════════════════════════
   // GUERRA CON BATALLA EN MAPA
   // ══════════════════════════════════════════════
+  toggleMilitaryPanel() {
+    const drawer = document.getElementById('military-drawer');
+    const arrow  = document.getElementById('mil-arrow');
+    if (!drawer) return;
+    const hidden = drawer.classList.contains('hidden');
+    drawer.classList.toggle('hidden');
+    if (arrow) arrow.textContent = hidden ? '▲' : '▼';
+    if (!hidden) return;
+    // Render military content when opening
+    if (typeof UI !== 'undefined') UI.renderMilitary(this.state);
+  },
+
   declareWar(nationId) {
     const state  = this.state;
+    if (!ActionPoints.spend(state, 2, "Declarar guerra")) return;
     const nation = state.diplomacy.find(n => n.id === nationId);
     if (!nation) return;
 
@@ -553,6 +585,7 @@ const Game = {
   // MILITAR
   // ══════════════════════════════════════════════
   recruitUnit(typeId, count) {
+    if (!ActionPoints.spend(this.state, 1, 'Reclutar tropas')) return;
     const result = Systems.Military.recruitUnit(this.state, typeId, count);
     if (!result.ok) {
       Systems.Log.add(this.state, '⚠️ ' + result.msg, 'warn');
@@ -580,6 +613,7 @@ const Game = {
   // ESPÍAS
   // ══════════════════════════════════════════════
   sendSpy(missionId, nationId) {
+    if (!ActionPoints.spend(this.state, 1, 'Enviar espía')) return;
     const result = Systems.Spies.sendMission(this.state, missionId, nationId);
     if (!result.ok) Systems.Log.add(this.state, '⚠️ ' + result.msg, 'warn');
     UI.fullRender(this.state);
@@ -602,6 +636,7 @@ const Game = {
   // COMERCIO
   // ══════════════════════════════════════════════
   openTradeRoute(routeId, nationId) {
+    if (!ActionPoints.spend(this.state, 1, 'Abrir ruta comercial')) return;
     const result = Systems.Trade.openRoute(this.state, routeId, nationId);
     if (!result.ok) {
       Systems.Log.add(this.state, '⚠️ ' + result.msg, 'warn');
@@ -636,16 +671,137 @@ const Game = {
     const overlay = document.getElementById('modal-overlay');
     const title   = document.getElementById('modal-title');
     const body    = document.getElementById('modal-body');
+    if (!overlay) return;
     overlay.classList.remove('hidden');
-    if (result.type === 'victory') {
-      title.textContent = '⚔️ Victoria';
+
+    const s = this.state;
+    const isVictory = result.type === 'victory';
+
+    // ── Generar mensajes de las naciones rivales ──
+    const nationMessages = this._generateEndMessages(s, isVictory);
+
+    if (isVictory) {
+      title.innerHTML = '<span style="font-size:2em">⚔️</span><br>¡VICTORIA!';
       title.style.color = 'var(--gold2)';
-      body.innerHTML = `<b>${result.condition.name}</b><br><br>${result.condition.description}<br><br>Has guiado a <em>${this.state.civName}</em> a la gloria en el Año ${this.state.year}.<br>Población final: ${this.state.population.toLocaleString()}.`;
     } else {
-      title.textContent = '💀 Derrota';
+      title.innerHTML = '<span style="font-size:2em">💀</span><br>DERROTA';
       title.style.color = 'var(--red2)';
-      body.innerHTML = `<b>${result.condition.name}</b><br><br>${result.condition.description}<br><br><em>${this.state.civName}</em> cayó en el Año ${this.state.year}.<br>La historia no olvidará tus decisiones.`;
     }
+
+    body.innerHTML = `
+      <div class="end-condition">
+        <b>${result.condition.name}</b>
+        <div>${result.condition.description}</div>
+      </div>
+      <div class="end-stats">
+        <span>🏰 ${s.civName}</span>
+        <span>📅 Año ${s.year}, Turno ${s.turn}</span>
+        <span>👥 ${s.population.toLocaleString()} hab.</span>
+        <span>🗺️ ${s.althoriaRegions || 1} regiones</span>
+      </div>
+      <div class="end-epitaph">
+        ${isVictory
+          ? `<em>"${s.civName} forjó un legado que los siglos recordarán."</em>`
+          : `<em>"La historia no olvidará las decisiones que llevaron a ${s.civName} a su fin."</em>`}
+      </div>
+      <div class="end-messages">
+        <div class="em-header">${isVictory ? '📣 Los otros gobernantes reaccionan:' : '🎺 El mundo comenta tu caída:'}</div>
+        ${nationMessages.map(m => `
+          <div class="end-msg-card">
+            <div class="emc-portrait">${m.portrait}</div>
+            <div class="emc-body">
+              <div class="emc-from">${m.nationIcon} ${m.nationName} — <span class="emc-role">${m.charName}</span></div>
+              <div class="emc-text">"${m.text}"</div>
+            </div>
+          </div>`).join('')}
+      </div>
+    `;
+  },
+
+  _generateEndMessages(state, isVictory) {
+    const diplomacy = state.diplomacy || [];
+    const msgs = [];
+
+    // Mensajes según personalidad y resultado
+    const VICTORY_MSGS = {
+      agresiva: [
+        "Nunca subestimes a alguien que lucha en nombre de su pueblo. Lección aprendida... a nuestra costa.",
+        "Merecido. Yo hubiera hecho lo mismo. O algo peor, sin mentir.",
+        "Bah. Esta derrota es temporal. Regresaré con el doble de ejército. Disfruta mientras puedas.",
+        "¡Maldición! Perdí una fortuna apostando contra ti. Mis respetos, aunque me arruines.",
+        "Mira lo que han logrado. Si hubieran sido mis aliados... ya, ya, demasiado tarde."
+      ],
+      diplomática: [
+        "Una victoria admirable. Me inclino ante vuestra excelencia. Aunque quizás... ¿podríamos hablar de términos de paz duradera?",
+        "Magnifico. Aunque debo confesar que esperaba ganarte yo en diplomacia. Parece que me quedé corto.",
+        "Los dioses os favorecen. Si hubiera sabido que erais tan... decididos, habría enviado más embajadores y menos soldados.",
+        "Habéis reunificado lo que estaba roto. Aunque si me hubieras consultado, habría sugerido algo con menos sangre.",
+        "Felicitaciones. Y dicho esto, ¿el tratado comercial que propuse sigue sobre la mesa?"
+      ],
+      oportunista: [
+        "Sabía que ganarías. Por eso aposte... en fin, los detalles son aburridos. ¡Bienvenido al poder!",
+        "Qué interesante. Había invertido mucho en el bando equivocado. Error mío. Totalmente mío.",
+        "Impresionante. ¿Buscas socios para administrar lo que acabas de conquistar? Tengo experiencia.",
+        "Lo vi venir desde el principio. Claro. Totalmente desde el principio. No desde ayer por la noche. Claro.",
+        "Eres peligroso. Me gusta eso. Casi tanto como me asusta."
+      ]
+    };
+
+    const DEFEAT_MSGS = {
+      agresiva: [
+        "¡JA! ¡Al fin! ¡He esperado esto tanto tiempo! Bueno, no TANTO tiempo... pero lo he disfrutado mucho.",
+        "Vaya. Creí que durarías más. Aunque al menos caíste como un guerrero. Aproximadamente.",
+        "El destino del débil es caer. Aunque entre nosotros, nadie esperaba que cayeras tan pronto.",
+        "No me alegra verte así. Es mentira. Sí me alegra. Bastante.",
+        "El campo de batalla no perdona. ¿Alguien me ayuda a recoger este territorio abandonado?"
+      ],
+      diplomática: [
+        "Oh, qué tragedia. Te advertí que la diplomacia era el camino. Ahora ya es tarde. Lo lamento sinceramente. Casi.",
+        "Si hubieras aceptado mi propuesta de alianza en el turno tres... pero no, demasiado orgulloso.",
+        "Querido colega: esto es lo que pasa cuando no escuchas los consejos de quienes saben más. Es decir, yo.",
+        "Lamentable final. Aunque si te sirve de consuelo, los anales de la historia te dedicarán... media página.",
+        "He enviado mis condolencias a tu pueblo. Y también una oferta para administrar tus territorios. Era lo correcto."
+      ],
+      oportunista: [
+        "Mmmm. Inesperado. Para ti. Para mí era estadísticamente probable desde el turno doce.",
+        "No te preocupes. El poder es circular. Caerás ahora... y yo subiré. Luego tú subirás... bueno, quizás no tanto tú.",
+        "Tengo buenas noticias y malas noticias. Las malas: ya sabes cuáles son. Las buenas: tu caída crea oportunidades.",
+        "¿Qué puedo decir? El que no arriesga no gana. Y el que arriesga mal tampoco.",
+        "Esto me entristece profundamente. Bueno, las palabras son baratas. En realidad estoy tomando nota de qué fronteras quedan libres."
+      ]
+    };
+
+    diplomacy.forEach((nation, i) => {
+      const p     = nation.personality || 'oportunista';
+      const pool  = isVictory ? (VICTORY_MSGS[p] || VICTORY_MSGS.oportunista) : (DEFEAT_MSGS[p] || DEFEAT_MSGS.oportunista);
+      const seed  = (state.mapSeed || 42) + i * 37 + (isVictory ? 0 : 999);
+      const idx   = seed % pool.length;
+      const char  = nation.character || { name: 'Embajador', role: 'Enviado', portrait: '📜' };
+
+      msgs.push({
+        nationIcon: nation.icon || '🏰',
+        nationName: nation.name,
+        charName:   char.name + ', ' + char.role,
+        portrait:   char.portrait,
+        text:       pool[idx],
+        personality: p
+      });
+    });
+
+    // Si hay menos de 2, añadir voz del narrador
+    if (msgs.length === 0) {
+      msgs.push({
+        nationIcon: '📜',
+        nationName: 'Los Cronistas',
+        charName:   'Historiador Real',
+        portrait:   '✍️',
+        text: isVictory
+          ? 'Los archivos registran esta victoria para la eternidad. Que sea ejemplo para las generaciones venideras.'
+          : 'Los archivos registran esta caída con sobria tristeza. Que sirva de lección a los que vengan después.'
+      });
+    }
+
+    return msgs;
   }
 };
 
