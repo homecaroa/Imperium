@@ -259,30 +259,65 @@ const AI = {
         break;
 
       case 'demand_tribute': {
-        // Bug fix: cooldown de 10 turnos por nación
-        const lastTribTurn = nation._lastTributeTurn || 0;
-        const tributeCooldown = 10;
-        if (state.turn - lastTribTurn < tributeCooldown) {
-          Systems.Log.add(state, `${nation.name} ya pagó tributo recientemente. Espera ${tributeCooldown - (state.turn - lastTribTurn)} turno(s).`, 'warn');
+        // Cooldown de 15 turnos, máximo 3 veces por nación, consecuencias severas
+        const lastTribTurn    = nation._lastTributeTurn || 0;
+        const tributeCount    = nation._tributeCount || 0;
+        const TRIB_COOLDOWN   = 15;
+        const TRIB_MAX        = 3;
+
+        if (nation.atWar) {
+          Systems.Log.add(state, `No puedes pedir tributo mientras hay guerra con ${nation.name}.`, 'warn');
           break;
         }
-        if (nation.relation < 0 && state.army > 400) {
-          const success = Math.random() < (state.army / 1000);
-          if (success) {
-            const amount = 100 + Math.floor(Math.random() * 150);
-            state.resources.gold += amount;
-            nation.relation -= 30;
-            nation._lastTributeTurn = state.turn;
-            Systems.Log.add(state, `${nation.name} paga ${amount} oro en tributo. Humillados.`, 'good');
-          } else {
-            nation.relation -= 20;
-            nation.atWar = true;
-            Systems.Log.add(state, `${nation.name} rechaza el tributo y declara guerra.`, 'crisis');
+        if (tributeCount >= TRIB_MAX) {
+          Systems.Log.add(state, `${nation.name} ya no soportará más exigencias de tributo. Han llegado al límite.`, 'warn');
+          break;
+        }
+        const cooldownLeft = TRIB_COOLDOWN - (state.turn - lastTribTurn);
+        if (cooldownLeft > 0) {
+          Systems.Log.add(state, `${nation.name} no puede pagar aún. Quedan ${cooldownLeft} turno(s) de tregua.`, 'warn');
+          break;
+        }
+        if (nation.relation >= -10) {
+          Systems.Log.add(state, `Las relaciones con ${nation.name} no son lo bastante tensas para exigir tributo (necesitas rel < -10).`, 'warn');
+          break;
+        }
+        if (state.army < 400) {
+          Systems.Log.add(state, `Tu ejército es demasiado pequeño para intimidar a ${nation.name}. Necesitas al menos 400 soldados.`, 'warn');
+          break;
+        }
+
+        // Probabilidad: ejército propio vs rival, máx 75%
+        const playerStr   = Systems.Military.calculateEffectiveStrength(state);
+        const defenderStr = nation.army * (0.8 + Math.random() * 0.4);
+        const successChance = Math.min(0.75, Math.max(0.1, playerStr / (playerStr + defenderStr)));
+        const success = Math.random() < successChance;
+
+        if (success) {
+          // Tributo exitoso — cantidad basada en la relación de fuerzas
+          const baseAmount  = 80 + Math.floor(successChance * 200);
+          const amount      = baseAmount + Math.floor(Math.random() * 80);
+          state.resources.gold  += amount;
+          nation.relation        = Math.max(-100, nation.relation - 40);
+          nation._lastTributeTurn = state.turn;
+          nation._tributeCount   = tributeCount + 1;
+          // Consecuencias: estabilidad baja (extorsión daña imagen), facción pueblo descontenta
+          state.stability = Math.max(0, state.stability - 3);
+          const pueblo = (state.factions||[]).find(f=>f.id==='pueblo');
+          if (pueblo) pueblo.satisfaction = Math.max(0, pueblo.satisfaction - 8);
+          const remaining = TRIB_MAX - (tributeCount + 1);
+          var tributeMsg = '⛏️ ' + nation.name + ' paga ' + amount + ' de oro en tributo. Humillados (' + (remaining > 1 ? remaining + ' veces mas' : 'ultima vez') + ').';
+          Systems.Log.add(state, tributeMsg, 'good');
+          if (tributeCount + 1 >= TRIB_MAX) {
+            Systems.Log.add(state, `⚠️ ${nation.name} no tolerará más tributos. Próxima exigencia declarará guerra.`, 'warn');
           }
-        } else if (nation.atWar) {
-          Systems.Log.add(state, `No puedes pedir tributo a una nación en guerra activa.`, 'warn');
         } else {
-          Systems.Log.add(state, `Las relaciones con ${nation.name} son demasiado buenas para exigir tributo.`, 'warn');
+          // Fracaso — guerra inevitable
+          nation.relation = Math.max(-100, nation.relation - 25);
+          nation.atWar    = true;
+          state.morale    = Math.max(0, state.morale - 5);
+          Systems.Log.add(state, `💀 ${nation.name} rechaza el tributo con ira. ¡Declara la guerra!`, 'crisis');
+          if (typeof BattleSystem !== 'undefined') BattleSystem.initBattle(state, nation);
         }
         break;
       }

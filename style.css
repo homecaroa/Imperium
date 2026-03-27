@@ -345,7 +345,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 /* ══════════════════════════════════════════════════
    MAIN BODY — 2 columnas: mapa grande + panel derecho
    ══════════════════════════════════════════════════ */
-#main-body { display: grid; grid-template-columns: 1fr 480px; flex: 1; overflow: hidden; min-height: 0; }
+#main-body { display: grid; grid-template-columns: 1fr 44%; flex: 1; overflow: hidden; min-height: 0; }
 
 /* ══════════════════════════════════════════════════
    MAPA AREA
@@ -388,7 +388,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 #right-panel { display: flex; flex-direction: column; background: var(--panel); overflow: hidden; min-height: 0; }
 
 /* DECISIÓN */
-#decision-area { flex-shrink: 0; max-height: 45%; overflow-y: auto; border-bottom: 1px solid var(--border2); }
+#decision-area { flex-shrink: 0; max-height: 40%; overflow-y: auto; border-bottom: 1px solid var(--border2); }
 .decision-card { padding: 10px 12px; }
 .decision-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
 .decision-icon { font-size: 18px; }
@@ -417,12 +417,12 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 
 /* TABS DE GESTIÓN */
 .panel-tabs { display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0; background: var(--bg); }
-.ptab { flex: 1; background: transparent; border: none; border-right: 1px solid var(--border); color: var(--text3); font-size: 14px; padding: 7px 4px; cursor: pointer; transition: all 0.15s; }
+.ptab { flex: 1; background: transparent; border: none; border-right: 1px solid var(--border); color: var(--text3); font-size: 20px; padding: 11px 4px; cursor: pointer; transition: all 0.15s; }
 .ptab:last-child { border-right: none; }
 .ptab:hover { color: var(--text); background: rgba(255,255,255,0.03); }
 .ptab.active { background: rgba(200,160,48,0.08); box-shadow: inset 0 -2px 0 var(--gold); }
 .tab-labels { display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0; }
-.tab-labels span { flex: 1; text-align: center; font-family: var(--font-mono); font-size: 8px; color: var(--text3); padding: 2px 0; border-right: 1px solid var(--border); }
+.tab-labels span { flex: 1; text-align: center; font-family: var(--font-mono); font-size: 11px; color: var(--text3); padding: 4px 0; border-right: 1px solid var(--border); }
 .tab-labels span:last-child { border-right: none; }
 
 .rtab-content { display: none; flex: 1; overflow-y: auto; }
@@ -431,10 +431,10 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 /* ══════════════════════════════════════════════════
    PANEL SECTIONS (común a todos los tabs)
    ══════════════════════════════════════════════════ */
-.rpanel-section { margin-bottom: 12px; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.rpanel-section { margin-bottom: 16px; padding: 14px 18px; border-bottom: 1px solid var(--border); }
 .rpanel-section:last-child { border-bottom: none; }
-.rpanel-title { font-family: var(--font-title); font-size: 12px; color: var(--gold); letter-spacing: 1px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
-.stat-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; font-family: var(--font-mono); font-size: 11px; }
+.rpanel-title { font-family: var(--font-title); font-size: 15px; color: var(--gold); letter-spacing: 1px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+.stat-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 9px; font-family: var(--font-mono); font-size: 14px; }
 .stat-row-label { color: var(--text2); }
 .stat-row-val { color: var(--bright); }
 .bar-wrap { margin-bottom: 7px; }
@@ -447,12 +447,12 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 .bar-fill.blue { background: var(--blue2); }
 
 /* Botones de panel */
-.policy-btn { width: 100%; background: var(--bg4); border: 1px solid var(--border); color: var(--text2); font-family: var(--font-mono); font-size: 10px; padding: 6px 10px; text-align: left; cursor: pointer; margin-bottom: 5px; transition: all 0.15s; display: flex; justify-content: space-between; align-items: center; }
+.policy-btn { width: 100%; background: var(--bg4); border: 1px solid var(--border); color: var(--text2); font-family: var(--font-mono); font-size: 13px; padding: 11px 14px; text-align: left; cursor: pointer; margin-bottom: 7px; transition: all 0.15s; display: flex; justify-content: space-between; align-items: center; }
 .policy-btn:hover { border-color: var(--gold); color: var(--bright); }
 .policy-btn.active { border-color: var(--green2); color: var(--green2); background: rgba(90,144,48,0.1); }
 .policy-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .policy-cost { font-size: 9px; color: var(--text3); }
-.diplo-btn { font-family: var(--font-mono); font-size: 10px; padding: 4px 7px; background: transparent; border: 1px solid var(--border2); color: var(--text2); cursor: pointer; transition: all 0.15s; }
+.diplo-btn { font-family: var(--font-mono); font-size: 12px; padding: 7px 12px; background: transparent; border: 1px solid var(--border2); color: var(--text2); cursor: pointer; transition: all 0.15s; }
 .diplo-btn:hover { border-color: var(--gold); color: var(--gold); }
 .diplo-btn.danger { border-color: var(--red); color: #e87070; }
 .diplo-btn.danger:hover { background: rgba(200,48,48,0.1); }
@@ -460,10 +460,10 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 /* Facciones */
 .faction-card { background: var(--bg4); border: 1px solid var(--border); padding: 9px 11px; margin-bottom: 7px; }
 .faction-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
-.faction-name { font-family: var(--font-title); font-size: 12px; color: var(--gold); }
-.faction-power { font-family: var(--font-mono); font-size: 10px; color: var(--text3); }
-.faction-mood { font-size: 11px; color: var(--text3); font-style: italic; margin-top: 3px; }
-.faction-demand { font-family: var(--font-mono); font-size: 10px; color: #c8a060; margin-top: 4px; }
+.faction-name { font-family: var(--font-title); font-size: 14px; color: var(--gold); }
+.faction-power { font-family: var(--font-mono); font-size: 12px; color: var(--text3); }
+.faction-mood { font-size: 13px; color: var(--text3); font-style: italic; margin-top: 4px; }
+.faction-demand { font-family: var(--font-mono); font-size: 12px; color: #c8a060; margin-top: 5px; }
 
 /* Alertas */
 .alert-box { padding: 6px 10px; margin-bottom: 7px; font-family: var(--font-mono); font-size: 10px; line-height: 1.5; border-left: 3px solid; }
@@ -473,17 +473,17 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 .alert-box.good   { border-color: var(--green2); background: rgba(90,144,48,0.07); color: var(--green2); }
 
 /* Militar */
-.mil-unit-row { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 11px; padding: 4px 0; border-bottom: 1px solid var(--border); color: var(--text2); }
+.mil-unit-row { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 14px; padding: 9px 0; border-bottom: 1px solid var(--border); color: var(--text2); }
 .mil-unit-row:last-child { border-bottom: none; }
 .gov-badge { display: inline-block; font-family: var(--font-title); font-size: 11px; color: var(--gold3); background: rgba(200,160,48,0.1); border: 1px solid var(--gold); padding: 2px 8px; letter-spacing: 1px; }
-.diplo-nation { background: var(--bg4); border: 1px solid var(--border); padding: 10px; margin-bottom: 7px; }
+.diplo-nation { background: var(--bg4); border: 1px solid var(--border); padding: 14px; margin-bottom: 9px; }
 .diplo-name { font-family: var(--font-title); font-size: 13px; color: var(--gold); margin-bottom: 3px; }
-.diplo-rel { font-family: var(--font-mono); font-size: 11px; margin-bottom: 6px; }
+.diplo-rel { font-family: var(--font-mono); font-size: 13px; margin-bottom: 7px; }
 .diplo-actions { display: flex; gap: 5px; flex-wrap: wrap; }
 .climate-indicator { text-align: center; padding: 14px; }
 .climate-icon { font-size: 40px; display: block; margin-bottom: 6px; }
 .climate-name { font-family: var(--font-title); font-size: 14px; color: var(--gold); }
-.climate-desc { font-family: var(--font-mono); font-size: 10px; color: var(--text3); margin-top: 3px; }
+.climate-desc { font-family: var(--font-mono); font-size: 12px; color: var(--text3); margin-top: 4px; }
 
 /* Log */
 .log-header { font-family: var(--font-mono); font-size: 10px; color: var(--text3); padding: 6px 10px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--panel); letter-spacing: 1px; }
@@ -547,10 +547,10 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 .spending-item { background: var(--bg4); border: 1px solid var(--border); padding: 9px 11px; margin-bottom: 7px; cursor: pointer; transition: border-color 0.15s; }
 .spending-item:hover { border-color: var(--gold); }
 .spending-item.active { border-color: var(--green2); background: rgba(90,144,48,0.08); }
-.spending-name { font-family: var(--font-title); font-size: 12px; color: var(--gold); margin-bottom: 3px; }
-.spending-cost { font-family: var(--font-mono); font-size: 10px; color: var(--text3); margin-bottom: 4px; }
-.spending-effects { font-family: var(--font-mono); font-size: 10px; color: var(--text2); line-height: 1.5; }
-.spending-reaction { font-family: var(--font-body); font-size: 11px; color: var(--text3); font-style: italic; margin-top: 4px; }
+.spending-name { font-family: var(--font-title); font-size: 14px; color: var(--gold); margin-bottom: 4px; }
+.spending-cost { font-family: var(--font-mono); font-size: 12px; color: var(--text3); margin-bottom: 5px; }
+.spending-effects { font-family: var(--font-mono); font-size: 12px; color: var(--text2); line-height: 1.6; }
+.spending-reaction { font-family: var(--font-body); font-size: 13px; color: var(--text3); font-style: italic; margin-top: 5px; }
 
 /* ══════════════════════════════════════════════════
    UTILIDADES
@@ -776,17 +776,17 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 .formation-row:hover { border-left-color: var(--gold); }
 .formation-label {
   display: flex; align-items: center; gap: 6px;
-  font-family: var(--font-mono); font-size: 10px; margin-bottom: 3px;
+  font-family: var(--font-mono); font-size: 12px; margin-bottom: 4px;
 }
-.fl-icon { font-size: 14px; flex-shrink: 0; }
+.fl-icon { font-size: 16px; flex-shrink: 0; }
 .fl-name { color: var(--text2); flex: 1; }
-.fl-count { color: var(--gold2); font-weight: bold; }
+.fl-count { color: var(--gold2); font-weight: bold; font-size: 13px; }
 .formation-bar {
   height: 3px; background: rgba(255,255,255,0.06); border-radius: 1px; margin-bottom: 4px;
 }
 .formation-fill { height: 100%; border-radius: 1px; transition: width 0.4s ease; }
 .formation-sprites {
-  font-size: 11px; line-height: 1.2; color: rgba(255,255,255,0.7);
+  font-size: 13px; line-height: 1.3; color: rgba(255,255,255,0.7);
   word-break: break-all; letter-spacing: 1px;
 }
 .formation-empty { font-family: var(--font-mono); font-size: 10px; color: var(--text3); padding: 12px; text-align: center; }
@@ -804,10 +804,10 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 }
 .fstat {
   flex: 1; display: flex; flex-direction: column; align-items: center;
-  padding: 5px 8px; background: var(--bg3); border: 1px solid var(--border);
-  font-family: var(--font-mono); font-size: 10px; color: var(--text3); gap: 2px;
+  padding: 7px 10px; background: var(--bg3); border: 1px solid var(--border);
+  font-family: var(--font-mono); font-size: 11px; color: var(--text3); gap: 3px;
 }
-.fstat b { font-size: 13px; color: var(--text); }
+.fstat b { font-size: 15px; color: var(--text); }
 
 /* ═══════════════════════════════════════
    DEPLOY UNITS IN ALTHORIA
@@ -845,7 +845,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 
 /* 1400px — ajuste general */
 @media (max-width: 1400px) {
-  #main-body { grid-template-columns: 1fr 420px; }
+  #main-body { grid-template-columns: 1fr 42%; }
   .res-group { gap: 3px; }
   .resource-block { padding: 3px 6px; min-width: 56px; }
   .res-val { font-size: 12px; }
@@ -854,7 +854,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 
 /* 1200px — comprimir más */
 @media (max-width: 1200px) {
-  #main-body { grid-template-columns: 1fr 380px; }
+  #main-body { grid-template-columns: 1fr 400px; }
   #top-bar { padding: 4px 8px; gap: 4px; }
   .resource-block { padding: 3px 5px; min-width: 50px; }
   .res-icon { font-size: 13px; }
@@ -873,7 +873,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 
 /* 1024px — layout comprimido */
 @media (max-width: 1024px) {
-  #main-body { grid-template-columns: 1fr 340px; }
+  #main-body { grid-template-columns: 1fr 360px; }
   .resource-block { min-width: 44px; padding: 2px 4px; }
   .res-delta { display: none; }
   .stat-pills { margin-left: 4px; }
@@ -928,22 +928,22 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
   border-bottom: 1px solid var(--border);
 }
 .nation-portrait {
-  width: 52px; height: 52px; flex-shrink: 0;
-  background: var(--bg3); border: 1px solid var(--border2);
+  width: 72px; height: 72px; flex-shrink: 0;
+  background: var(--bg3); border: 2px solid var(--border2);
   display: flex; align-items: center; justify-content: center;
-  font-size: 26px; border-radius: 2px;
+  font-size: 34px; border-radius: 3px;
 }
 .dnc-info { flex: 1; min-width: 0; }
-.dnc-name { font-family: var(--font-title); font-size: 13px; color: var(--gold2); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.dnc-char { font-family: var(--font-mono); font-size: 10px; color: var(--text); margin-top: 2px; }
+.dnc-name { font-family: var(--font-title); font-size: 16px; color: var(--gold2); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.dnc-char { font-family: var(--font-mono); font-size: 12px; color: var(--text); margin-top: 3px; }
 .dnc-role { color: var(--text3); }
 
 .war-badge { font-size: 9px; color: var(--red2); background: rgba(200,48,48,0.15); padding: 1px 5px; border: 1px solid var(--red2); border-radius: 2px; }
 .diplo-inbox-badge { background: var(--gold); color: #000; font-size: 9px; padding: 1px 5px; border-radius: 10px; font-family: var(--font-mono); }
 
 .dnc-section { padding: 6px 12px; border-bottom: 1px solid rgba(58,44,24,0.4); }
-.dnc-row { font-family: var(--font-mono); font-size: 10px; color: var(--text2); margin: 2px 0; }
-.dnc-label { font-family: var(--font-mono); font-size: 9px; color: var(--gold); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+.dnc-row { font-family: var(--font-mono); font-size: 12px; color: var(--text2); margin: 3px 0; }
+.dnc-label { font-family: var(--font-mono); font-size: 11px; color: var(--gold); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 5px; }
 .dnc-gov { margin-top: 3px; }
 
 .diplo-rel-bar { height: 4px; background: rgba(255,255,255,0.07); border-radius: 2px; margin-top: 4px; overflow: hidden; }
@@ -953,7 +953,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 .diplo-route-tag { font-family: var(--font-mono); font-size: 9px; color: var(--gold); background: rgba(200,160,48,0.1); padding: 2px 6px; border: 1px solid var(--border2); }
 
 .dnc-actions { display: flex; flex-wrap: wrap; gap: 5px; padding: 8px 12px; background: rgba(0,0,0,0.15); }
-.diplo-btn { background: var(--bg3); border: 1px solid var(--border); color: var(--text2); font-family: var(--font-mono); font-size: 10px; padding: 4px 9px; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+.diplo-btn { background: var(--bg3); border: 1px solid var(--border); color: var(--text2); font-family: var(--font-mono); font-size: 13px; padding: 8px 14px; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
 .diplo-btn:hover { border-color: var(--gold); color: var(--gold2); }
 .diplo-btn.primary { border-color: var(--green); color: var(--green2); background: rgba(58,96,32,0.15); }
 .diplo-btn.primary:hover { background: rgba(58,96,32,0.3); }
