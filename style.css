@@ -316,7 +316,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 /* ══════════════════════════════════════════════════
    TOP BAR
    ══════════════════════════════════════════════════ */
-#top-bar { display: flex; align-items: center; gap: 4px; padding: 4px 8px; background: var(--bg3); border-bottom: 2px solid var(--border2); flex-shrink: 0; flex-wrap: nowrap; overflow-x: auto; min-height: 40px; }
+/* [moved to layout block] */
 .res-group { display: flex; gap: 5px; flex-wrap: wrap; }
 .resource-block { display: flex; align-items: center; gap: 4px; background: var(--bg4); border: 1px solid var(--border); padding: 4px 8px; min-width: 64px; }
 .res-icon { font-size: 14px; }
@@ -340,17 +340,17 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 /* ══════════════════════════════════════════════════
    MAIN BODY — 2 columnas: mapa grande + panel derecho
    ══════════════════════════════════════════════════ */
-#main-body { display: grid; grid-template-columns: 220px 1fr; flex: 1; overflow: hidden; min-height: 0; }
+/* [moved to layout block] */
 
 /* ══════════════════════════════════════════════════
    MAPA AREA
    ══════════════════════════════════════════════════ */
-#map-area { display: flex; flex-direction: column; background: var(--bg2); border-right: 2px solid var(--border2); overflow: hidden; min-width: 0; }
+/* [moved to layout block] */
 
-.map-tabs { display: flex; align-items: center; border-bottom: 1px solid var(--border); background: var(--panel); flex-shrink: 0; }
-.mtab { flex: 0 0 auto; background: transparent; border: none; border-right: 1px solid var(--border); color: var(--text3); font-family: var(--font-mono); font-size: 10px; padding: 7px 12px; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
-.mtab:hover { color: var(--text); background: rgba(255,255,255,0.03); }
-.mtab.active { color: var(--gold2); background: rgba(200,160,48,0.06); }
+/* [moved to layout block] */
+/* [moved to layout block] */
+/* [moved to layout block] */
+/* [moved to layout block] */
 .map-tab-right { margin-left: auto; padding-right: 10px; }
 .seed-label { font-family: var(--font-mono); font-size: 9px; color: var(--text3); }
 
@@ -365,7 +365,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 .leg-dot { width: 10px; height: 10px; border-radius: 50%; }
 
 /* AGENDA DE TURNO — barra compacta */
-#agenda-bar { flex-shrink: 0; background: var(--panel); border-top: 2px solid var(--border2); }
+/* [moved to layout block] */
 #agenda-header { display: flex; align-items: center; gap: 8px; padding: 5px 10px; font-family: var(--font-mono); font-size: 10px; color: var(--text3); border-bottom: 1px solid var(--border); }
 .badge { background: var(--red2); color: white; font-size: 9px; padding: 1px 5px; border-radius: 10px; font-family: var(--font-mono); }
 .agenda-warn { font-family: var(--font-mono); font-size: 10px; color: #e87070; margin-left: auto; animation: pulse 1.2s ease-in-out infinite; }
@@ -380,7 +380,127 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 /* ══════════════════════════════════════════════════
    PANEL DERECHO — 420px fijo
    ══════════════════════════════════════════════════ */
-#right-panel { display: flex; flex-direction: column; background: var(--panel); overflow: hidden; min-height: 0; flex: 1; }
+/* [moved to layout block] */
+
+/* ═══════════════════════════════════════════════════
+   LAYOUT PRINCIPAL — panel derecho 40% protagonista
+   ═══════════════════════════════════════════════════ */
+
+/* screen-game usa flex column: top-bar fijo + main-body flexible */
+#screen-game { display: flex; flex-direction: column; }
+#top-bar {
+  display: flex; align-items: center; gap: 4px;
+  padding: 4px 10px; background: var(--bg3);
+  border-bottom: 2px solid var(--border2);
+  flex-shrink: 0; flex-wrap: nowrap;
+  overflow-x: auto; min-height: 42px; max-height: 52px;
+  scrollbar-width: none;
+}
+#top-bar::-webkit-scrollbar { display: none; }
+
+/* main-body: columna izquierda (60%) + panel derecho (40%) */
+#main-body {
+  display: flex; flex: 1; overflow: hidden; min-height: 0;
+}
+#map-area {
+  flex: 3;                        /* 60% */
+  min-width: 160px; max-width: 65%;
+  display: flex; flex-direction: column;
+  background: var(--bg2); border-right: 2px solid var(--border2);
+  overflow: hidden;
+}
+#right-panel {
+  flex: 2;                        /* 40% */
+  min-width: 320px; max-width: 45%;
+  display: flex; flex-direction: column;
+  background: var(--panel); overflow: hidden;
+}
+
+/* tabs del panel derecho — bien dimensionados */
+.panel-tabs {
+  display: flex; flex-wrap: nowrap; gap: 0;
+  background: var(--bg3); border-bottom: 2px solid var(--border2);
+  flex-shrink: 0; overflow-x: auto; scrollbar-width: none;
+}
+.panel-tabs::-webkit-scrollbar { display: none; }
+.ptab {
+  flex: 1; min-width: 38px; height: 42px;
+  background: transparent; border: none;
+  border-right: 1px solid var(--border);
+  color: var(--text3); font-size: 18px;
+  cursor: pointer; transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+}
+.ptab:hover  { background: rgba(200,160,48,0.10); color: var(--gold);  }
+.ptab.active { background: rgba(200,160,48,0.18); color: var(--gold2);
+               box-shadow: inset 0 -3px 0 var(--gold2); }
+
+/* contenido de tabs — rellena toda la altura */
+.rtab-content { display: none; overflow: hidden; }
+.rtab-content.active {
+  display: flex; flex-direction: column;
+  flex: 1; overflow-y: auto; min-height: 0;
+}
+
+/* secciones del panel — más aire */
+.rpanel-section {
+  padding: 14px 18px; border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.rpanel-section:last-child { border-bottom: none; }
+.rpanel-title {
+  font-family: var(--font-title); font-size: 14px;
+  color: var(--gold); letter-spacing: 1px;
+  margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+}
+
+/* columna izquierda: tabs del mapa */
+.map-tabs {
+  display: flex; flex-shrink: 0;
+  border-bottom: 1px solid var(--border2);
+}
+.mtab {
+  flex: 1; padding: 6px 4px; font-size: 10px;
+  background: var(--bg3); border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text3); cursor: pointer;
+  transition: all 0.15s; white-space: nowrap;
+}
+.mtab:hover  { color: var(--gold); }
+.mtab.active { border-bottom-color: var(--gold); color: var(--gold2); background: var(--bg4); }
+
+/* ejército desplegable */
+.military-drawer { border-top: 1px solid var(--border2); overflow-y: auto; max-height: 45vh; flex-shrink: 0; }
+.military-drawer.hidden { display: none; }
+
+/* agenda siempre visible */
+#agenda-bar {
+  flex-shrink: 0; border-top: 1px solid var(--border2);
+  overflow-y: auto; max-height: 35vh;
+}
+
+/* facciones scroll */
+#mtab-factions { flex: 1; overflow-y: auto; }
+
+/* ── responsive ── */
+@media (max-width: 1400px) {
+  .rpanel-section { padding: 10px 14px; }
+  .rpanel-title { font-size: 13px; }
+}
+@media (max-width: 1100px) {
+  #map-area { min-width: 140px; }
+  .rpanel-section { padding: 8px 10px; }
+  .rpanel-title { font-size: 12px; }
+  .ptab { height: 36px; font-size: 15px; min-width: 32px; }
+}
+@media (max-width: 850px) {
+  #main-body { flex-direction: column; }
+  #map-area  { flex: none; width: 100%; max-width: 100%; height: 30vh; border-right: none; border-bottom: 2px solid var(--border2); }
+  #right-panel { flex: 1; min-width: 0; max-width: 100%; }
+  #top-bar .res-delta { display: none; }
+}
+
 
 /* DECISIÓN */
 #decision-area { flex-shrink: 0; max-height: 40%; overflow-y: auto; border-bottom: 1px solid var(--border2); }
@@ -420,8 +540,8 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 .tab-labels span { flex: 1; text-align: center; font-family: var(--font-mono); font-size: 11px; color: var(--text3); padding: 4px 0; border-right: 1px solid var(--border); }
 .tab-labels span:last-child { border-right: none; }
 
-.rtab-content { display: none; flex: 1; overflow-y: auto; }
-.rtab-content.active { display: block; }
+.rtab-content { display: none; overflow: hidden; }
+.rtab-content.active { display: flex; flex-direction: column; flex: 1; overflow-y: auto; }
 
 /* ══════════════════════════════════════════════════
    PANEL SECTIONS (común a todos los tabs)
@@ -840,7 +960,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 
 /* 1400px — ajuste general */
 @media (max-width: 1400px) {
-  #main-body { display: grid; grid-template-columns: 220px 1fr; flex: 1; overflow: hidden; min-height: 0; }
+  #main-body { display: flex; flex-direction: row; flex: 1; overflow: hidden; min-height: 0; }
   .res-group { gap: 3px; }
   .resource-block { padding: 3px 6px; min-width: 56px; }
   .res-val { font-size: 12px; }
@@ -849,7 +969,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 
 /* 1200px — comprimir más */
 @media (max-width: 1200px) {
-  #main-body { display: grid; grid-template-columns: 220px 1fr; flex: 1; overflow: hidden; min-height: 0; }
+  #main-body { display: flex; flex-direction: row; flex: 1; overflow: hidden; min-height: 0; }
   #top-bar { display: flex; align-items: center; gap: 4px; padding: 4px 8px; background: var(--bg3); border-bottom: 2px solid var(--border2); flex-shrink: 0; flex-wrap: nowrap; overflow-x: auto; min-height: 40px; }
   .resource-block { padding: 3px 5px; min-width: 50px; }
   .res-icon { font-size: 13px; }
@@ -868,7 +988,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 
 /* 1024px — layout comprimido */
 @media (max-width: 1024px) {
-  #main-body { display: grid; grid-template-columns: 220px 1fr; flex: 1; overflow: hidden; min-height: 0; }
+  #main-body { display: flex; flex-direction: row; flex: 1; overflow: hidden; min-height: 0; }
   .resource-block { min-width: 44px; padding: 2px 4px; }
   .res-delta { display: none; }
   .stat-pills { margin-left: 4px; }
@@ -884,9 +1004,129 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 
 /* 800px — mobile/tablet portrait */
 @media (max-width: 800px) {
-  #main-body { display: grid; grid-template-columns: 220px 1fr; flex: 1; overflow: hidden; min-height: 0; }
-  #map-area { display: flex; flex-direction: column; background: var(--bg2); border-right: 2px solid var(--border2); overflow: hidden; min-width: 0; } /* ocultar mapa de facciones en móvil */
-  #right-panel { display: flex; flex-direction: column; background: var(--panel); overflow: hidden; min-height: 0; flex: 1; }
+  #main-body { display: flex; flex-direction: row; flex: 1; overflow: hidden; min-height: 0; }
+  #map-area { width: 240px; flex-shrink: 0; display: flex; flex-direction: column; background: var(--bg2); border-right: 2px solid var(--border2); overflow: hidden; } /* ocultar mapa de facciones en móvil */
+  #right-panel { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--panel); overflow: hidden; }
+
+/* ═══════════════════════════════════════════════════
+   LAYOUT PRINCIPAL — panel derecho 40% protagonista
+   ═══════════════════════════════════════════════════ */
+
+/* screen-game usa flex column: top-bar fijo + main-body flexible */
+#screen-game { display: flex; flex-direction: column; }
+#top-bar {
+  display: flex; align-items: center; gap: 4px;
+  padding: 4px 10px; background: var(--bg3);
+  border-bottom: 2px solid var(--border2);
+  flex-shrink: 0; flex-wrap: nowrap;
+  overflow-x: auto; min-height: 42px; max-height: 52px;
+  scrollbar-width: none;
+}
+#top-bar::-webkit-scrollbar { display: none; }
+
+/* main-body: columna izquierda (60%) + panel derecho (40%) */
+#main-body {
+  display: flex; flex: 1; overflow: hidden; min-height: 0;
+}
+#map-area {
+  flex: 3;                        /* 60% */
+  min-width: 160px; max-width: 65%;
+  display: flex; flex-direction: column;
+  background: var(--bg2); border-right: 2px solid var(--border2);
+  overflow: hidden;
+}
+#right-panel {
+  flex: 2;                        /* 40% */
+  min-width: 320px; max-width: 45%;
+  display: flex; flex-direction: column;
+  background: var(--panel); overflow: hidden;
+}
+
+/* tabs del panel derecho — bien dimensionados */
+.panel-tabs {
+  display: flex; flex-wrap: nowrap; gap: 0;
+  background: var(--bg3); border-bottom: 2px solid var(--border2);
+  flex-shrink: 0; overflow-x: auto; scrollbar-width: none;
+}
+.panel-tabs::-webkit-scrollbar { display: none; }
+.ptab {
+  flex: 1; min-width: 38px; height: 42px;
+  background: transparent; border: none;
+  border-right: 1px solid var(--border);
+  color: var(--text3); font-size: 18px;
+  cursor: pointer; transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+}
+.ptab:hover  { background: rgba(200,160,48,0.10); color: var(--gold);  }
+.ptab.active { background: rgba(200,160,48,0.18); color: var(--gold2);
+               box-shadow: inset 0 -3px 0 var(--gold2); }
+
+/* contenido de tabs — rellena toda la altura */
+.rtab-content { display: none; overflow: hidden; }
+.rtab-content.active {
+  display: flex; flex-direction: column;
+  flex: 1; overflow-y: auto; min-height: 0;
+}
+
+/* secciones del panel — más aire */
+.rpanel-section {
+  padding: 14px 18px; border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.rpanel-section:last-child { border-bottom: none; }
+.rpanel-title {
+  font-family: var(--font-title); font-size: 14px;
+  color: var(--gold); letter-spacing: 1px;
+  margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+}
+
+/* columna izquierda: tabs del mapa */
+.map-tabs {
+  display: flex; flex-shrink: 0;
+  border-bottom: 1px solid var(--border2);
+}
+.mtab {
+  flex: 1; padding: 6px 4px; font-size: 10px;
+  background: var(--bg3); border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text3); cursor: pointer;
+  transition: all 0.15s; white-space: nowrap;
+}
+.mtab:hover  { color: var(--gold); }
+.mtab.active { border-bottom-color: var(--gold); color: var(--gold2); background: var(--bg4); }
+
+/* ejército desplegable */
+.military-drawer { border-top: 1px solid var(--border2); overflow-y: auto; max-height: 45vh; flex-shrink: 0; }
+.military-drawer.hidden { display: none; }
+
+/* agenda siempre visible */
+#agenda-bar {
+  flex-shrink: 0; border-top: 1px solid var(--border2);
+  overflow-y: auto; max-height: 35vh;
+}
+
+/* facciones scroll */
+#mtab-factions { flex: 1; overflow-y: auto; }
+
+/* ── responsive ── */
+@media (max-width: 1400px) {
+  .rpanel-section { padding: 10px 14px; }
+  .rpanel-title { font-size: 13px; }
+}
+@media (max-width: 1100px) {
+  #map-area { min-width: 140px; }
+  .rpanel-section { padding: 8px 10px; }
+  .rpanel-title { font-size: 12px; }
+  .ptab { height: 36px; font-size: 15px; min-width: 32px; }
+}
+@media (max-width: 850px) {
+  #main-body { flex-direction: column; }
+  #map-area  { flex: none; width: 100%; max-width: 100%; height: 30vh; border-right: none; border-bottom: 2px solid var(--border2); }
+  #right-panel { flex: 1; min-width: 0; max-width: 100%; }
+  #top-bar .res-delta { display: none; }
+}
+
   #top-bar { display: flex; align-items: center; gap: 4px; padding: 4px 8px; background: var(--bg3); border-bottom: 2px solid var(--border2); flex-shrink: 0; flex-wrap: nowrap; overflow-x: auto; min-height: 40px; }
   .res-group { order: 1; width: 100%; justify-content: center; }
   .stat-pills { order: 2; justify-content: center; }
@@ -1217,62 +1457,6 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 .ut-item { display: flex; align-items: center; gap: 8px; margin: 3px 0; }
 .ut-icon { font-size: 16px; }
 
-/* ═══════════════════════════════════════════════════════════
-   NUEVO LAYOUT — TOP BAR COMPACTO + PANEL DERECHO PROTAGONISTA
-   ═══════════════════════════════════════════════════════════ */
-
-/* Top bar: todo en una línea */
-#top-bar .res-group     { display: flex; gap: 3px; flex-shrink: 0; }
-#top-bar .resource-block { padding: 3px 6px; min-width: 52px; flex-shrink: 0; }
-#top-bar .res-icon       { font-size: 13px; }
-#top-bar .res-val        { font-size: 12px; }
-#top-bar .res-delta      { font-size: 9px; }
-.tb-sep { width: 1px; height: 24px; background: var(--border2); flex-shrink: 0; margin: 0 2px; }
-.tb-actions { display: flex; gap: 4px; flex-shrink: 0; align-items: center; }
-.tb-actions button { padding: 4px 8px; font-size: 12px; }
-#top-bar .stat-pills { gap: 3px; margin-left: 0; }
-#top-bar .stat-pill  { padding: 3px 6px; font-size: 11px; }
-#top-bar .turn-block { gap: 5px; flex-shrink: 0; }
-#top-bar .turn-season { font-size: 16px; }
-#top-bar .turn-num    { font-size: 11px; font-family: var(--font-mono); white-space: nowrap; }
-#btn-endturn { font-size: 11px; padding: 5px 10px; white-space: nowrap; }
-
-/* Panel derecho: ocupa todo el espacio, tabs grandes */
-#right-panel { overflow: hidden; }
-.rtab-content { overflow-y: auto; flex: 1; }
-.rtab-content.active { display: flex; flex-direction: column; }
-
-.panel-tabs {
-  display: flex; flex-wrap: wrap; gap: 2px;
-  padding: 6px 8px; background: var(--bg3);
-  border-bottom: 1px solid var(--border2);
-  flex-shrink: 0;
-}
-.ptab {
-  flex: 1; min-width: 32px; height: 36px;
-  background: transparent; border: 1px solid var(--border);
-  color: var(--text3); font-size: 16px; cursor: pointer;
-  transition: all 0.15s; border-radius: 2px;
-}
-.ptab:hover { background: rgba(200,160,48,0.1); border-color: var(--gold); color: var(--gold); }
-.ptab.active { background: rgba(200,160,48,0.15); border-color: var(--gold2); color: var(--gold2); }
-
-/* Mapa/columna izquierda: estrecha, solo info contextual */
-#map-area { width: 220px; flex-shrink: 0; }
-.map-tabs { display: flex; gap: 0; flex-shrink: 0; }
-.mtab { flex: 1; padding: 5px 4px; font-size: 10px; background: var(--bg3); border: none; border-bottom: 2px solid var(--border); color: var(--text3); cursor: pointer; transition: all 0.15s; }
-.mtab:hover { color: var(--gold); }
-.mtab.active { border-bottom-color: var(--gold); color: var(--gold2); background: var(--bg4); }
-.mtab-content { display: none; flex: 1; overflow-y: auto; }
-.mtab-content.active { display: flex; flex-direction: column; }
-
-/* Ejército desplegable */
-.military-drawer { border-top: 1px solid var(--border2); overflow-y: auto; max-height: 45vh; flex-shrink: 0; }
-.military-drawer.hidden { display: none; }
-
-/* Agenda siempre visible en la columna izquierda */
-#agenda-bar { flex-shrink: 0; border-top: 1px solid var(--border2); max-height: 35vh; overflow-y: auto; }
-
 /* ═══ END SCREEN — mensajes de naciones ═══ */
 .end-condition {
   background: rgba(0,0,0,0.3); border-left: 4px solid var(--gold);
@@ -1311,11 +1495,11 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 
 /* ═══ RESPONSIVE TWEAKS ═══ */
 @media (max-width: 1100px) {
-  #main-body { grid-template-columns: 180px 1fr; }
+  #main-body { display: flex; flex-direction: row; flex: 1; overflow: hidden; min-height: 0; }
   #map-area  { width: 180px; }
 }
 @media (max-width: 900px) {
-  #main-body { grid-template-columns: 1fr; }
+  #main-body { display: flex; flex-direction: row; flex: 1; overflow: hidden; min-height: 0; }
   #map-area  { display: none; }
   #top-bar .res-delta { display: none; }
 }
@@ -1404,3 +1588,44 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 .power-stronger { background: rgba(200,60,60,0.2); color: var(--red2); }
 .power-weaker   { background: rgba(60,200,60,0.2); color: var(--green2); }
 .power-equal    { background: rgba(200,160,48,0.2); color: var(--gold2); }
+
+/* ═══════════════════════════════════════════════════
+   RIGHT PANEL — ajustes finales de encuadre perfecto
+   ═══════════════════════════════════════════════════ */
+
+/* El panel derecho ocupa exactamente el espacio asignado */
+#right-panel {
+  position: relative;  /* contexto para posicionamiento interno */
+}
+
+/* decision-area solo se muestra cuando hay evento activo */
+#decision-area:empty,
+#decision-area .no-events { display: none; }
+#decision-area:has(.no-events:only-child) { display: none; }
+
+/* hover-info compacto */
+#hover-info-panel { flex-shrink: 0; }
+
+/* Tabs: llenan 100% del ancho */
+.panel-tabs { width: 100%; box-sizing: border-box; }
+.ptab { flex: 1; box-sizing: border-box; }
+
+/* El contenido activo rellena TODO el espacio restante */
+.rtab-content.active {
+  height: 0;            /* necesario para que flex:1 funcione en columna */
+  flex: 1;
+}
+
+/* Scrollbar fina en el panel */
+#right-panel *::-webkit-scrollbar { width: 4px; }
+#right-panel *::-webkit-scrollbar-track { background: transparent; }
+#right-panel *::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+#right-panel { scrollbar-width: thin; scrollbar-color: var(--border2) transparent; }
+
+/* Facciones en columna izquierda — scroll interno */
+#factions-list { padding: 6px; overflow-y: auto; flex: 1; }
+.faction-row { margin-bottom: 8px; }
+
+/* Asegurar que #right-panel nunca se desborde */
+#right-panel > * { flex-shrink: 0; }
+#right-panel > .rtab-content.active { flex-shrink: 1; flex-grow: 1; }
