@@ -277,45 +277,22 @@ const UI = {
   },
 
   // ══════════════════════════════════════════════
-  // DIPLOMACIA con análisis de batalla
+  // DIPLOMACIA — Usa DiplomacySystem para tarjetas expandidas
   // ══════════════════════════════════════════════
   renderDiplomacy(state) {
     const container = document.getElementById('diplomacy-panel');
     if (!container || !state.diplomacy) return;
-    container.innerHTML = '';
-    state.diplomacy.forEach(nation => {
-      const relColor = nation.relation > 40 ? 'var(--green2)' : nation.relation > 0 ? 'var(--text2)' : nation.relation > -40 ? 'var(--gold)' : 'var(--red2)';
-      const relLabel = nation.relation > 50 ? '🤝 Aliado' : nation.relation > 20 ? '😊 Amistoso' : nation.relation > -10 ? '😐 Neutral' : nation.relation > -40 ? '😤 Hostil' : '⚔️ ENEMIGO';
-      const warBadge = nation.atWar ? '<span style="color:var(--red2);font-size:10px"> ⚔️ EN GUERRA</span>' : '';
-      const treaties = (nation.treaties||[]).length ? `<div style="font-family:var(--font-mono);font-size:10px;color:var(--green2)">📜 ${nation.treaties.join(', ')}</div>` : '';
-      const analysis = Systems.Military.analyzeBattle(state, nation, !!(state.intelligence&&state.intelligence[nation.id]));
-
-      container.innerHTML += `
-        <div class="diplo-nation">
-          <div class="diplo-name">${nation.icon} ${nation.name}${warBadge}</div>
-          <div class="diplo-rel" style="color:${relColor}">${relLabel} (${nation.relation>0?'+':''}${nation.relation})</div>
-          <div style="font-family:var(--font-mono);font-size:10px;color:var(--text3)">
-            🧠 ${nation.personality} · ⚔️ ~${nation.army} · ${nation.revealed?'🔍 Info verificada':'❓ Info estimada'}
-          </div>
-          ${treaties}
-          <div class="diplo-actions" style="margin-top:7px">
-            <button class="diplo-btn" onclick="AI.playerDiplomaticAction(Game.state,'${nation.id}','gift');UI.fullRender(Game.state)">🎁 Regalo</button>
-            <button class="diplo-btn" onclick="AI.playerDiplomaticAction(Game.state,'${nation.id}','propose_alliance');UI.fullRender(Game.state)">🤝 Alianza</button>
-            ${nation.atWar
-              ? `<button class="diplo-btn" onclick="AI.playerDiplomaticAction(Game.state,'${nation.id}','sue_peace');UI.fullRender(Game.state)">🕊️ Paz</button>`
-              : `<button class="diplo-btn danger" onclick="Game.declareWar('${nation.id}')">⚔️ Guerra</button>`
-            }
-            <button class="diplo-btn" onclick="AI.playerDiplomaticAction(Game.state,'${nation.id}','demand_tribute');UI.fullRender(Game.state)">💰 Tributo</button>
-          </div>
-          <div style="background:var(--bg3);border:1px solid var(--border);padding:7px;margin-top:7px;font-family:var(--font-mono);font-size:10px">
-            <div style="color:var(--gold);margin-bottom:3px">📊 Análisis de Batalla</div>
-            <div>💪 Tu fuerza: <b style="color:var(--green2)">${analysis.attackerStrength.toLocaleString()}</b></div>
-            <div>🏰 Fuerza rival: <b style="color:var(--red2)">${analysis.defenderStrength.toLocaleString()}</b> ${!analysis.spyUsed?'<span style="color:var(--text3)">(±40%)</span>':''}</div>
-            <div>🎲 Victoria: <b style="color:${analysis.winChance>65?'var(--green2)':analysis.winChance>45?'var(--gold)':'var(--red2)'}">${analysis.winChance}%</b> — ${analysis.recommendation}</div>
-            ${analysis.seasonEffect !== 0 ? `<div>🌤️ Efecto estación: ${analysis.seasonEffect>0?'+':''}${analysis.seasonEffect}%</div>` : ''}
-          </div>
-        </div>`;
-    });
+    // Inicializar personajes si es primera vez
+    if (typeof DiplomacySystem !== 'undefined') DiplomacySystem.initCharacters(state);
+    // Contar mensajes sin leer
+    const unread = (state.diplomacyInbox||[]).filter(m=>!m.read).length;
+    const inboxHeader = unread ? `<div style="font-family:var(--font-mono);font-size:10px;color:var(--gold);padding:6px 10px;border-bottom:1px solid var(--border);background:rgba(200,160,48,0.08)">✉️ ${unread} mensaje${unread>1?'s':''} sin leer</div>` : '';
+    container.innerHTML = inboxHeader +
+      state.diplomacy.map((nation, i) =>
+        (typeof DiplomacySystem !== 'undefined')
+          ? DiplomacySystem.renderNationCard(nation, state, i)
+          : '<div>' + nation.name + '</div>'
+      ).join('');
   },
 
   // ══════════════════════════════════════════════
@@ -324,34 +301,57 @@ const UI = {
   renderEconomy(state) {
     const container = document.getElementById('economy-panel');
     if (!container) return;
-    const rates = state.rates || {};
-    container.innerHTML = `
-      <div class="rpanel-section">
-        <div class="rpanel-title">📈 Flujo por Turno</div>
-        ${[['🌾 Alimentos',rates.food||0],['💰 Oro',rates.gold||0],['🪵 Madera',rates.wood||0],['🪨 Piedra',rates.stone||0],['⚙️ Hierro',rates.iron||0]].map(([l,v])=>`
-          <div class="stat-row">
-            <span class="stat-row-label">${l}</span>
-            <span style="font-family:var(--font-mono);font-size:11px;color:${v>=0?'var(--green2)':'var(--red2)'}">${v>=0?'+':''}${v}/turno</span>
-          </div>`).join('')}
-      </div>
-      <div class="rpanel-section">
-        <div class="rpanel-title">⚠️ Riesgos Económicos</div>
-        <div class="bar-wrap">
-          <div class="bar-label"><span>📉 Inflación</span><span>${Math.floor(state.economy.inflation)}/100</span></div>
-          <div class="bar-track"><div class="bar-fill red" style="width:${state.economy.inflation}%"></div></div>
-        </div>
-        <div class="stat-row"><span class="stat-row-label">📜 Deuda</span><span style="font-family:var(--font-mono);font-size:11px;color:${state.economy.debt>300?'var(--red2)':'var(--text)'}">${state.economy.debt} 💰</span></div>
-        <div class="stat-row"><span class="stat-row-label">⚓ Comercio</span><span style="font-family:var(--font-mono);font-size:11px">+${state.economy.trade_income}/turno</span></div>
-        <div class="stat-row"><span class="stat-row-label">⚔️ Mantenimiento</span><span style="font-family:var(--font-mono);font-size:11px;color:var(--red2)">-${Systems.Economy.calculateArmyUpkeep(state)}/turno</span></div>
-        ${state.economy.inflation > 60 ? '<div class="alert-box danger">⚠️ Hiperinflación: el oro pierde valor</div>' : ''}
-        ${state.economy.debt > 400 ? '<div class="alert-box warn">⚠️ Deuda elevada — intereses drenando oro</div>' : ''}
-      </div>
-      <div class="rpanel-section">
-        <div class="rpanel-title">🏦 Acciones Financieras</div>
-        <button class="policy-btn" onclick="Game.takeLoan()">💳 Préstamo (+200💰, +200 deuda)</button>
-        <button class="policy-btn" onclick="Game.payDebt()">📤 Pagar deuda (-100💰, -100 deuda)</button>
-        <button class="policy-btn" onclick="Game.raiseTexes()">📊 Subir impuestos (+30💰/t, -10 moral)</button>
-      </div>`;
+    const rates   = state.rates || {};
+    const taxRate = state.economy ? (state.economy.taxRate || 20) : 20;
+    const taxLabel= taxRate<=5?'✨ Exento':taxRate<=20?'📊 Moderado':taxRate<=40?'📈 Alto':taxRate<=65?'💸 Oneroso':'🔥 Confiscatorio';
+    const taxColor= taxRate<=20?'var(--green2)':taxRate<=40?'var(--gold2)':taxRate<=65?'var(--gold)':'var(--red2)';
+    const moralFx = taxRate<=5?'+3/t':taxRate<=20?'±0':taxRate<=35?'-5/t':taxRate<=50?'-10/t':taxRate<=75?'-18/t':'-30/t';
+    const moralCol= taxRate<=20?'var(--green2)':taxRate<=35?'var(--text3)':'var(--red2)';
+    const goldExtra= Math.max(0,Math.floor((taxRate-20)*0.8));
+
+    container.innerHTML =
+      '<div class="rpanel-section tax-section">'
+      +'<div class="rpanel-title">📊 Política Fiscal</div>'
+      +'<div class="tax-display"><div class="tax-pct" style="color:'+taxColor+'">'+taxRate+'%</div>'
+      +'<div class="tax-label" style="color:'+taxColor+'">'+taxLabel+'</div></div>'
+      +'<input type="range" class="tax-slider" id="tax-slider" min="0" max="90" step="5" value="'+taxRate+'"'
+      +' oninput="Game.setTaxRate(this.value)">'
+      +'<div class="tax-ruler"><span>0%</span><span>Moderado</span><span>Alto</span><span>Oneroso</span><span>90%</span></div>'
+      +'<div class="tax-effects">'
+      +'<span style="color:var(--gold2)">💰 Oro:</span><span>+'+(goldExtra||0)+'/t vs base</span>'
+      +'<span style="color:'+moralCol+'">❤️ Moral:</span><span style="color:'+moralCol+'">'+moralFx+'</span>'
+      +'</div>'
+      +(taxRate>65?'<div class="alert-box danger" style="margin-top:6px">🔥 Confiscatorio: riesgo revolución</div>':'')
+      +(taxRate>40&&taxRate<=65?'<div class="alert-box warn" style="margin-top:6px">⚠️ Pueblo descontento</div>':'')
+      +'</div>'
+
+      +'<div class="rpanel-section">'
+      +'<div class="rpanel-title">📈 Flujo por Turno</div>'
+      +[['🌾 Alimentos',rates.food||0],['💰 Oro',rates.gold||0],['🪵 Madera',rates.wood||0],['🪨 Piedra',rates.stone||0],['⚙️ Hierro',rates.iron||0]].map(function(x){
+        var l=x[0],v=x[1];
+        return '<div class="stat-row"><span class="stat-row-label">'+l+'</span>'
+          +'<span style="font-family:var(--font-mono);font-size:11px;color:'+(v>=0?'var(--green2)':'var(--red2)')+'">'+((v>=0?'+':'')+v)+'/t</span></div>';
+      }).join('')
+      +'</div>'
+
+      +'<div class="rpanel-section">'
+      +'<div class="rpanel-title">⚠️ Indicadores</div>'
+      +'<div class="bar-wrap"><div class="bar-label"><span>📉 Inflación</span><span>'+Math.floor(state.economy.inflation)+'/100</span></div>'
+      +'<div class="bar-track"><div class="bar-fill red" style="width:'+state.economy.inflation+'%"></div></div></div>'
+      +'<div class="stat-row"><span class="stat-row-label">📜 Deuda</span><span style="font-family:var(--font-mono);font-size:11px;color:'+(state.economy.debt>300?'var(--red2)':'var(--text)')+'">'+state.economy.debt+'💰</span></div>'
+      +'<div class="stat-row"><span class="stat-row-label">⚓ Comercio</span><span style="font-family:var(--font-mono);font-size:11px">+'+state.economy.trade_income+'/t</span></div>'
+      +'<div class="stat-row"><span class="stat-row-label">⚔️ Manten.</span><span style="font-family:var(--font-mono);font-size:11px;color:var(--red2)">-'+Systems.Economy.calculateArmyUpkeep(state)+'/t</span></div>'
+      +(state.economy.inflation>60?'<div class="alert-box danger">⚠️ Hiperinflación</div>':'')
+      +(state.economy.debt>400?'<div class="alert-box warn">⚠️ Deuda crítica</div>':'')
+      +'</div>'
+
+      +'<div class="rpanel-section">'
+      +'<div class="rpanel-title">🏦 Finanzas</div>'
+      +'<button class="policy-btn" onclick="Game.takeLoan()">💳 Préstamo (+200💰 +200 deuda)</button>'
+      +'<button class="policy-btn" onclick="Game.payDebt()">📤 Pagar deuda (-100💰 -100 deuda)</button>'
+      +'<button class="policy-btn" onclick="Game.buildIrrigation()">🚿 Irrigación (150🪵 100🪨 200💰)</button>'
+      +'<button class="policy-btn" onclick="Game.buildGranary()">🏚️ Graneros (100🪵)</button>'
+      +'</div>';
   },
 
   // ══════════════════════════════════════════════
@@ -522,10 +522,30 @@ const UI = {
     const events = state.currentEvents || [];
     if (countEl) countEl.textContent = events.length;
 
-    // Mostrar advertencia si hay eventos críticos sin resolver
     const hasCritical = events.some(e => e.priority === 'critical');
     if (warnEl && warnEl.classList.toggle) warnEl.classList.toggle('hidden', !hasCritical);
     else if (warnEl) { if (!hasCritical) warnEl.classList.add('hidden'); else warnEl.classList.remove('hidden'); }
+
+    // Banner de arco activo
+    const arcBanner = document.getElementById('arc-status-area');
+    if (arcBanner && typeof ArcManager !== 'undefined') {
+      const arcStatus = ArcManager.getActiveArcStatus(state);
+      if (arcStatus) {
+        const dots = Array.from({length: arcStatus.totalPhases}, (_,i) =>
+          `<div class="arc-dot ${i < arcStatus.phase ? 'done' : i === arcStatus.phase ? 'current' : ''}"></div>`
+        ).join('');
+        arcBanner.innerHTML = `<div class="arc-status-banner">
+          <span class="arc-icon">${arcStatus.icon}</span>
+          <div class="arc-info">
+            <div class="arc-name">📖 ${arcStatus.name}</div>
+            <div class="arc-progress">Fase ${arcStatus.phase + 1} / ${arcStatus.totalPhases}</div>
+            <div class="arc-phase-dots">${dots}</div>
+          </div>
+        </div>`;
+      } else {
+        arcBanner.innerHTML = '';
+      }
+    }
 
     if (events.length === 0) {
       container.innerHTML = '<span style="font-family:var(--font-mono);font-size:10px;color:var(--text3);padding:0 4px">— Sin eventos pendientes —</span>';
@@ -533,9 +553,9 @@ const UI = {
     }
 
     container.innerHTML = events.map((ev, i) => `
-      <div class="event-item ${ev.priority==='critical'?'critical':''} ${state.activeEventIndex===i?'active':''}"
+      <div class="event-item ${ev.priority==='critical'?'critical':''} ${ev.isArcEvent?'arc-event':''} ${state.activeEventIndex===i?'active':''}"
            onclick="Game.selectEvent(${i})">
-        ${ev.icon} ${ev.title}
+        ${ev.icon} ${ev.title}${ev.isArcEvent ? ' <small style=\"opacity:0.6\">📖</small>' : ''}
       </div>`).join('');
   },
 
@@ -545,6 +565,8 @@ const UI = {
   renderActiveEvent(state) {
     const container = document.getElementById('active-event');
     if (!container) return;
+    // Arc banner at top if active
+    const arcBanner = (typeof StoryArcSystem !== "undefined") ? StoryArcSystem.renderActiveBanner(state) : "";
 
     const events = state.currentEvents || [];
     const idx    = state.activeEventIndex;
@@ -562,7 +584,8 @@ const UI = {
     const ev = events[idx];
     if (!ev) return;
 
-    container.innerHTML = `
+    const chainTag = ev._chainSource ? '<div class="chained-event-tag">🔗 Evento encadenado</div>' : '';
+    container.innerHTML = arcBanner + chainTag + `
       <div class="decision-card">
         <div class="decision-header">
           <span class="decision-icon">${ev.icon}</span>

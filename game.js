@@ -52,8 +52,16 @@ const Game = {
       AlthoriаMap.assignZones(this.state);
       this.state.althoriaRegions = (AlthoriаMap.nationZones['player'] || []).length;
     }
+    // Inicializar personajes diplomáticos
+    if (typeof DiplomacySystem !== 'undefined') DiplomacySystem.initCharacters(this.state);
+    // Inicializar sistema de arcos narrativos
+    if (typeof ArcManager !== 'undefined') ArcManager.init(this.state);
+    // Inicializar sistema de arcos
+    if (typeof ArcSystem !== 'undefined') ArcSystem.init(this.state);
+    else if (typeof ArcManager !== 'undefined') ArcManager.init(this.state);
     Systems.Log.add(this.state, '⚔️ ' + civ.name + ' comienza su historia. Que los dioses os guíen.', 'good');
     UI.renderLog(this.state);
+    if (typeof DiplomacySystem !== "undefined") DiplomacySystem.initCharacters(this.state);
     this.generateTurnEvents();
   },
 
@@ -121,7 +129,8 @@ const Game = {
       army:       civ.startStats.army,
       economy: {
         corruption: civ.id === 'chinese' ? 30 : 10,
-        inflation: 0, debt: 0, trade_income: 8, food_bonus: 0
+        inflation: 0, debt: 0, trade_income: 8, food_bonus: 0,
+        taxRate: 20   // impuesto base 20% — rango 0–90%
       },
       climate: this.detectStartClimate(playerStart.capitalCell, mapData),
       territories:     playerStart.territories,
@@ -141,6 +150,10 @@ const Game = {
       log: [],
       prosperityTurns: 0, collapseTurns: 0, famineturns: 0
     };
+    // Inicializar personajes diplomáticos inmediatamente
+    if (typeof DiplomacySystem !== "undefined") DiplomacySystem.initCharacters(this.state);
+    // Inicializar arcos narrativos
+    if (typeof StoryArcSystem !== "undefined") StoryArcSystem.init(this.state);
   },
 
   detectStartClimate(capitalCell, mapData) {
@@ -249,7 +262,20 @@ const Game = {
       state.factions.forEach(f => { f.currentDemand = Systems.Factions.generateDemand(f.id); });
     }
 
-    // 15. Render
+    // 15. Arcos narrativos y eventos encadenados
+    if (typeof StoryArcSystem !== "undefined") {
+      StoryArcSystem.checkActivations(state);
+      StoryArcSystem.processPendingChains(state);
+    }
+    // 16. Mensajes diplomáticos del turno
+    if (typeof DiplomacySystem !== "undefined") {
+      DiplomacySystem.generateTurnMessages(state);
+    }
+    // 17. Story Arcs y eventos de faccion/civ
+    if (typeof ArcSystem !== "undefined") {
+      ArcSystem.tick(state);
+    }
+    // 18. Render
     UI.fullRender(state);
     // Sync Althoria (war zones, spies)
     if (typeof AlthoriаMap !== 'undefined') AlthoriаMap.sync(state);
@@ -333,8 +359,15 @@ const Game = {
   // EVENTOS
   // ══════════════════════════════════════════════
   generateTurnEvents() {
-    const state   = this.state;
-    const events  = Systems.Events.generateForTurn(state);
+    const state  = this.state;
+    let events   = Systems.Events.generateForTurn(state);
+    // Añadir eventos de arcos narrativos y eventos encadenados
+    if (typeof ArcManager !== 'undefined') {
+      ArcManager.applyTurnBonus(state);
+      const arcEvents = ArcManager.generateForTurn(state);
+      // Los eventos de arco tienen prioridad — van primero
+      events = [...arcEvents, ...events].filter((e,i,a) => a.findIndex(x=>x.id===e.id)===i).slice(0,5);
+    }
     state.currentEvents    = events;
     state.activeEventIndex = events.length > 0 ? 0 : null;
     UI.renderEventQueue(state);
@@ -348,11 +381,24 @@ const Game = {
   },
 
   resolveEvent(eventIdx, optionIdx) {
+    // Notificar al sistema de arcos antes de resolver
+    const _event = this.state && this.state.currentEvents && this.state.currentEvents[eventIdx];
+    if (typeof StoryArcSystem !== "undefined" && _event) {
+      StoryArcSystem.onEventDecision(this.state, _event, optionIdx);
+    }
     const state = this.state;
     const event = state.currentEvents[eventIdx];
     if (!event) return;
 
     Systems.Events.applyDecision(state, event, optionIdx);
+    // Procesar decisión de arco si corresponde
+    if (typeof ArcManager !== 'undefined' && event.isArcEvent) {
+      ArcManager.onDecision(state, event, optionIdx);
+    }
+    // Acción especial tax revolt
+    if (event.options && event.options[optionIdx] && event.options[optionIdx].specialAction === 'setTax15') {
+      this.setTaxRate(15);
+    }
     state.currentEvents.splice(eventIdx, 1);
 
     if (state.currentEvents.length > 0) {
@@ -447,13 +493,31 @@ const Game = {
     UI.fullRender(this.state);
   },
 
+  // ── SISTEMA DE IMPUESTOS EN % — slider % libre con etiquetas ──
+  setTaxRate(rate) {
+    const state = this.state;
+    if (!state) return;
+    const pct = Math.max(0, Math.min(100, parseInt(rate) || 0));
+    state.economy.taxRate = pct;
+    // Feedback inmediato en log
+    const label = pct <= 5 ? '✨ Exento'
+                : pct <= 20 ? '📊 Moderado'
+                : pct <= 40 ? '📈 Alto'
+                : pct <= 65 ? '💸 Oneroso'
+                : '🔥 Confiscatorio';
+    Systems.Log.add(state, `📊 Impuestos ajustados a ${pct}% — ${label}`, pct > 50 ? 'warn' : 'info');
+    // Recalcular tasas inmediatamente
+    const rates = Systems.Economy.calculateRates(state);
+    state.rates = rates;
+    UI.updateTopBar(state);
+    UI.renderEconomy(state);
+    UI.renderLog(state);
+  },
+
   raiseTexes() {
-    this.state.economy.trade_income += 30;
-    this.state.morale = Math.max(0, this.state.morale - 10);
-    const pf = this.state.factions.find(f => f.id === 'pueblo');
-    if (pf) pf.satisfaction = Math.max(0, pf.satisfaction - 15);
-    Systems.Log.add(this.state, '📊 Impuestos subidos. +30💰/turno. El pueblo protesta.', 'warn');
-    UI.fullRender(this.state);
+    // Legacy — ahora usa setTaxRate
+    const cur = this.state.economy.taxRate || 20;
+    this.setTaxRate(cur + 10);
   },
 
   buildIrrigation() {

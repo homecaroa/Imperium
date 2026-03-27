@@ -258,20 +258,34 @@ const AI = {
         }
         break;
 
-      case 'demand_tribute':
+      case 'demand_tribute': {
+        // Bug fix: cooldown de 10 turnos por nación
+        const lastTribTurn = nation._lastTributeTurn || 0;
+        const tributeCooldown = 10;
+        if (state.turn - lastTribTurn < tributeCooldown) {
+          Systems.Log.add(state, `${nation.name} ya pagó tributo recientemente. Espera ${tributeCooldown - (state.turn - lastTribTurn)} turno(s).`, 'warn');
+          break;
+        }
         if (nation.relation < 0 && state.army > 400) {
           const success = Math.random() < (state.army / 1000);
           if (success) {
-            state.resources.gold += 150;
+            const amount = 100 + Math.floor(Math.random() * 150);
+            state.resources.gold += amount;
             nation.relation -= 30;
-            Systems.Log.add(state, `${nation.name} paga tributo. Tus arcas ganan 150 oro.`, 'good');
+            nation._lastTributeTurn = state.turn;
+            Systems.Log.add(state, `${nation.name} paga ${amount} oro en tributo. Humillados.`, 'good');
           } else {
             nation.relation -= 20;
             nation.atWar = true;
             Systems.Log.add(state, `${nation.name} rechaza el tributo y declara guerra.`, 'crisis');
           }
+        } else if (nation.atWar) {
+          Systems.Log.add(state, `No puedes pedir tributo a una nación en guerra activa.`, 'warn');
+        } else {
+          Systems.Log.add(state, `Las relaciones con ${nation.name} son demasiado buenas para exigir tributo.`, 'warn');
         }
         break;
+      }
 
       case 'propose_alliance':
         if (nation.relation > 30) {
