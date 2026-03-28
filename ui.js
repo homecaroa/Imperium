@@ -141,23 +141,55 @@ const UI = {
     if (!container) return;
     container.innerHTML = '';
     state.factions.forEach(f => {
-      const mood = f.satisfaction > 70 ? '😊 Leal' : f.satisfaction > 45 ? '😐 Neutral' : f.satisfaction > 25 ? '😤 Inquieta' : '😡 FURIOSA';
+      const mood     = f.satisfaction > 70 ? '😊 Leal' : f.satisfaction > 45 ? '😐 Neutral' : f.satisfaction > 25 ? '😤 Inquieta' : '😡 FURIOSA';
       const barColor = f.satisfaction > 60 ? '#5a9030' : f.satisfaction > 35 ? '#c8a030' : '#c83030';
+      const riskText = f.satisfaction < 25 ? ' Riesgo golpe de estado.' : f.satisfaction < 40 ? ' Demandas urgentes.' : '';
+      // Rich tooltip with precise info
+      const tip = [
+        f.icon+' '+f.name,
+        'Influencia política: '+f.influence+'%',
+        'Satisfacción: '+Math.round(f.satisfaction)+'/100 — '+mood.replace(/[😊😐😤😡]/u,'').trim(),
+        'Exigen: '+f.currentDemand,
+        riskText ? '⚠️'+riskText : '',
+        f.angryTurns>1 ? '🔴 '+f.angryTurns+' turnos de tensión' : '',
+      ].filter(Boolean).join('&#10;');
       container.innerHTML += `
-        <div class="faction-card">
+        <div class="faction-card tb-tip" data-tip="${tip}">
           <div class="faction-header">
             <span class="faction-name">${f.icon} ${f.name}</span>
             <span class="faction-power">⚖️ ${f.influence}%</span>
           </div>
           <div class="bar-wrap">
-            <div class="bar-label"><span>Satisfacción</span><span>${f.satisfaction}/100</span></div>
+            <div class="bar-label"><span>${mood}</span><span>${Math.round(f.satisfaction)}/100</span></div>
             <div class="bar-track"><div class="bar-fill" style="width:${f.satisfaction}%;background:${barColor}"></div></div>
           </div>
-          <div class="faction-mood">${mood}</div>
-          ${f.angryTurns > 1 ? `<div class="alert-box danger">⚠️ ${f.angryTurns} turnos furiosos — peligro de revuelta</div>` : ''}
-          <div class="faction-demand">📋 Exigen: ${f.currentDemand}</div>
+          ${f.angryTurns > 1 ? `<div class="alert-box danger" style="padding:2px 5px;font-size:9px;margin-top:2px">⚠️ ${f.angryTurns}t furiosos</div>` : ''}
+          <div class="faction-demand">📋 ${f.currentDemand}</div>
         </div>`;
     });
+  },
+
+  // ══════════════════════════════════════════════
+  // RUTAS COMERCIALES EN MAPA LATERAL
+  // ══════════════════════════════════════════════
+  renderTradeOverlay(state) {
+    const el = document.getElementById('trade-map-overlay');
+    if (!el) return;
+    const routes = state.activeTradeRoutes || [];
+    if (!routes.length) { el.innerHTML = ''; return; }
+    el.innerHTML = '<div class="trade-overlay-header">🐪 Rutas activas</div>'
+      + routes.map(rt => {
+          const health = rt.health !== undefined ? rt.health : 100;
+          const hColor = health > 70 ? 'var(--green2)' : health > 40 ? 'var(--gold)' : 'var(--red2)';
+          const inc = Object.entries(rt.income||{}).filter(([,v])=>v>0).map(([k,v])=>'+'+v+' '+k).join(', ');
+          return '<div class="trade-overlay-row">'
+            + '<span class="tor-icon">'+(rt.icon||'🤝')+'</span>'
+            + '<span class="tor-name">'+rt.routeName+'</span>'
+            + '<span class="tor-nation" style="color:var(--text3)">→'+rt.nationName+'</span>'
+            + '<span class="tor-income" style="color:'+hColor+'">'+inc+'</span>'
+            + '<div class="tor-bar"><div class="tor-fill" style="width:'+health+'%;background:'+hColor+'"></div></div>'
+            + '</div>';
+        }).join('');
   },
 
   // ══════════════════════════════════════════════
@@ -344,19 +376,7 @@ const UI = {
     // Inicializar personajes si es primera vez
     if (typeof DiplomacySystem !== 'undefined') DiplomacySystem.initCharacters(state);
     // Inject sabotage/attack actions into each nation card via post-render
-    // Route sabotage buttons injected into nation cards
-    const _origCard = typeof DiplomacySystem !== 'undefined' ? DiplomacySystem.renderNationCard.bind(DiplomacySystem) : null;
-    if (_origCard) DiplomacySystem.renderNationCard = function(nation, st, i) {
-      var html = _origCard(nation, st, i);
-      var natId = 'ai_' + (i+1);
-      var sabHtml = '<div class="dnc-actions" style="border-top:1px solid var(--border2);">'
-        + '<button class="diplo-btn danger" style="font-size:10px" title="Atacar ruta comercial (2AP)"'
-        + ' onclick="RouteSabotage.attackRoute(Game.state,Game.state.diplomacy[' + i + '].id)">⚔️ Ruta</button>'
-        + '<button class="diplo-btn" style="font-size:10px" title="Sabotear ruta con espias (1AP, 120 oro)"'
-        + '<button class="diplo-btn" style="font-size:10px" title="Sabotear ruta con espias (1AP, 120 oro)"'
-        + ' onclick="RouteSabotage.sabotageRoute(Game.state,Game.state.diplomacy[' + i + '].id)">Spy Ruta</button>'
-      return html + sabHtml;
-    };
+    // Sabotage/attack buttons are defined in DiplomacySystem.renderNationCard via diplomacy.js
     // Contar mensajes sin leer
     const unread = (state.diplomacyInbox||[]).filter(m=>!m.read).length;
     const inboxHeader = unread ? `<div style="font-family:var(--font-mono);font-size:10px;color:var(--gold);padding:6px 10px;border-bottom:1px solid var(--border);background:rgba(200,160,48,0.08)">✉️ ${unread} mensaje${unread>1?'s':''} sin leer</div>` : '';
@@ -735,6 +755,7 @@ const UI = {
     this.updateTopBar(state);
     this.renderFactions(state);
     this.renderMilitary(state);
+    this.renderTradeOverlay(state);
     this.renderPolitics(state);
     this.renderDiplomacy(state);
     this.renderEconomy(state);

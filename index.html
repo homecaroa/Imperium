@@ -157,27 +157,27 @@
     <!-- ═══ CUERPO PRINCIPAL: agenda arriba + panel gestión abajo ═══ -->
     <div id="main-body">
 
-      <!-- TIRA LATERAL IZQUIERDA: Facciones + Ejército (colapsable) + Agenda -->
+      <!-- COLUMNA LATERAL IZQUIERDA: Facciones + Ejército + Agenda (~35%) -->
       <div id="map-area">
+        <!-- Tabs: Facciones / Ejército -->
         <div class="map-tabs">
           <button class="mtab active" onclick="switchMapTab('factions')">⚔️ Facciones</button>
-          <button class="mtab" onclick="Game.toggleMilitaryPanel()">🛡️ Ejército <span id="mil-arrow">▼</span></button>
-          <div class="map-tab-right">
-            <span id="map-seed-label" class="seed-label"></span>
-          </div>
+          <button class="mtab" onclick="switchMapTab('military')">🛡️ Ejército</button>
+          <span id="map-seed-label" class="seed-label" style="font-size:9px;padding:2px 4px;color:var(--text3)"></span>
         </div>
 
         <!-- FACCIONES -->
         <div id="mtab-factions" class="mtab-content active">
           <div id="factions-list"></div>
+          <div id="trade-map-overlay" class="trade-map-overlay"></div>
         </div>
 
-        <!-- EJÉRCITO DESPLEGABLE -->
-        <div id="military-drawer" class="military-drawer hidden">
+        <!-- EJÉRCITO (mismo nivel, no desplegable) -->
+        <div id="mtab-military" class="mtab-content">
           <div id="military-panel"></div>
         </div>
 
-        <!-- AGENDA -->
+        <!-- AGENDA siempre visible abajo -->
         <div id="agenda-bar">
           <div id="agenda-header">
             <span>📋 Agenda</span>

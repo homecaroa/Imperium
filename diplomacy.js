@@ -459,6 +459,13 @@ const DiplomacySystem = {
         <button class="diplo-btn" onclick="AI.playerDiplomaticAction(Game.state,'${nation.id}','demand_tribute');UI.fullRender(Game.state)" title="Exige tributo si rel<0 y ejército>400. Cooldown 10 turnos.">💰 Tributo</button>
         ${cedeHtml}
       </div>
+      <!-- Sabotaje de rutas (solo si no en guerra) -->
+      ${!nation.atWar ? `
+      <div class="dnc-actions" style="border-top:1px dashed rgba(200,160,48,0.2);padding-top:5px;">
+        <span style="font-family:var(--font-mono);font-size:9px;color:var(--text3);flex:1">🗡️ Rutas:</span>
+        <button class="diplo-btn danger" style="font-size:9px" onclick="RouteSabotage.attackRoute(Game.state,'${nation.id}')" title="Asalto militar a ruta (2AP, ~30% daño)">⚔️ Asalto</button>
+        <button class="diplo-btn" style="font-size:9px" onclick="RouteSabotage.sabotageRoute(Game.state,'${nation.id}')" title="Sabotaje con espías (1AP, 120💰, 55-87% éxito)">🕵️ Sabotaje</button>
+      </div>` : ''}
 
       <!-- Mensajes sin leer ──────────── -->
       ${inbox.length ? `

@@ -68,6 +68,8 @@ const Game = {
     UI.renderLog(this.state);
     if (typeof DiplomacySystem !== "undefined") DiplomacySystem.initCharacters(this.state);
     if (this._blitzMode) BlitzMode.apply(this.state);
+    // Init AP so first-turn actions work immediately
+    if (typeof ActionPoints !== 'undefined') ActionPoints.reset(this.state);
     this.generateTurnEvents();
   },
 
@@ -160,6 +162,8 @@ const Game = {
     if (typeof DiplomacySystem !== "undefined") DiplomacySystem.initCharacters(this.state);
     // Inicializar arcos narrativos
     if (typeof StoryArcSystem !== "undefined") StoryArcSystem.init(this.state);
+    // Inicializar AP para que el primer turno funcione
+    if (typeof ActionPoints !== "undefined") ActionPoints.reset(this.state);
   },
 
   detectStartClimate(capitalCell, mapData) {
@@ -296,8 +300,11 @@ const Game = {
     }
     // 18. Render
     UI.fullRender(state);
-    // Sync Althoria (war zones, spies)
-    if (typeof AlthoriаMap !== 'undefined') AlthoriаMap.sync(state);
+    // Sync Althoria (war zones, spies, trade routes)
+    if (typeof AlthoriаMap !== 'undefined') {
+      AlthoriаMap.sync(state);
+      AlthoriаMap._syncTradeRoutes(state);  // Refresh route lines every turn
+    }
     Systems.Log.add(state, '📅 Año ' + state.year + ', Turno ' + state.turn + ' — Población: ' + state.population.toLocaleString(), 'info');
     UI.renderLog(state);
   },
@@ -585,6 +592,16 @@ const Game = {
   // MILITAR
   // ══════════════════════════════════════════════
   recruitUnit(typeId, count) {
+    // Check resources BEFORE spending AP
+    const def = MILITARY_UNITS[typeId];
+    if (def) {
+      const s = this.state; const n = count || 50;
+      const miss = [];
+      if (def.cost.gold && s.resources.gold < def.cost.gold*(n/50)) miss.push({icon:'💰',name:'Oro',need:Math.ceil(def.cost.gold*(n/50)),have:Math.floor(s.resources.gold)});
+      if (def.cost.iron && s.resources.iron < def.cost.iron*(n/50)) miss.push({icon:'⚙️',name:'Hierro',need:Math.ceil(def.cost.iron*(n/50)),have:Math.floor(s.resources.iron)});
+      if (def.cost.wood && s.resources.wood < def.cost.wood*(n/50)) miss.push({icon:'🪵',name:'Madera',need:Math.ceil(def.cost.wood*(n/50)),have:Math.floor(s.resources.wood)});
+      if (miss.length) { if (typeof showResourceError==='function') showResourceError(miss); return; }
+    }
     if (!ActionPoints.spend(this.state, 1, 'Reclutar tropas')) return;
     const result = Systems.Military.recruitUnit(this.state, typeId, count);
     if (!result.ok) {
@@ -636,6 +653,21 @@ const Game = {
   // COMERCIO
   // ══════════════════════════════════════════════
   openTradeRoute(routeId, nationId) {
+    // Check if route can open BEFORE spending AP
+    const rt = TRADE_ROUTES[routeId];
+    const nation = (this.state.diplomacy||[]).find(n=>n.id===nationId);
+    if (!rt || !nation) return;
+    if (nation.relation < (rt.requires?.relation||0)) {
+      if (typeof showResourceError === 'function')
+        showResourceError([{icon:'🤝',name:'Relación',need:rt.requires?.relation||0,have:nation.relation}]);
+      return;
+    }
+    if (this.state.resources.gold < rt.cost.gold) {
+      if (typeof showResourceError === 'function')
+        showResourceError([{icon:'💰',name:'Oro',need:rt.cost.gold,have:Math.floor(this.state.resources.gold)}]);
+      return;
+    }
+    // Now spend AP
     if (!ActionPoints.spend(this.state, 1, 'Abrir ruta comercial')) return;
     const result = Systems.Trade.openRoute(this.state, routeId, nationId);
     if (!result.ok) {
