@@ -539,6 +539,295 @@ const DYNAMIC_EVENT_POOL = [
         xp: 'event_resolved' }
     ]
   },
+  // ── 11-30: Eventos adicionales ──────────────────────────────
+
+  {
+    id: 'EVT_SPY_CAPTURED',
+    title: '🕵️ Espía Capturado',
+    category: 'DIPLOMACIA', priority: 'high', icon: '🕵️',
+    weight: s => (s.spies?.active > 0 ? 30 : 0) + (s.diplomacy.some(n=>n.relation<-20)?15:0),
+    condition: s => s.spies?.active > 0 || s.economy.corruption > 20,
+    options: [
+      { label: '💰 Pagar rescate (-200 oro)', effects: { gold:-200 }, xp: 'event_resolved' },
+      { label: '🙈 Negarlo todo (relación -20 con captor)', effects: { stability:-5 },
+        hiddenCost: { type:'corruption', amount:5, turns:1 }, xp: 'event_resolved' },
+      { label: '🤝 Intercambio de prisioneros', effects: { gold:-100, stability:+5 }, xp: 'survived_crisis' }
+    ]
+  },
+
+  {
+    id: 'EVT_BANDIT_UPRISING',
+    title: '🗡️ Levantamiento de Bandidos',
+    category: 'SEGURIDAD', priority: 'high', icon: '🗡️',
+    weight: s => (s.economy.corruption > 25 ? 35 : 5) + (s.stability < 40 ? 20 : 0),
+    condition: s => s.economy.corruption > 20 || s.stability < 45,
+    options: [
+      { label: '⚔️ Purga militar (-200 tropas, +estab)', effects: { army:-200, stability:+12, morale:-8 }, xp: 'event_resolved' },
+      { label: '💰 Sobornar líderes (-150 oro)', effects: { gold:-150, stability:+5 },
+        hiddenCost: { type:'corruption', amount:8, turns:2 }, xp: 'event_resolved' },
+      { label: '📋 Reformas de orden público (-80 oro/turno x3)', effects: { gold:-80 },
+        hiddenCost: { type:'gold', amount:-80, turns:2 }, xp: 'survived_crisis' }
+    ]
+  },
+
+  {
+    id: 'EVT_FLOODING',
+    title: '🌊 Inundaciones en las Llanuras',
+    category: 'CLIMA', priority: 'high', icon: '🌊',
+    weight: s => (s.climate?.season === 'spring' ? 25 : 5) + (s.resources.food < 150 ? 15 : 0),
+    condition: s => true,
+    options: [
+      { label: '🌾 Racionamiento de emergencia', effects: { food:-100, morale:-10 }, xp: 'event_resolved' },
+      { label: '🏗️ Construir diques (-300 oro, previene futuras)', effects: { gold:-300, stability:+8 }, xp: 'survived_crisis' },
+      { label: '😤 Ignorar (riesgo hambruna +1)', effects: { food:-60 },
+        hiddenCost: { type:'morale', amount:-8, turns:2 }, xp: 'event_resolved' }
+    ]
+  },
+
+  {
+    id: 'EVT_FOREIGN_SCHOLAR',
+    title: '📚 Erudito Extranjero Llega a la Corte',
+    category: 'OPORTUNIDAD', priority: 'normal', icon: '📚',
+    weight: s => (s.stability > 50 && s.resources.gold > 200) ? 20 : 3,
+    condition: s => s.stability > 45,
+    options: [
+      { label: '🔬 Contratar (+50 estab, nuevas técnicas)', effects: { gold:-150, stability:+10, morale:+8 }, xp: 'event_resolved' },
+      { label: '🤝 Enviarlo como diplomático (+20 rel con nación)', effects: { gold:-50 },
+        specialAction: 'diplomat_bonus', xp: 'ally_made' },
+      { label: '🚪 Rechazar (sin coste)', effects: { morale:-3 }, xp: 'event_resolved' }
+    ]
+  },
+
+  {
+    id: 'EVT_MUTINY_RISK',
+    title: '😡 Amago de Motín Militar',
+    category: 'MILITAR', priority: 'critical', icon: '😡',
+    weight: s => (s.morale < 30 ? 50 : 0) + (s.army > 600 && s.resources.gold < 100 ? 30 : 0),
+    condition: s => s.morale < 35 || (s.army > 500 && s.resources.gold < 80),
+    options: [
+      { label: '💰 Paga extra a las tropas (-250 oro)', effects: { gold:-250, morale:+20, army:+100 }, xp: 'survived_crisis' },
+      { label: '⚔️ Ejecutar cabecillas (-150 tropas, +estab)', effects: { army:-150, stability:+10, morale:-5 }, xp: 'event_resolved' },
+      { label: '🏆 Prometer botín en próxima campaña (+10 moral, fuerza guerra)',
+        effects: { morale:+15 }, hiddenCost: { type:'stability', amount:-5, turns:1 }, xp: 'event_resolved' }
+    ]
+  },
+
+  {
+    id: 'EVT_PLAGUE_RATS',
+    title: '🐀 Plaga de Ratas en los Graneros',
+    category: 'ECONÓMICO', priority: 'high', icon: '🐀',
+    weight: s => (s.resources.food > 300 ? 20 : 5) + (s.population > 7000 ? 15 : 0),
+    condition: s => s.resources.food > 100,
+    options: [
+      { label: '🐈 Importar gatos de caza (100 oro)', effects: { gold:-100, food:-60 }, xp: 'event_resolved' },
+      { label: '🔥 Quemar los graneros infestados (-200 comida, evita propagación)', effects: { food:-200, stability:+5 }, xp: 'event_resolved' },
+      { label: '😤 No hacer nada (-150 comida extra, posible epidemia)', effects: { food:-150 },
+        chains: ['EVT_PLAGUE'], xp: 'event_resolved' }
+    ]
+  },
+
+  {
+    id: 'EVT_BORDER_SKIRMISH',
+    title: '⚔️ Escaramuza en la Frontera',
+    category: 'MILITAR', priority: 'high', icon: '⚔️',
+    weight: s => s.diplomacy.filter(n=>n.relation<0).length * 12,
+    condition: s => s.diplomacy.some(n=>n.relation < -10 && !n.atWar),
+    options: [
+      { label: '⚔️ Responder con fuerza (-100 tropas, rel -15)', effects: { army:-100, morale:+10 },
+        specialAction: 'skirmish_retaliate', xp: 'event_resolved' },
+      { label: '📨 Protesta diplomática (rel -5, sin violencia)', effects: { stability:-3 }, xp: 'event_resolved' },
+      { label: '🛡️ Reforzar la frontera (-150 oro, previene futuras)', effects: { gold:-150, stability:+8 }, xp: 'survived_crisis' }
+    ]
+  },
+
+  {
+    id: 'EVT_ECONOMIC_BOOM',
+    title: '📈 Boom Económico Inesperado',
+    category: 'ECONÓMICO', priority: 'normal', icon: '📈',
+    weight: s => (s.activeTradeRoutes?.length > 1 ? 25 : 5) + (s.economy.corruption < 15 ? 15 : 0),
+    condition: s => (s.activeTradeRoutes||[]).length > 0 && s.economy.corruption < 30,
+    options: [
+      { label: '💰 Reinvertir en producción (+500 oro, +prod 2t)', effects: { gold:+300 },
+        hiddenCost: { type:'gold', amount:200, turns:2 }, xp: 'event_resolved' },
+      { label: '🏗️ Construir infraestructura (+estab permanente)', effects: { gold:+200, stability:+15 }, xp: 'survived_crisis' },
+      { label: '⚔️ Financiar campaña militar (+400 tropas)', effects: { gold:+300, army:+400 }, xp: 'event_resolved' }
+    ]
+  },
+
+  {
+    id: 'EVT_NOBLE_REBELLION',
+    title: '👑 Rebelión de la Nobleza',
+    category: 'POLÍTICA', priority: 'critical', icon: '👑',
+    weight: s => (s.economy.corruption > 35 ? 30 : 0) + (s.stability < 35 ? 25 : 0),
+    condition: s => s.economy.corruption > 30 || s.stability < 40,
+    options: [
+      { label: '⚔️ Aplastar la rebelión (-300 tropas, -20 estab)', effects: { army:-300, stability:-20, morale:+10 },
+        hiddenCost: { type:'corruption', amount:10, turns:1 }, xp: 'survived_crisis' },
+      { label: '📜 Conceder privilegios nobles (-1 política activa)', effects: { stability:+20 },
+        specialAction: 'lose_policy', xp: 'event_resolved' },
+      { label: '💰 Soborno masivo (-500 oro)', effects: { gold:-500, stability:+15 }, xp: 'event_resolved' }
+    ]
+  },
+
+  {
+    id: 'EVT_DESERT_CARAVAN',
+    title: '🐪 Gran Caravana del Desierto',
+    category: 'ECONÓMICO', priority: 'normal', icon: '🐪',
+    weight: s => 15 + ((s.activeTradeRoutes||[]).length * 8),
+    condition: s => true,
+    options: [
+      { label: '🌶️ Especias exóticas (+200 oro, moral +10)', effects: { gold:+200, morale:+10 }, xp: 'event_resolved' },
+      { label: '⚙️ Armas de calidad (+150 tropas efectivas)', effects: { iron:+80, army:+150 }, xp: 'event_resolved' },
+      { label: '📜 Mapas de rutas secretas (nueva ruta disponible)', effects: { gold:+100 },
+        specialAction: 'open_trade_bonus', xp: 'trade_route' }
+    ]
+  },
+
+  {
+    id: 'EVT_VOLCANIC_WINTER',
+    title: '🌋 Invierno Volcánico',
+    category: 'CLIMA', priority: 'critical', icon: '🌋',
+    weight: s => 8,
+    condition: s => s.turn > 5,
+    options: [
+      { label: '🌾 Reservas de emergencia (-300 comida ahora, evita hambruna)', effects: { food:-300, morale:-10 }, xp: 'survived_crisis' },
+      { label: '💰 Importar desde aliados (-400 oro)', effects: { gold:-400, food:+250 }, xp: 'event_resolved' },
+      { label: '🙏 Sacrificios rituales (free, -20 moral, riesgo revuelta)', effects: { morale:-20 },
+        chains: ['EVT_FAMINE_REVOLT'], xp: 'event_resolved' }
+    ]
+  },
+
+  {
+    id: 'EVT_RELIGIOUS_SCHISM',
+    title: '✝️ Cisma Religioso',
+    category: 'SOCIAL', priority: 'high', icon: '✝️',
+    weight: s => (s.morale < 45 ? 25 : 8) + (s.stability < 50 ? 10 : 0),
+    condition: s => s.population > 4000,
+    options: [
+      { label: '⚖️ Mediar entre facciones (-150 oro, +estab)', effects: { gold:-150, stability:+10 }, xp: 'event_resolved' },
+      { label: '✊ Suprimir la herejía (-estab, +corrupción)', effects: { stability:-10, morale:+8 },
+        hiddenCost: { type:'corruption', amount:10, turns:1 }, xp: 'event_resolved' },
+      { label: '🕊️ Tolerancia oficial (+20 moral, -5 estab)', effects: { morale:+20, stability:-5 }, xp: 'survived_crisis' }
+    ]
+  },
+
+  {
+    id: 'EVT_TECHNOLOGICAL_DISCOVERY',
+    title: '⚙️ Descubrimiento Técnico',
+    category: 'OPORTUNIDAD', priority: 'normal', icon: '⚙️',
+    weight: s => (s.stability > 60 && s.resources.iron > 80) ? 22 : 4,
+    condition: s => s.stability > 55 && s.resources.iron > 60,
+    options: [
+      { label: '🏹 Armas mejoradas (+20% fuerza ejército)', effects: { iron:-60 },
+        specialAction: 'army_upgrade', xp: 'event_resolved' },
+      { label: '🌾 Herramientas agrícolas (+25% comida 5 turnos)', effects: { iron:-40 },
+        specialAction: 'food_boost', xp: 'event_resolved' },
+      { label: '🚢 Embarcaciones rápidas (nueva ruta marítima)', effects: { wood:-80, iron:-40 },
+        specialAction: 'open_trade_bonus', xp: 'trade_route' }
+    ]
+  },
+
+  {
+    id: 'EVT_ALLIED_REQUEST',
+    title: '📨 Petición de Ayuda de Aliado',
+    category: 'DIPLOMACIA', priority: 'high', icon: '📨',
+    weight: s => (s.diplomacy.some(n=>n.relation>40) ? 28 : 0),
+    condition: s => s.diplomacy.some(n => n.relation > 40 && !n.atWar),
+    options: [
+      { label: '⚔️ Enviar tropas (-300 soldados, rel +25)', effects: { army:-300 },
+        specialAction: 'ally_helped', xp: 'ally_made' },
+      { label: '💰 Enviar oro (-250 oro, rel +15)', effects: { gold:-250 },
+        specialAction: 'ally_helped_gold', xp: 'event_resolved' },
+      { label: '🙅 Rechazar (rel -25, pierde confianza)', effects: { morale:-5 },
+        specialAction: 'ally_rejected', xp: 'event_resolved' }
+    ]
+  },
+
+  {
+    id: 'EVT_PIRATE_RAID',
+    title: '🏴‍☠️ Ataque Pirata a Puertos',
+    category: 'MILITAR', priority: 'high', icon: '🏴‍☠️',
+    weight: s => ((s.activeTradeRoutes||[]).some(r=>r.routeId?.includes('mar')) ? 35 : 5),
+    condition: s => (s.activeTradeRoutes||[]).length > 0,
+    options: [
+      { label: '⚓ Flota de escolta (-200 oro, protege rutas)', effects: { gold:-200, stability:+5 }, xp: 'event_resolved' },
+      { label: '⚔️ Cazar piratas (-150 tropas, +100 oro)', effects: { army:-150, gold:+100, morale:+8 }, xp: 'survived_crisis' },
+      { label: '💸 Absorber pérdidas (-200 oro de las rutas)', effects: { gold:-200 }, xp: 'event_resolved' }
+    ]
+  },
+
+  {
+    id: 'EVT_ORACLE_PROPHECY',
+    title: '🔮 Profecía del Oráculo',
+    category: 'OPORTUNIDAD', priority: 'normal', icon: '🔮',
+    weight: s => 12,
+    condition: s => s.turn > 3,
+    options: [
+      { label: '⚔️ "Victoria en el Este" (prox batalla +20% fuerza)', effects: { morale:+15 },
+        hiddenCost: { type:'gold', amount:-100, turns:0 }, xp: 'event_resolved' },
+      { label: '💰 "Las cosechas prosperarán" (+200 comida próx. turno)', effects: { gold:-80, food:+200 }, xp: 'event_resolved' },
+      { label: '🙈 Ignorar la profecía (gratis)', effects: {}, xp: 'event_resolved' }
+    ]
+  },
+
+  {
+    id: 'EVT_DROUGHT',
+    title: '☀️ Gran Sequía',
+    category: 'CLIMA', priority: 'critical', icon: '☀️',
+    weight: s => (s.climate?.drought ? 60 : 8) + (s.resources.food < 200 ? 20 : 0),
+    condition: s => true,
+    options: [
+      { label: '💧 Pozos de irrigación (-200 oro, +20 comida/turno)', effects: { gold:-200, food:+100 }, xp: 'survived_crisis' },
+      { label: '🌾 Importar grano de emergencia (-300 oro)', effects: { gold:-300, food:+350 }, xp: 'event_resolved' },
+      { label: '🏃 Migración forzada (-500 pob, -10 moral)', effects: { morale:-10 },
+        specialAction: 'pop_loss_drought', xp: 'event_resolved' }
+    ]
+  },
+
+  {
+    id: 'EVT_CENSUS_CORRUPTION',
+    title: '📊 Fraude en el Censo',
+    category: 'ECONOMÍA', priority: 'high', icon: '📊',
+    weight: s => (s.economy.corruption > 20 ? 30 : 5),
+    condition: s => s.economy.corruption > 15 || s.turn % 10 === 0,
+    options: [
+      { label: '🔍 Investigación interna (-100 oro, -15 corrup)', effects: { gold:-100 },
+        hiddenCost: { type:'corruption', amount:-15, turns:1 }, xp: 'event_resolved' },
+      { label: '📋 Aceptar resultados falsos (economía inflada 3t)', effects: { gold:+150 },
+        hiddenCost: { type:'corruption', amount:12, turns:3 }, xp: 'event_resolved' },
+      { label: '⚖️ Reforma fiscal (-estab corto plazo, +base fiscal)', effects: { stability:-8, morale:-5 },
+        hiddenCost: { type:'corruption', amount:-20, turns:1 }, xp: 'survived_crisis' }
+    ]
+  },
+
+  {
+    id: 'EVT_HERO_EMERGES',
+    title: '⭐ Héroe del Pueblo',
+    category: 'MILITAR', priority: 'normal', icon: '⭐',
+    weight: s => (s.army > 400 && s.morale > 55) ? 18 : 3,
+    condition: s => s.army > 300 && s.morale > 50,
+    options: [
+      { label: '⚔️ General del ejército (+200 tropas, +15% fuerza)', effects: { army:+200, morale:+12 }, xp: 'event_resolved' },
+      { label: '📢 Enviarlo al pueblo (+25 moral, inspira lealtad)', effects: { morale:+25, stability:+10 }, xp: 'survived_crisis' },
+      { label: '🤝 Embajador (+20 rel con nación aleatoria)', effects: { morale:+8 },
+        specialAction: 'hero_diplomat', xp: 'ally_made' }
+    ]
+  },
+
+  {
+    id: 'EVT_SLAVE_REVOLT',
+    title: '✊ Revuelta de los Trabajadores',
+    category: 'SOCIAL', priority: 'critical', icon: '✊',
+    weight: s => (s.economy.corruption > 30 && s.morale < 40) ? 45 : 5,
+    condition: s => s.economy.corruption > 25 || (s.morale < 35 && s.stability < 40),
+    options: [
+      { label: '⚔️ Represión violenta (-150 tropas, -20 moral, +estab)', effects: { army:-150, morale:-20, stability:+15 },
+        hiddenCost: { type:'corruption', amount:8, turns:1 }, xp: 'event_resolved' },
+      { label: '📜 Reformas de condiciones laborales (-150 oro/turno)', effects: { gold:-100, morale:+25, stability:+20 },
+        hiddenCost: { type:'gold', amount:-150, turns:2 }, xp: 'survived_crisis' },
+      { label: '🗣️ Negociar con líderes (-200 oro, paz temporal)', effects: { gold:-200, morale:+10, stability:+8 }, xp: 'event_resolved' }
+    ]
+  },
 ];
 
 // Motor de selección de eventos dinámicos

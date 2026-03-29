@@ -170,6 +170,18 @@ const UI = {
   },
 
   // ══════════════════════════════════════════════
+  // PANEL DE GUERRAS ACTIVAS
+  // ══════════════════════════════════════════════
+  renderWarPanel(state) {
+    const container = document.getElementById('active-wars-panel');
+    if (!container) return;
+    if (typeof WarSystem === 'undefined') { container.innerHTML = ''; return; }
+    const html = WarSystem.renderWarPanel(state);
+    container.innerHTML = html;
+    container.style.display = html ? 'block' : 'none';
+  },
+
+  // ══════════════════════════════════════════════
   // RUTAS COMERCIALES EN MAPA LATERAL
   // ══════════════════════════════════════════════
   renderTradeOverlay(state) {
@@ -756,6 +768,7 @@ const UI = {
     this.renderFactions(state);
     this.renderMilitary(state);
     this.renderTradeOverlay(state);
+    this.renderWarPanel(state);
     this.renderPolitics(state);
     this.renderDiplomacy(state);
     this.renderEconomy(state);
@@ -793,4 +806,8 @@ function switchRightTab(tab) {
   const content = document.getElementById('rtab-' + tab);
   if (content) content.classList.add('active');
   if (event && event.target) event.target.classList.add('active');
+  // Render military on demand when tab is opened
+  if (tab === 'military' && typeof Game !== 'undefined' && Game.state) {
+    UI.renderMilitary(Game.state);
+  }
 }

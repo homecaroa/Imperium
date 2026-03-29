@@ -251,8 +251,14 @@ const Game = {
 
     // 9. IA
     AI.tick(state);
+    // 9b. Procesar turnos de guerra multi-turno
     state.diplomacy.forEach(n => {
-      if (n.atWar) Systems.Trade.closeRoutesForNation(state, n.id);
+      if (n.atWar) {
+        Systems.Trade.closeRoutesForNation(state, n.id);
+        if (n._war && typeof WarSystem !== 'undefined') {
+          WarSystem.processTurn(state, n);
+        }
+      }
     });
 
     // 10. Avanzar turno
@@ -443,32 +449,43 @@ const Game = {
   // GUERRA CON BATALLA EN MAPA
   // ══════════════════════════════════════════════
   toggleMilitaryPanel() {
-    const drawer = document.getElementById('military-drawer');
-    const arrow  = document.getElementById('mil-arrow');
-    if (!drawer) return;
-    const hidden = drawer.classList.contains('hidden');
-    drawer.classList.toggle('hidden');
-    if (arrow) arrow.textContent = hidden ? '▲' : '▼';
-    if (!hidden) return;
-    // Render military content when opening
-    if (typeof UI !== 'undefined') UI.renderMilitary(this.state);
+    // Military is now a right-panel tab — switch to it
+    if (typeof switchRightTab === 'function') switchRightTab('military');
   },
 
-  declareWar(nationId) {
-    const state  = this.state;
-    if (!ActionPoints.spend(state, 2, "Declarar guerra")) return;
-    const nation = state.diplomacy.find(n => n.id === nationId);
-    if (!nation) return;
+  declareWar(nationId, targetRegionId) {
+    // Use WarDeclaration for relation-based check + multi-turn war
+    if (typeof WarDeclaration !== 'undefined') {
+      WarDeclaration.declare(this.state, nationId, targetRegionId);
+    } else {
+      // Fallback
+      const state  = this.state;
+      if (!ActionPoints.spend(state, 2, "Declarar guerra")) return;
+      const nation = state.diplomacy.find(n => n.id === nationId);
+      if (!nation) return;
+      nation.atWar = true;
+      nation.relation = Math.max(-100, nation.relation - 30);
+      Systems.Trade.closeRoutesForNation(state, nationId);
+      Systems.Log.add(state, '⚔️ Guerra declarada contra ' + nation.name, 'crisis');
+      if (typeof AlthoriаMap !== 'undefined') AlthoriаMap.updateWar(state);
+    }
+    UI.fullRender(this.state);
+  },
 
-    nation.atWar = true;
-    nation.relation = Math.max(-100, nation.relation - 30);
-    Systems.Trade.closeRoutesForNation(state, nationId);
-    Systems.Log.add(state, '⚔️ ¡Declarada la guerra a ' + nation.name + '!', 'warn');
+  // Select attack target from map
+  selectAttackTarget() {
+    if (typeof RegionSelector !== 'undefined') {
+      RegionSelector.selectAttackTarget(this.state);
+    }
+  },
 
-    // Abrir modal de batalla
-    BattleSystem.initBattle(state, nation);
-    // Actualizar zonas de guerra en Althoria
-    if (typeof AlthoriаMap !== 'undefined') AlthoriаMap.updateWar(state);
+  // Reinforce active war
+  reinforceWar(nationId, troops) {
+    if (typeof WarSystem !== 'undefined') WarSystem.reinforce(this.state, nationId, troops);
+  },
+
+  retreatWar(nationId) {
+    if (typeof WarSystem !== 'undefined') WarSystem.retreat(this.state, nationId);
   },
 
   // ══════════════════════════════════════════════

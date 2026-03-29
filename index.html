@@ -152,29 +152,26 @@
         <button class="btn-save btn-load tb-tip" data-tip="📂 Cargar partida guardada" onclick="SaveSystem.showLoadMenu()">📂</button>
         <button class="btn-save tb-tip" data-tip="⚡ Modo Blitz: 20 turnos, economía acelerada, IA agresiva desde T1" onclick="Game.startBlitzMode()" style="background:rgba(200,120,20,0.2);border-color:#c87810;color:#f0a040">⚡ Blitz</button>
       </div>
+    
+      <div id="region-select-banner" style="display:none;background:rgba(200,60,60,0.9);color:#fff;padding:6px 14px;font-family:monospace;font-size:11px;text-align:center;letter-spacing:1px;cursor:pointer" onclick="RegionSelector.deactivate()">
+        🎯 MODO SELECCIÓN DE REGIÓN — Haz click en el mapa de Althoria para seleccionar. [Cancelar]
+      </div>
     </div>
 
-    <!-- ═══ CUERPO PRINCIPAL: agenda arriba + panel gestión abajo ═══ -->
+    <!-- ═══ CUERPO PRINCIPAL: columna izquierda + panel derecho principal ═══ -->
     <div id="main-body">
 
-      <!-- COLUMNA LATERAL IZQUIERDA: Facciones + Ejército + Agenda (~35%) -->
+      <!-- COLUMNA IZQUIERDA: Facciones + Agenda (compacta, ~25%) -->
       <div id="map-area">
-        <!-- Tabs: Facciones / Ejército -->
         <div class="map-tabs">
           <button class="mtab active" onclick="switchMapTab('factions')">⚔️ Facciones</button>
-          <button class="mtab" onclick="switchMapTab('military')">🛡️ Ejército</button>
-          <span id="map-seed-label" class="seed-label" style="font-size:9px;padding:2px 4px;color:var(--text3)"></span>
+          <span id="map-seed-label" class="seed-label" style="font-size:9px;padding:2px 6px;color:var(--text3);margin-left:auto"></span>
         </div>
 
         <!-- FACCIONES -->
         <div id="mtab-factions" class="mtab-content active">
           <div id="factions-list"></div>
           <div id="trade-map-overlay" class="trade-map-overlay"></div>
-        </div>
-
-        <!-- EJÉRCITO (mismo nivel, no desplegable) -->
-        <div id="mtab-military" class="mtab-content">
-          <div id="military-panel"></div>
         </div>
 
         <!-- AGENDA siempre visible abajo -->
@@ -189,8 +186,10 @@
         </div>
       </div>
 
-      <!-- ═══ PANEL DERECHO: PROTAGONISTA DE LA PANTALLA ═══ -->
+      <!-- ═══ PANEL DERECHO: MENÚ PRINCIPAL (~75%) ═══ -->
       <div id="right-panel">
+        <!-- Guerras activas (multi-turno) -->
+        <div id="active-wars-panel" style="display:none"></div>
         <!-- Evento activo -->
         <div id="decision-area">
           <div id="active-event">
@@ -201,9 +200,11 @@
           </div>
         </div>
 
-        <!-- TABS DE GESTIÓN — prominentes -->
+        <!-- TABS DE GESTIÓN -->
         <div class="panel-tabs">
           <button class="ptab active" onclick="switchRightTab('politics')" title="Política">🏛️</button>
+          <button class="ptab" onclick="switchRightTab('military')" title="Ejército">⚔️</button>
+          <button class="ptab" onclick="Game.selectAttackTarget()" title="Seleccionar territorio para atacar">🎯</button>
           <button class="ptab" onclick="switchRightTab('diplomacy')" title="Diplomacia">🤝</button>
           <button class="ptab" onclick="switchRightTab('economy')" title="Economía">💰</button>
           <button class="ptab" onclick="switchRightTab('climate')" title="Clima">🌤️</button>
@@ -215,6 +216,7 @@
         </div>
 
         <div id="rtab-politics"  class="rtab-content active"><div id="politics-panel"></div></div>
+        <div id="rtab-military"  class="rtab-content"><div id="military-panel"></div></div>
         <div id="rtab-diplomacy" class="rtab-content"><div id="diplomacy-panel"></div></div>
         <div id="rtab-economy"   class="rtab-content"><div id="economy-panel"></div></div>
         <div id="rtab-climate"   class="rtab-content"><div id="climate-panel"></div></div>
@@ -298,6 +300,7 @@
 <script src="ui.js"></script>
 <script src="arcs.js"></script>
 <script src="mechanics.js"></script>
+<script src="war.js"></script>
 <script src="unlocks.js"></script>
 <script src="diplomacy.js"></script>
 <script src="story_arcs.js"></script>

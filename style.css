@@ -827,8 +827,8 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 
 /* ── Columna izquierda (mapa + facciones + ejército + agenda) ── */
 #map-area {
-  flex: 35;                        /* 35% */
-  min-width: 180px; max-width: 38%;
+  flex: 25;                        /* 25% */
+  min-width: 160px; max-width: 30%;
   display: flex; flex-direction: column;
   background: var(--bg2);
   border-right: 2px solid var(--border2);
@@ -837,8 +837,8 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 
 /* ── Panel derecho: 40% protagonista ── */
 #right-panel {
-  flex: 65;                        /* 65% */
-  min-width: 380px; max-width: 68%;
+  flex: 75;                        /* 75% */
+  min-width: 400px; max-width: 78%;
   display: flex; flex-direction: column;
   background: var(--panel); overflow: hidden;
 }
@@ -1151,14 +1151,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 .map-tabs { background: var(--bg3); border-bottom: 1px solid var(--border2); }
 #map-area .mtab { font-size: 11px; padding: 7px 6px; }
 
-/* Military panel en el sidebar: fuente más pequeña */
-#mtab-military .rpanel-section  { padding: 6px 8px; }
-#mtab-military .rpanel-title    { font-size: 11px; margin-bottom: 6px; }
-#mtab-military .policy-btn      { font-size: 10px; padding: 4px 7px; }
-#mtab-military .policy-cost     { font-size: 9px; }
-#mtab-military .formation-panel { max-height: 130px; }
-#mtab-military .fstat           { padding: 2px 4px; font-size: 9px; }
-#mtab-military .fstat b         { font-size: 11px; }
+/* Military is now in right panel tab — full size */
 
 /* Agenda al fondo: siempre visible */
 #agenda-bar {
@@ -1199,12 +1192,12 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
    RESPONSIVE ajustes para 35/65
    ═══════════════════════════════════════════════════ */
 @media (max-width: 1300px) {
-  #map-area    { flex: 35; min-width: 160px; }
-  #right-panel { flex: 65; min-width: 340px; }
+  #map-area    { flex: 25; min-width: 150px; }
+  #right-panel { flex: 75; min-width: 360px; }
 }
 @media (max-width: 1050px) {
-  #map-area    { flex: 35; min-width: 140px; }
-  #right-panel { flex: 65; min-width: 300px; }
+  #map-area    { flex: 25; min-width: 130px; }
+  #right-panel { flex: 75; min-width: 300px; }
   .panel-tabs .ptab { font-size: 16px; height: 40px; }
 }
 @media (max-width: 820px) {
@@ -1238,3 +1231,36 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 .tor-income { font-family: var(--font-mono); font-size: 9px; flex-shrink: 0; margin-left: auto; }
 .tor-bar    { width: 100%; height: 2px; background: rgba(255,255,255,0.07); border-radius: 1px; }
 .tor-fill   { height: 100%; border-radius: 1px; transition: width 0.4s; }
+
+/* ═══════════════════════════════════════════════════
+   GUERRA MULTI-TURNO
+   ═══════════════════════════════════════════════════ */
+.war-card {
+  background: rgba(180,30,30,0.08);
+  border-left: 4px solid var(--red2);
+}
+.war-card .rpanel-title { color: var(--red2); }
+
+#active-wars-panel {
+  flex-shrink: 0;
+  border-bottom: 2px solid rgba(200,50,50,0.4);
+  animation: war-pulse 2s ease-in-out infinite;
+}
+@keyframes war-pulse { 0%,100%{border-color:rgba(200,50,50,0.3)} 50%{border-color:rgba(200,50,50,0.8)} }
+
+/* ═══════════════════════════════════════════════════
+   SELECCIÓN DE REGIÓN EN MAPA
+   ═══════════════════════════════════════════════════ */
+#region-select-banner {
+  animation: sel-flash 0.8s ease-in-out infinite;
+  z-index: 200; position: relative;
+}
+@keyframes sel-flash { 0%,100%{opacity:1} 50%{opacity:0.7} }
+
+/* ═══════════════════════════════════════════════════
+   ZOOM del mapa Althoria: cursor crosshair
+   ═══════════════════════════════════════════════════ */
+#althoria-canvas { cursor: crosshair; }
+#althoria-canvas-wrap {
+  position: relative; overflow: hidden;
+}

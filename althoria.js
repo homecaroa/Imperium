@@ -235,6 +235,21 @@ const AlthoriаMap = {
 
     this.canvas.addEventListener('mousemove',  (e) => this._onHover(e));
     this.canvas.addEventListener('mouseleave', ()  => this._clearHover());
+    this.canvas.addEventListener('click',      (e) => this._onClick(e));
+    this.canvas.addEventListener('wheel',      (e) => this._onWheel(e), { passive: false });
+    this.canvas.addEventListener('mousedown',  (e) => this._onPanStart(e));
+    this.canvas.addEventListener('mousemove',  (e) => this._onPan(e));
+    this.canvas.addEventListener('mouseup',    ()  => this._onPanEnd());
+
+    // Zoom & pan state
+    this.zoom   = 1.0;    // 1.0 = normal, max 3.0, min 0.8
+    this.panX   = 0;
+    this.panY   = 0;
+    this._panning = false;
+    this._panStartX = 0;
+    this._panStartY = 0;
+    this._panStartPX = 0;
+    this._panStartPY = 0;
   },
 
   _loadImage() {
@@ -418,7 +433,17 @@ const AlthoriаMap = {
     // Limpiar
     ctx.clearRect(0, 0, W, H);
 
-    // 1. Imagen base
+    // Aplicar zoom + pan como transform de canvas
+    const z  = this.zoom  || 1;
+    const px = this.panX  || 0;
+    const py = this.panY  || 0;
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.scale(z, z);
+
+    // 1. Imagen base (con imageSmoothingQuality alta para evitar pixelado)
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(this.img, 0, 0, W, H);
 
     // 2. Halos de influencia (capa más profunda)
@@ -451,6 +476,7 @@ const AlthoriаMap = {
     // 11. Tropas desplegadas
     this._renderDeployedTroops(ctx, W, H);
 
+    ctx.restore();  // Restaurar transform de zoom/pan
     this.animFrame++;
   },
 
@@ -637,7 +663,7 @@ const AlthoriаMap = {
       ctx.textAlign="center"; ctx.textBaseline="middle";
       ctx.fillText(col.icon, cx, cy);
 
-      // Nombre de nación debajo
+      // Nombre de nación — elemento visual más reconocible
       if (typeof Game !== "undefined" && Game.state) {
         const diplo = Game.state.diplomacy || [];
         let natName = natId === "player" ? (Game.state.civName||"Tu Reino") : "";
@@ -646,11 +672,37 @@ const AlthoriаMap = {
           natName = diplo[idx]?.name || natId;
         }
         const shortName = natName.split(" ").slice(0,2).join(" ");
-        ctx.font = "bold 11px Cinzel,serif";
-        ctx.fillStyle = "rgba(0,0,0,0.75)";
-        ctx.fillText(shortName, cx+1, cy+r+12);
+
+        // Escalar nombre con zoom — más grande en zoom out
+        const z = this.zoom || 1;
+        const nameSize = Math.max(10, Math.floor((W * 0.028) / z));  // ~14px base
+        const yOff = cy + r + nameSize + 4;
+
+        // Fondo negro semitransparente para legibilidad
+        ctx.font = `bold ${nameSize}px 'Cinzel','Georgia',serif`;
+        const tw = ctx.measureText(shortName).width;
+        ctx.fillStyle = "rgba(0,0,0,0.65)";
+        ctx.fillRect(cx - tw/2 - 4, yOff - nameSize, tw + 8, nameSize + 4);
+
+        // Sombra fuerte
+        ctx.shadowColor = "rgba(0,0,0,0.9)";
+        ctx.shadowBlur  = 6;
+
+        // Stroke blanco para máximo contraste
+        ctx.strokeStyle = "rgba(0,0,0,1)";
+        ctx.lineWidth   = 3;
+        ctx.strokeText(shortName, cx, yOff);
+
+        // Texto coloreado de la nación
         ctx.fillStyle = col.border;
-        ctx.fillText(shortName, cx, cy+r+11);
+        ctx.shadowBlur = 0;
+        ctx.fillText(shortName, cx, yOff);
+
+        // Dot indicator bajo el nombre
+        ctx.beginPath();
+        ctx.arc(cx, yOff + 6, 2.5, 0, Math.PI*2);
+        ctx.fillStyle = col.border;
+        ctx.fill();
       }
       ctx.restore();
     });
@@ -835,10 +887,98 @@ const AlthoriаMap = {
   },
 
   // ── HOVER SOBRE EL MAPA ───────────────────────────────────
-  _onHover(e) {
+  _onWheel(e) {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 0.85 : 1.15;
+    const newZoom = Math.max(0.8, Math.min(3.5, (this.zoom || 1) * delta));
+    // Zoom toward cursor position
     const rect = this.canvas.getBoundingClientRect();
-    const px   = (e.clientX - rect.left)  / rect.width  * 100;
-    const py   = (e.clientY - rect.top)   / rect.height * 100;
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    const z = this.zoom || 1;
+    this.panX = mouseX - (mouseX - (this.panX||0)) * (newZoom / z);
+    this.panY = mouseY - (mouseY - (this.panY||0)) * (newZoom / z);
+    this.zoom = newZoom;
+    // Clamp pan
+    this._clampPan();
+    this.render();
+  },
+
+  _onPanStart(e) {
+    if (e.button !== 0) return;
+    this._panning    = true;
+    this._panStartX  = e.clientX;
+    this._panStartY  = e.clientY;
+    this._panStartPX = this.panX || 0;
+    this._panStartPY = this.panY || 0;
+    this.canvas.style.cursor = 'grabbing';
+  },
+
+  _onPan(e) {
+    if (!this._panning) return;
+    this.panX = this._panStartPX + (e.clientX - this._panStartX);
+    this.panY = this._panStartPY + (e.clientY - this._panStartY);
+    this._clampPan();
+    this.render();
+  },
+
+  _onPanEnd() {
+    this._panning = false;
+    this.canvas.style.cursor = 'crosshair';
+  },
+
+  _clampPan() {
+    const W = this.canvas.width, H = this.canvas.height;
+    const z = this.zoom || 1;
+    const maxPX = W * (z - 1) * 0.5;
+    const maxPY = H * (z - 1) * 0.5;
+    this.panX = Math.max(-maxPX * 1.5, Math.min(maxPX * 1.5, this.panX || 0));
+    this.panY = Math.max(-maxPY * 1.5, Math.min(maxPY * 1.5, this.panY || 0));
+  },
+
+  // Convert screen coords to map % (accounting for zoom/pan)
+  _screenToMapPct(clientX, clientY) {
+    const rect = this.canvas.getBoundingClientRect();
+    const z  = this.zoom || 1;
+    const px = ((clientX - rect.left) - (this.panX||0)) / z;
+    const py = ((clientY - rect.top)  - (this.panY||0)) / z;
+    return [px / this.canvas.width * 100, py / this.canvas.height * 100];
+  },
+
+  _onClick(e) {
+    const [mapX, mapY] = this._screenToMapPct(e.clientX, e.clientY);
+    const region = ALTHORIA_REGIONS.find(r => this._pointInPolygon(mapX, mapY, r.polygon));
+    if (!region) return;
+
+    let owner = 'neutral';
+    Object.entries(this.nationZones).forEach(([natId, zones]) => {
+      if (zones.includes(region.id)) owner = natId;
+    });
+
+    // RegionSelector intercepts if active
+    if (typeof RegionSelector !== 'undefined' && RegionSelector._active) {
+      RegionSelector.onRegionClick(region.id, owner, Game?.state);
+      return;
+    }
+
+    // Default: show region info in hover bar
+    if (owner !== 'player' && owner !== 'neutral') {
+      const gameState = (typeof Game !== 'undefined') ? Game.state : null;
+      if (gameState) {
+        const info = (typeof TerritorySystem !== 'undefined')
+          ? TerritorySystem.getRegionInfo(region.id, gameState)
+          : null;
+        if (info) {
+          Systems?.Log?.add(gameState, `🗺️ Región seleccionada: ${info.name} — Propietario: ${info.ownerName}, Guarnición: ~${info.garrison}`, 'info');
+          if (typeof UI !== 'undefined') UI.renderLog(gameState);
+        }
+      }
+    }
+  },
+
+    _onHover(e) {
+    if (this._panning) return;  // Don't hover while panning
+    const [px, py] = this._screenToMapPct(e.clientX, e.clientY);
 
     const region = ALTHORIA_REGIONS.find(r => this._pointInPolygon(px, py, r.polygon));
     if (!region) { this._clearHover(); return; }
