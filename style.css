@@ -1264,3 +1264,104 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 #althoria-canvas-wrap {
   position: relative; overflow: hidden;
 }
+
+/* ─── diplomacy messages: bigger + bold ─── */
+.dmi-text {
+  font-family: var(--font-body);
+  font-size: 13px; font-weight: bold;
+  color: var(--text); line-height: 1.5;
+  margin-bottom: 5px; font-style: italic;
+}
+
+.diplo-msg-item {
+  background: var(--bg4);
+  border: 1px solid var(--border2);
+  border-left: 3px solid var(--gold);
+  padding: 8px 10px;
+  margin-bottom: 6px;
+}
+
+
+/* ═══ FACCIONES: 20% más pequeñas (definitivo) ═══ */
+#factions-list .faction-card  { padding: 4px 7px !important; margin-bottom: 3px !important; }
+#factions-list .faction-name  { font-size: 10px !important; }
+#factions-list .faction-header { margin-bottom: 2px !important; }
+#factions-list .faction-power  { font-size: 9px !important; }
+#factions-list .faction-mood   { font-size: 9px !important; padding: 0 !important; }
+#factions-list .faction-demand { font-size: 9px !important; }
+#factions-list .bar-track      { height: 3px !important; }
+#factions-list .bar-label      { font-size: 8px !important; margin-bottom: 1px !important; }
+#factions-list .alert-box      { padding: 2px 5px !important; font-size: 9px !important; margin-top: 2px !important; }
+#factions-list                  { scrollbar-width: thin; }
+
+/* Sidebar izquierdo: aún más compacto */
+#map-area { flex: 20 !important; min-width: 150px !important; max-width: 24% !important; }
+#right-panel { flex: 80 !important; min-width: 400px !important; }
+
+/* ═══════════════════════════════════════════════════════
+   UNLOCK TREE — árbol de ramificaciones visual
+   ═══════════════════════════════════════════════════════ */
+.unlock-tree-wrap {
+  padding: 12px 10px;
+  display: flex; flex-direction: column; gap: 18px;
+}
+.unlock-cat-block {
+  background: rgba(0,0,0,0.15);
+  border: 1px solid var(--border);
+  border-radius: 4px; overflow: hidden;
+}
+.unlock-cat-title {
+  font-family: var(--font-title); font-size: 12px;
+  letter-spacing: 1px; text-transform: uppercase;
+  padding: 6px 10px;
+  background: rgba(0,0,0,0.2);
+  border-bottom: 1px solid var(--border);
+}
+.unlock-cat-tree {
+  padding: 10px 8px;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 0;
+}
+.unlock-tier {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  width: 100%;
+}
+.unlock-tier-arrow {
+  font-size: 10px; color: var(--text3);
+  padding: 2px 8px; text-align: center;
+  width: 100%;
+}
+.unlock-node-wrap {
+  display: flex; flex-direction: column; align-items: center;
+}
+.unlock-connector {
+  width: 1px; height: 10px;
+  background: var(--border2);
+  margin: 0 auto;
+}
+
+/* Node states */
+.unode {
+  border: 2px solid var(--border);
+  padding: 6px 8px; min-width: 90px; max-width: 120px;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 2px; cursor: help; transition: all 0.2s;
+  background: var(--bg4);
+  text-align: center;
+}
+.unode.unlocked {
+  background: rgba(0,0,0,0.3);
+  opacity: 1;
+}
+.unode.available {
+  background: rgba(200,160,48,0.08);
+  border-style: dashed;
+  animation: node-pulse 2s ease-in-out infinite;
+}
+.unode.locked {
+  opacity: 0.45; filter: grayscale(0.6);
+}
+@keyframes node-pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
+
+.unode-icon   { font-size: 18px; line-height: 1; }
+.unode-name   { font-family: var(--font-mono); font-size: 9px; color: var(--text2); line-height: 1.2; }
+.unode-status { font-size: 10px; margin-top: 1px; }

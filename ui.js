@@ -277,9 +277,16 @@ const UI = {
                 +'<span class="lock-hint">'+hint.split('.')[0]+'</span>'
                 +'</button>';
             }
-            var onclk='Game.recruitUnit(\"'+id+'\",50)';
-            return '<button class="policy-btn" onclick="'+onclk+'" '+(needsPolicy?'disabled':'')
-              +' title="'+def.description+'">'
+            var onclk='Game.recruitUnit("'+id+'",50)';
+            if (needsPolicy) {
+              return '<button class="policy-btn locked-action tb-tip" disabled'
+                +' data-tip="🔒 Requiere política: '+def.requires.join(', ')+'&#10;Actívala en la pestaña 🏛️">'
+                +'<span>🔒 '+def.icon+' '+def.name+'</span>'
+                +'<span class="policy-cost" style="color:var(--text3)">Política requerida</span>'
+                +'</button>';
+            }
+            return '<button class="policy-btn" onclick="'+onclk+'"'
+              +' title="'+def.description+'">' 
               +'<span>'+def.icon+' '+def.name+' ×50</span>'
               +'<span class="policy-cost">'+def.cost.gold+'💰'+(def.cost.iron?' '+def.cost.iron+'⚙️':'')+(def.cost.wood?' '+def.cost.wood+'🪵':'')+'</span>'
               +'</button>';
@@ -760,7 +767,93 @@ const UI = {
     if (typeof UnlockSystem === 'undefined') return;
     var container = document.getElementById('unlocks-panel');
     if (!container) return;
-    container.innerHTML = UnlockSystem.renderProgressPanel(state);
+    container.innerHTML = UI._renderUnlockTree(state);
+  },
+
+  _renderUnlockTree(state) {
+    const tree  = UNLOCK_TREE;
+    const all   = Object.values(tree);
+    const unlockedSet = new Set(state.unlockedActions || []);
+
+    // Group by category
+    const CATS = {
+      politica:  { label:'🏛️ Política',    color:'#c8a030' },
+      militar:   { label:'⚔️ Militar',     color:'#e05050' },
+      diplomacia:{ label:'🤝 Diplomacia',  color:'#5080e0' },
+      espias:    { label:'🕵️ Espionaje',   color:'#8060a0' },
+      comercio:  { label:'⚓ Comercio',    color:'#40a080' },
+    };
+
+    // Max tier per category
+    const maxTiers = {};
+    all.forEach(u => {
+      maxTiers[u.category] = Math.max(maxTiers[u.category]||0, u.tier);
+    });
+
+    let html = '<div class="unlock-tree-wrap">';
+
+    Object.entries(CATS).forEach(([catId, catDef]) => {
+      const nodes = all.filter(u => u.category === catId)
+                       .sort((a,b) => a.tier - b.tier);
+      if (!nodes.length) return;
+
+      html += '<div class="unlock-cat-block">';
+      html += '<div class="unlock-cat-title" style="color:'+catDef.color+'">'+catDef.label+'</div>';
+      html += '<div class="unlock-cat-tree">';
+
+      // Build by tiers
+      const byTier = {};
+      nodes.forEach(n => { (byTier[n.tier] = byTier[n.tier]||[]).push(n); });
+      const maxT = maxTiers[catId];
+
+      for (let t = 0; t <= maxT; t++) {
+        const tierNodes = byTier[t] || [];
+        html += '<div class="unlock-tier">';
+
+        tierNodes.forEach(u => {
+          const unlocked = unlockedSet.has(u.id);
+          const canUnlock = !unlocked && (u.requires||[]).every(r => unlockedSet.has(r));
+          const blocked   = !unlocked && !canUnlock;
+
+          const nodeClass = unlocked ? 'unode unlocked'
+                          : canUnlock ? 'unode available'
+                          : 'unode locked';
+
+          const tipLines = [
+            u.name,
+            u.desc,
+            u.requires?.length ? 'Requiere: '+u.requires.join(', ') : 'Sin requisitos',
+            unlocked ? '✅ Desbloqueado' : canUnlock ? '🔓 Disponible ahora' : '🔒 '+u.hint,
+          ].join('&#10;');
+
+          // Connector line from parent
+          const hasParent = (u.requires||[]).length > 0;
+
+          html += '<div class="unlock-node-wrap">';
+          if (t > 0) html += '<div class="unlock-connector"></div>';
+          html += '<div class="'+nodeClass+' tb-tip" data-tip="'+tipLines+'" style="border-color:'+catDef.color+(unlocked?';box-shadow:0 0 8px '+catDef.color+'44':'')+'">';
+          html += '<div class="unode-icon">'+u.icon+'</div>';
+          html += '<div class="unode-name">'+u.name+'</div>';
+          if (unlocked) html += '<div class="unode-status">✅</div>';
+          else if (canUnlock) html += '<div class="unode-status" style="color:'+catDef.color+'">🔓</div>';
+          else html += '<div class="unode-status">🔒</div>';
+          html += '</div>';
+          html += '</div>';
+        });
+
+        html += '</div>'; // tier
+        // Arrow between tiers
+        if (t < maxT && (byTier[t]||[]).length > 0 && (byTier[t+1]||[]).length > 0) {
+          html += '<div class="unlock-tier-arrow">▼</div>';
+        }
+      }
+
+      html += '</div>'; // cat-tree
+      html += '</div>'; // cat-block
+    });
+
+    html += '</div>'; // wrap
+    return html;
   },
 
   fullRender(state) {

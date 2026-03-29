@@ -467,7 +467,7 @@ const DiplomacySystem = {
         <div class="dnc-label">✉️ Mensajes (${inbox.length})</div>
         ${inbox.slice(0,2).map(msg => `
           <div class="diplo-msg-item">
-            <div class="dmi-text">"${msg.text}"</div>
+            <div class="dmi-text"><b>"${msg.text}"</b></div>
             <div class="dmi-opts">
               ${(msg.options||[]).map(opt =>
                 `<button class="diplo-btn ${opt.action==='ignore'?'':'primary'}" style="font-size:9px;padding:3px 7px"

@@ -461,11 +461,12 @@ const RegionSelector = {
     this._active   = true;
     this._filter   = filter;
     this._callback = callback;
-    // Indicador visual
     const banner = document.getElementById('region-select-banner');
     if (banner) banner.style.display = 'block';
-    // Si el panel Althoria no está abierto, abrirlo
-    if (typeof AlthoriаMap !== 'undefined') AlthoriаMap.open(Game.state);
+    // Open Althoria map for region selection
+    if (typeof AlthoriаMap !== 'undefined' && typeof Game !== 'undefined' && Game.state) {
+      if (!AlthoriаMap.isOpen) AlthoriаMap.open(Game.state);
+    }
   },
 
   deactivate() {
@@ -503,28 +504,23 @@ const RegionSelector = {
   },
 
   _showAttackConfirm(regionId, info, state) {
-    const overlay = document.getElementById('modal-overlay');
-    const title   = document.getElementById('modal-title');
-    const body    = document.getElementById('modal-body');
-    if (!overlay) return;
+    // Use a safe confirmation dialog instead of injecting onclick with dynamic strings
+    const resText = Object.entries(info.resources||{}).filter(([,v])=>v>0).map(([k,v])=>v+' '+k).join(', ');
+    const msg = [
+      'ATACAR: ' + info.name,
+      'Propietario: ' + info.ownerName,
+      'Guarnición estimada: ' + info.garrison + ' tropas',
+      'Riesgo: ' + info.riskLevel,
+      'Recursos: ' + (resText||'ninguno'),
+      '',
+      '¿Declarar guerra?',
+    ].join('\n');
 
-    title.textContent = `⚔️ Atacar: ${info.name}`;
-    const resText = Object.entries(info.resources).map(([k,v])=>`${v} ${k}`).join(', ');
-    body.innerHTML = `
-      <div style="font-family:var(--font-mono);color:var(--text2);line-height:1.8;font-size:13px">
-        <div>🏰 <b>Propietario:</b> ${info.ownerName}</div>
-        <div>🛡️ <b>Guarnición estimada:</b> ${info.garrison} tropas</div>
-        <div>⚠️ <b>Riesgo:</b> ${info.riskLevel}</div>
-        <div>💎 <b>Recursos:</b> ${resText}</div>
-        <div>🌍 <b>Terreno:</b> ${info.geoType}</div>
-      </div>
-      <div style="display:flex;gap:8px;margin-top:16px">
-        <button class="diplo-btn danger" style="flex:1" onclick="
-          document.getElementById('modal-overlay').classList.add('hidden');
-          WarDeclaration.declare(Game.state,'${info.owner}','${regionId}');
-        ">⚔️ Declarar Guerra</button>
-        <button class="diplo-btn" onclick="document.getElementById('modal-overlay').classList.add('hidden')">Cancelar</button>
-      </div>`;
-    overlay.classList.remove('hidden');
+
+    if (!confirm(msg)) return;
+
+    // Store pending attack for the confirm
+    this._pendingAttack = { regionId, nationId: info.owner };
+    WarDeclaration.declare(state, info.owner, regionId);
   },
 };
