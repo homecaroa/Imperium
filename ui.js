@@ -139,7 +139,30 @@ const UI = {
   renderFactions(state) {
     const container = document.getElementById('factions-list');
     if (!container) return;
-    container.innerHTML = '';
+
+    // ── Fixed stat bars at top of sidebar ──────────────
+    const stability  = Math.max(0, Math.min(100, Math.floor(state.stability  || 0)));
+    const morale     = Math.max(0, Math.min(100, Math.floor(state.morale     || 0)));
+    const corruption = Math.max(0, Math.min(100, Math.floor(state.economy?.corruption || 0)));
+    const sColor = stability  < 30 ? '#e05050' : stability  < 55 ? '#c8a030' : '#5a9030';
+    const mColor = morale     < 30 ? '#e05050' : morale     < 55 ? '#c8a030' : '#5a9030';
+    const cColor = corruption < 20 ? '#5a9030' : corruption < 45 ? '#c8a030' : '#e05050';
+
+    const statBar = (icon, label, val, color, tip) =>
+      '<div class="sidebar-stat-row tb-tip" data-tip="' + tip + '">'
+      + '<span class="ssr-icon">' + icon + '</span>'
+      + '<div class="ssr-body">'
+      + '<div class="ssr-header"><span class="ssr-label">' + label + '</span><span class="ssr-val" style="color:' + color + '">' + val + '</span></div>'
+      + '<div class="ssr-track"><div class="ssr-fill" style="width:' + val + '%;background:' + color + '"></div></div>'
+      + '</div></div>';
+
+    let html = '<div class="sidebar-stats">'
+      + statBar('⚖️','Estabilidad', stability,  sColor, '⚖️ Estabilidad&#10;Llega a 0 → colapso en 2 turnos.')
+      + statBar('❤️','Moral',       morale,     mColor, '❤️ Moral&#10;Afecta fuerza de combate y eventos.')
+      + statBar('💸','Corrupción',  corruption, cColor, '💸 Corrupción&#10;> 40 reduce ingresos. > 70 → crisis.')
+      + '</div><div class="sidebar-factions-title">⚔️ Facciones</div>';
+
+    container.innerHTML = html;
     state.factions.forEach(f => {
       const mood     = f.satisfaction > 70 ? '😊 Leal' : f.satisfaction > 45 ? '😐 Neutral' : f.satisfaction > 25 ? '😤 Inquieta' : '😡 FURIOSA';
       const barColor = f.satisfaction > 60 ? '#5a9030' : f.satisfaction > 35 ? '#c8a030' : '#c83030';
@@ -179,6 +202,35 @@ const UI = {
     const html = WarSystem.renderWarPanel(state);
     container.innerHTML = html;
     container.style.display = html ? 'block' : 'none';
+  },
+
+  // ══════════════════════════════════════════════
+  // RESUMEN FINAL DE GUERRA
+  // ══════════════════════════════════════════════
+  renderWarSummary(state) {
+    const container = document.getElementById('war-summary-panel');
+    if (!container) return;
+    const summaries = state._warSummaries || [];
+    if (!summaries.length) { container.style.display = 'none'; return; }
+    container.style.display = 'block';
+    container.innerHTML = summaries.map((s, i) => `
+      <div class="war-summary-card">
+        <div class="ws-title ${s.victory ? 'ws-victory' : 'ws-defeat'}">
+          ${s.victory ? '🏆 VICTORIA' : '💀 DERROTA'} — ${s.nationName}
+        </div>
+        <div class="ws-grid">
+          <div class="ws-row ${s.territoriesGained > 0 ? 'ws-pos' : s.territoriesLost > 0 ? 'ws-neg' : ''}">
+            <span>🗺️ Territorios</span>
+            <span>${s.territoriesGained > 0 ? '+'+s.territoriesGained : s.territoriesLost > 0 ? '-'+s.territoriesLost : '±0'}</span>
+          </div>
+          <div class="ws-row ws-neg"><span>💀 Bajas propias</span><span>-${s.troopsLost.toLocaleString()}</span></div>
+          <div class="ws-row ws-neg"><span>💰 Coste total</span><span>-${s.goldSpent.toLocaleString()}💰</span></div>
+          <div class="ws-row ${s.stabilityChange >= 0 ? 'ws-pos' : 'ws-neg'}"><span>⚖️ Estabilidad</span><span>${s.stabilityChange >= 0 ? '+' : ''}${s.stabilityChange}</span></div>
+          <div class="ws-row ${s.moraleChange >= 0 ? 'ws-pos' : 'ws-neg'}"><span>❤️ Moral</span><span>${s.moraleChange >= 0 ? '+' : ''}${s.moraleChange}</span></div>
+          <div class="ws-row"><span>⏱️ Duración</span><span>${s.turns} turnos</span></div>
+        </div>
+        <button class="diplo-btn" style="width:100%;margin-top:6px;font-size:9px" onclick="Game.state._warSummaries.splice(${i},1);UI.renderWarSummary(Game.state)">✕ Cerrar</button>
+      </div>`).join('');
   },
 
   // ══════════════════════════════════════════════
@@ -392,19 +444,45 @@ const UI = {
   renderDiplomacy(state) {
     const container = document.getElementById('diplomacy-panel');
     if (!container || !state.diplomacy) return;
-    // Inicializar personajes si es primera vez
     if (typeof DiplomacySystem !== 'undefined') DiplomacySystem.initCharacters(state);
-    // Inject sabotage/attack actions into each nation card via post-render
-    // Sabotage/attack buttons are defined in DiplomacySystem.renderNationCard via diplomacy.js
-    // Contar mensajes sin leer
-    const unread = (state.diplomacyInbox||[]).filter(m=>!m.read).length;
-    const inboxHeader = unread ? `<div style="font-family:var(--font-mono);font-size:10px;color:var(--gold);padding:6px 10px;border-bottom:1px solid var(--border);background:rgba(200,160,48,0.08)">✉️ ${unread} mensaje${unread>1?'s':''} sin leer</div>` : '';
-    container.innerHTML = inboxHeader +
-      state.diplomacy.map((nation, i) =>
-        (typeof DiplomacySystem !== 'undefined')
-          ? DiplomacySystem.renderNationCard(nation, state, i)
-          : '<div>' + nation.name + '</div>'
-      ).join('');
+
+    // Classify nations
+    const allies   = state.diplomacy.filter((n,i) => !n.atWar && (n.treaties||[]).includes('alliance'));
+    const enemies  = state.diplomacy.filter((n,i) => n.atWar);
+    const neutral  = state.diplomacy.filter((n,i) => !n.atWar && !(n.treaties||[]).includes('alliance'));
+
+    const unread   = (state.diplomacyInbox||[]).filter(m=>!m.read).length;
+    const activeTab = state._diplomacyTab || 'neutral';
+
+    const renderGroup = (nations) => nations.map((nation) => {
+      const i = state.diplomacy.indexOf(nation);
+      return (typeof DiplomacySystem !== 'undefined')
+        ? DiplomacySystem.renderNationCard(nation, state, i)
+        : '<div>' + nation.name + '</div>';
+    }).join('') || '<div class="diplo-empty">Ninguna nación en esta categoría</div>';
+
+    const tabBtn = (id, label, count, color) => {
+      const active = activeTab === id;
+      return '<button class="diplo-tab-btn' + (active ? ' active' : '') + '" '
+        + ' style="border-bottom-color:' + (active ? color : 'transparent') + ';color:' + (active ? color : 'var(--text3)') + '"'
+        + ' data-dtab="' + id + '" onclick="Game.state._diplomacyTab=this.dataset.dtab;UI.renderDiplomacy(Game.state)">'
+        + label + (count ? ' <span class="diplo-tab-count" style="background:' + color + '">' + count + '</span>' : '')
+        + '</button>';
+    };
+
+    container.innerHTML =
+      // Notifications bar
+      (unread ? '<div class="diplo-inbox-bar">✉️ ' + unread + ' mensaje' + (unread>1?'s':'') + ' sin leer</div>' : '')
+      + '<div class="diplo-tabs">'
+        + tabBtn('allies',  '🤝 Aliados',  allies.length  || '', '#5080e0')
+        + tabBtn('neutral', '⚖️ Neutral',  neutral.length || '', '#c8a030')
+        + tabBtn('enemies', '⚔️ Enemigos', enemies.length || '', '#e05050')
+      + '</div>'
+      + '<div class="diplo-tab-content">'
+        + (activeTab === 'allies'  ? renderGroup(allies)  : '')
+        + (activeTab === 'neutral' ? renderGroup(neutral) : '')
+        + (activeTab === 'enemies' ? renderGroup(enemies) : '')
+      + '</div>';
   },
 
   // ══════════════════════════════════════════════
@@ -720,8 +798,12 @@ const UI = {
     if (!ev) return;
 
     const chainTag = ev._chainSource ? '<div class="chained-event-tag">🔗 Evento encadenado</div>' : '';
+    const evtImgHtml = ev.image
+      ? `<div class="event-img-wrap"><img src="${ev.image}" class="event-img" alt="${ev.title}" onerror="this.parentElement.style.display='none'"></div>`
+      : '';
     container.innerHTML = arcBanner + chainTag + `
       <div class="decision-card">
+        ${evtImgHtml}
         <div class="decision-header">
           <span class="decision-icon">${ev.icon}</span>
           <div>
@@ -862,6 +944,7 @@ const UI = {
     this.renderMilitary(state);
     this.renderTradeOverlay(state);
     this.renderWarPanel(state);
+    this.renderWarSummary(state);
     this.renderPolitics(state);
     this.renderDiplomacy(state);
     this.renderEconomy(state);

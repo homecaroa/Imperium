@@ -1365,3 +1365,202 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 .unode-icon   { font-size: 18px; line-height: 1; }
 .unode-name   { font-family: var(--font-mono); font-size: 9px; color: var(--text2); line-height: 1.2; }
 .unode-status { font-size: 10px; margin-top: 1px; }
+
+/* ═══════════════════════════════════════════════════════
+   DIPLOMACY TABS
+   ═══════════════════════════════════════════════════════ */
+.diplo-tabs {
+  display: flex; border-bottom: 2px solid var(--border2);
+  background: var(--bg3); flex-shrink: 0;
+}
+.diplo-tab-btn {
+  flex: 1; padding: 8px 6px; background: transparent; border: none;
+  border-bottom: 2px solid transparent; cursor: pointer;
+  font-family: var(--font-mono); font-size: 11px; font-weight: bold;
+  transition: all 0.15s; color: var(--text3);
+}
+.diplo-tab-btn:hover { background: rgba(255,255,255,0.05); }
+.diplo-tab-btn.active { background: rgba(255,255,255,0.04); }
+.diplo-tab-count {
+  display: inline-block; font-size: 9px; color: #fff;
+  padding: 0 4px; border-radius: 8px; margin-left: 3px; vertical-align: middle;
+}
+.diplo-tab-content { flex: 1; overflow-y: auto; }
+.diplo-empty {
+  padding: 20px; text-align: center;
+  font-family: var(--font-mono); font-size: 11px; color: var(--text3);
+}
+.diplo-inbox-bar {
+  background: rgba(200,160,48,0.1); border-bottom: 1px solid var(--border);
+  padding: 5px 10px; font-family: var(--font-mono); font-size: 10px; color: var(--gold);
+}
+
+/* ═══════════════════════════════════════════════════════
+   WAR SUMMARY CARD
+   ═══════════════════════════════════════════════════════ */
+.war-summary-card {
+  background: var(--bg4); border: 1px solid var(--border2);
+  margin: 8px; padding: 10px;
+}
+.ws-title { font-family: var(--font-title); font-size: 14px; margin-bottom: 8px; letter-spacing: 1px; }
+.ws-victory { color: var(--gold2); }
+.ws-defeat  { color: var(--red2); }
+.ws-grid { display: flex; flex-direction: column; gap: 3px; }
+.ws-row  { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 11px; padding: 2px 0; }
+.ws-pos  > span:last-child { color: var(--green2); font-weight: bold; }
+.ws-neg  > span:last-child { color: var(--red2);   font-weight: bold; }
+.ws-row  > span:first-child { color: var(--text3); }
+
+/* ═══════════════════════════════════════════════════════
+   SIDEBAR STAT BARS
+   ═══════════════════════════════════════════════════════ */
+.sidebar-stats {
+  flex-shrink: 0; padding: 6px 6px 0;
+  border-bottom: 1px solid var(--border2);
+}
+.sidebar-factions-title {
+  font-family: var(--font-title); font-size: 10px; letter-spacing: 1px;
+  color: var(--gold3); padding: 4px 6px 2px; text-transform: uppercase;
+}
+.sidebar-stat-row {
+  display: flex; align-items: center; gap: 5px;
+  padding: 3px 4px; cursor: help;
+}
+.ssr-icon  { font-size: 11px; flex-shrink: 0; width: 16px; text-align: center; }
+.ssr-body  { flex: 1; min-width: 0; }
+.ssr-header{ display: flex; justify-content: space-between; margin-bottom: 2px; }
+.ssr-label { font-family: var(--font-mono); font-size: 9px; color: var(--text3); }
+.ssr-val   { font-family: var(--font-mono); font-size: 9px; font-weight: bold; }
+.ssr-track { height: 4px; background: rgba(255,255,255,0.07); border-radius: 2px; overflow: hidden; }
+.ssr-fill  { height: 100%; border-radius: 2px; transition: width 0.4s ease; }
+
+/* ═══════════════════════════════════════════════════════
+   DRAG & DROP CURSOR
+   ═══════════════════════════════════════════════════════ */
+#althoria-canvas.dragging { cursor: grabbing !important; }
+
+/* ═══════════════════════════════════════════════════════
+   RETRATOS DE LÍDERES — portrait images
+   ═══════════════════════════════════════════════════════ */
+
+/* Nation card header layout */
+.dnc-header {
+  display: flex; align-items: flex-start; gap: 12px;
+  margin-bottom: 10px;
+}
+
+/* Portrait container — square box */
+.nation-portrait {
+  width: 80px; height: 80px;
+  flex-shrink: 0;
+  border: 2px solid var(--border2);
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--bg3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 32px;
+  position: relative;
+}
+
+/* Actual portrait image */
+.portrait-img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: center top;  /* Show face, not feet */
+  display: block;
+  transition: transform 0.3s ease;
+}
+.nation-portrait:hover .portrait-img {
+  transform: scale(1.06);
+}
+
+/* Fallback if image fails */
+.portrait-fallback {
+  font-size: 32px;
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+}
+
+/* Small portrait in messages */
+.dmc-portrait {
+  flex-shrink: 0;
+  width: 36px; height: 36px;
+  border: 1px solid var(--border2);
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--bg3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+}
+.portrait-img-sm {
+  width: 100%; height: 100%;
+  object-fit: cover; object-position: center top;
+  display: block;
+}
+
+/* Nation info block next to portrait */
+.dnc-info { flex: 1; min-width: 0; }
+.dnc-name {
+  font-family: var(--font-title); font-size: 14px;
+  color: var(--gold2); margin-bottom: 3px;
+}
+.dnc-char {
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--text); font-weight: bold; margin-bottom: 2px;
+}
+.dnc-role { color: var(--text3); font-weight: normal; }
+
+/* Portrait glow on hover of entire card */
+.diplo-nation-card:hover .nation-portrait {
+  border-color: var(--gold);
+  box-shadow: 0 0 10px rgba(200,160,48,0.25);
+}
+
+/* ═══════════════════════════════════════════════════════
+   EVENT ILLUSTRATIONS — imágenes de eventos
+   ═══════════════════════════════════════════════════════ */
+
+/* Image wrapper: full width, fixed height banner */
+.event-img-wrap {
+  width: 100%;
+  height: 160px;
+  overflow: hidden;
+  margin-bottom: 0;
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* The image itself — cover crop from top */
+.event-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 25%;
+  display: block;
+  filter: brightness(0.88) contrast(1.05);
+  transition: transform 0.4s ease, filter 0.3s;
+}
+
+/* Gradient fade at bottom so text reads over it */
+.event-img-wrap::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 50%;
+  background: linear-gradient(to bottom, transparent, var(--bg4));
+  pointer-events: none;
+}
+
+/* Slight zoom on hover of the whole card */
+.decision-card:hover .event-img {
+  transform: scale(1.03);
+  filter: brightness(0.95) contrast(1.05);
+}
+
+/* Decision card gets no top padding if it has an image */
+.decision-card:has(.event-img-wrap) {
+  padding-top: 0;
+}
+.decision-card:has(.event-img-wrap) .decision-header {
+  padding-top: 10px;
+}

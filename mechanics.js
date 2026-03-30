@@ -297,6 +297,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_HARVEST_FAILURE',
+    image: 'events/evt_harvest.png',
     title: '🌾 Cosecha Catastrófica',
     category: 'CRISIS',
     priority: 'high',
@@ -325,6 +326,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_FAMINE_REVOLT',
+    image: 'events/evt_famine_revolt.png',
     title: '✊ Revuelta por Hambre',
     category: 'CRISIS',
     priority: 'critical',
@@ -349,6 +351,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_CIVIL_WAR',
+    image: 'events/evt_civil_war.png',
     title: '🔥 Guerra Civil',
     category: 'GUERRA',
     priority: 'critical',
@@ -369,6 +372,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_MERCHANT_CARAVAN',
+    image: 'events/evt_caravan.png',
     title: '🐪 Caravana de Mercaderes',
     category: 'ECONOMÍA',
     priority: 'normal',
@@ -397,6 +401,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_GENERAL_BETRAYAL',
+    image: 'events/evt_betrayal.png',
     title: '🗡️ Traición del General',
     category: 'TRAICIÓN',
     priority: 'critical',
@@ -424,6 +429,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_PLAGUE',
+    image: 'events/evt_plague.png',
     title: '💀 Epidemia',
     category: 'CRISIS',
     priority: 'critical',
@@ -453,6 +459,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_DIPLOMATIC_INCIDENT',
+    image: 'events/evt_diplomatic.png',
     title: '💢 Incidente Diplomático',
     category: 'DIPLOMACIA',
     priority: 'high',
@@ -476,6 +483,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_GOLDEN_AGE',
+    image: 'events/evt_golden_age.png',
     title: '✨ Era de Prosperidad',
     category: 'OPORTUNIDAD',
     priority: 'normal',
@@ -543,6 +551,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_SPY_CAPTURED',
+    image: 'events/evt_spy.png',
     title: '🕵️ Espía Capturado',
     category: 'DIPLOMACIA', priority: 'high', icon: '🕵️',
     weight: s => (s.spies?.active > 0 ? 30 : 0) + (s.diplomacy.some(n=>n.relation<-20)?15:0),
@@ -557,6 +566,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_BANDIT_UPRISING',
+    image: 'events/evt_bandits.png',
     title: '🗡️ Levantamiento de Bandidos',
     category: 'SEGURIDAD', priority: 'high', icon: '🗡️',
     weight: s => (s.economy.corruption > 25 ? 35 : 5) + (s.stability < 40 ? 20 : 0),
@@ -600,6 +610,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_MUTINY_RISK',
+    image: 'events/evt_mutiny.png',
     title: '😡 Amago de Motín Militar',
     category: 'MILITAR', priority: 'critical', icon: '😡',
     weight: s => (s.morale < 30 ? 50 : 0) + (s.army > 600 && s.resources.gold < 100 ? 30 : 0),
@@ -614,6 +625,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_PLAGUE_RATS',
+    image: 'events/evt_plague.png',
     title: '🐀 Plaga de Ratas en los Graneros',
     category: 'ECONÓMICO', priority: 'high', icon: '🐀',
     weight: s => (s.resources.food > 300 ? 20 : 5) + (s.population > 7000 ? 15 : 0),
@@ -656,6 +668,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_NOBLE_REBELLION',
+    image: 'events/evt_noble_rebellion.png',
     title: '👑 Rebelión de la Nobleza',
     category: 'POLÍTICA', priority: 'critical', icon: '👑',
     weight: s => (s.economy.corruption > 35 ? 30 : 0) + (s.stability < 35 ? 25 : 0),
@@ -671,6 +684,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_DESERT_CARAVAN',
+    image: 'events/evt_caravan.png',
     title: '🐪 Gran Caravana del Desierto',
     category: 'ECONÓMICO', priority: 'normal', icon: '🐪',
     weight: s => 15 + ((s.activeTradeRoutes||[]).length * 8),
@@ -685,6 +699,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_VOLCANIC_WINTER',
+    image: 'events/evt_volcanic.png',
     title: '🌋 Invierno Volcánico',
     category: 'CLIMA', priority: 'critical', icon: '🌋',
     weight: s => 8,
@@ -699,6 +714,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_RELIGIOUS_SCHISM',
+    image: 'events/evt_schism.png',
     title: '✝️ Cisma Religioso',
     category: 'SOCIAL', priority: 'high', icon: '✝️',
     weight: s => (s.morale < 45 ? 25 : 8) + (s.stability < 50 ? 10 : 0),
@@ -713,6 +729,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_TECHNOLOGICAL_DISCOVERY',
+    image: 'events/evt_discovery.png',
     title: '⚙️ Descubrimiento Técnico',
     category: 'OPORTUNIDAD', priority: 'normal', icon: '⚙️',
     weight: s => (s.stability > 60 && s.resources.iron > 80) ? 22 : 4,
@@ -729,6 +746,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_ALLIED_REQUEST',
+    image: 'events/evt_diplomatic.png',
     title: '📨 Petición de Ayuda de Aliado',
     category: 'DIPLOMACIA', priority: 'high', icon: '📨',
     weight: s => (s.diplomacy.some(n=>n.relation>40) ? 28 : 0),
@@ -745,6 +763,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_PIRATE_RAID',
+    image: 'events/evt_pirates.png',
     title: '🏴‍☠️ Ataque Pirata a Puertos',
     category: 'MILITAR', priority: 'high', icon: '🏴‍☠️',
     weight: s => ((s.activeTradeRoutes||[]).some(r=>r.routeId?.includes('mar')) ? 35 : 5),
@@ -772,6 +791,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_DROUGHT',
+    image: 'events/evt_drought.png',
     title: '☀️ Gran Sequía',
     category: 'CLIMA', priority: 'critical', icon: '☀️',
     weight: s => (s.climate?.drought ? 60 : 8) + (s.resources.food < 200 ? 20 : 0),
@@ -802,6 +822,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_HERO_EMERGES',
+    image: 'events/evt_hero.png',
     title: '⭐ Héroe del Pueblo',
     category: 'MILITAR', priority: 'normal', icon: '⭐',
     weight: s => (s.army > 400 && s.morale > 55) ? 18 : 3,
@@ -816,6 +837,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_SLAVE_REVOLT',
+    image: 'events/evt_workers_revolt.png',
     title: '✊ Revuelta de los Trabajadores',
     category: 'SOCIAL', priority: 'critical', icon: '✊',
     weight: s => (s.economy.corruption > 30 && s.morale < 40) ? 45 : 5,

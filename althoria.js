@@ -237,9 +237,13 @@ const AlthoriаMap = {
     this.canvas.addEventListener('mouseleave', ()  => this._clearHover());
     this.canvas.addEventListener('click',      (e) => this._onClick(e));
     this.canvas.addEventListener('wheel',      (e) => this._onWheel(e), { passive: false });
-    this.canvas.addEventListener('mousedown',  (e) => this._onPanStart(e));
-    this.canvas.addEventListener('mousemove',  (e) => this._onPan(e));
-    this.canvas.addEventListener('mouseup',    ()  => this._onPanEnd());
+    this.canvas.addEventListener('mousedown',  (e) => this._onMouseDown(e));
+    this.canvas.addEventListener('mousemove',  (e) => this._onMouseMove(e));
+    this.canvas.addEventListener('mouseup',    (e) => this._onMouseUp(e));
+    this.canvas.addEventListener('mouseleave', ()  => this._cancelDrag());
+
+    // Drag state
+    this._drag = { active: false, unitType: null, count: 0, fromRegion: null, curX: 0, curY: 0, targetRegion: null };
 
     // Zoom & pan state
     this.zoom   = 1.0;    // 1.0 = normal, max 3.0, min 0.8
@@ -476,6 +480,8 @@ const AlthoriаMap = {
     // 11. Tropas desplegadas
     this._renderDeployedTroops(ctx, W, H);
 
+    // Drag ghost — rendered AFTER restore so it's in screen space
+    this._renderDragGhost(ctx, W, H);
     ctx.restore();  // Restaurar transform de zoom/pan
     this.animFrame++;
   },
@@ -887,7 +893,217 @@ const AlthoriаMap = {
   },
 
   // ── HOVER SOBRE EL MAPA ───────────────────────────────────
-  _onWheel(e) {
+  // ── DRAG & DROP DE UNIDADES ─────────────────────────────────
+  // Flujo: mousedown en zona del jugador → drag → mouseup en zona válida
+
+  _onMouseDown(e) {
+    const [mx, my] = this._screenToMapPct(e.clientX, e.clientY);
+    const region   = ALTHORIA_REGIONS.find(r => this._pointInPolygon(mx, my, r.polygon));
+
+    if (!region) { this._onPanStart(e); return; }
+
+    // Check if this region belongs to player
+    const playerZones = this.nationZones['player'] || [];
+    if (!playerZones.includes(region.id)) { this._onPanStart(e); return; }
+
+    // Check if player has troops to drag
+    const deployed = this.deployedTroops[region.id] || 0;
+    const gameState = (typeof Game !== 'undefined') ? Game.state : null;
+    if (!gameState || (deployed === 0 && gameState.army === 0)) { this._onPanStart(e); return; }
+
+    // Start drag
+    const dragCount = deployed > 0 ? deployed : Math.floor((gameState.army || 0) * 0.3);
+    if (dragCount <= 0) { this._onPanStart(e); return; }
+
+    this._drag = {
+      active:     true,
+      unitType:   'troops',
+      count:      dragCount,
+      fromRegion: region.id,
+      curX:       e.clientX,
+      curY:       e.clientY,
+      targetRegion: null,
+    };
+    this.canvas.style.cursor = 'grabbing';
+    this.render();
+  },
+
+  _onMouseMove(e) {
+    if (this._drag?.active) {
+      this._drag.curX = e.clientX;
+      this._drag.curY = e.clientY;
+      const [mx, my] = this._screenToMapPct(e.clientX, e.clientY);
+      const region   = ALTHORIA_REGIONS.find(r => this._pointInPolygon(mx, my, r.polygon));
+      this._drag.targetRegion = region?.id || null;
+      this.render();  // Redraw with drag ghost
+      return;
+    }
+    this._onPan(e);
+    this._onHover(e);
+  },
+
+  _onMouseUp(e) {
+    if (!this._drag?.active) { this._onPanEnd(); return; }
+
+    const drag = this._drag;
+    this._drag = { active: false };
+    this.canvas.style.cursor = 'crosshair';
+
+    const [mx, my] = this._screenToMapPct(e.clientX, e.clientY);
+    const targetReg = ALTHORIA_REGIONS.find(r => this._pointInPolygon(mx, my, r.polygon));
+
+    if (!targetReg || targetReg.id === drag.fromRegion) { this.render(); return; }
+
+    // Validate drop
+    const result = this._validateDrop(drag, targetReg.id);
+    if (!result.ok) {
+      if (typeof Systems !== 'undefined' && typeof Game !== 'undefined')
+        Systems.Log.add(Game.state, '⚠️ ' + result.msg, 'warn');
+      this.render();
+      return;
+    }
+
+    // Execute troop movement
+    this._executeDrop(drag, targetReg.id);
+  },
+
+  _cancelDrag() {
+    if (this._drag?.active) {
+      this._drag = { active: false };
+      this.canvas.style.cursor = 'crosshair';
+      this._onPanEnd();
+      this.render();
+    }
+  },
+
+  _validateDrop(drag, targetRegionId) {
+    const playerZones   = this.nationZones['player'] || [];
+    const targetIsOurs  = playerZones.includes(targetRegionId);
+
+    // Find owner of target
+    let targetOwner = 'neutral';
+    Object.entries(this.nationZones).forEach(([natId, zones]) => {
+      if (zones.includes(targetRegionId)) targetOwner = natId;
+    });
+
+    const gameState = (typeof Game !== 'undefined') ? Game.state : null;
+    if (!gameState) return { ok: false, msg: 'Estado del juego no disponible' };
+
+    // Can't drop on own region (already there — use deploy panel instead)
+    if (targetIsOurs && targetRegionId !== drag.fromRegion) {
+      return { ok: true, msg: '' }; // Redeploy to another own region
+    }
+
+    // Dropping on enemy region → declare war or reinforce war
+    if (targetOwner !== 'player' && targetOwner !== 'neutral') {
+      const nation = gameState.diplomacy.find(n => {
+        const idx = parseInt(targetOwner.replace('ai_','')) - 1;
+        return gameState.diplomacy[idx]?.id === n.id || gameState.diplomacy.indexOf(n) === parseInt(targetOwner.replace('ai_','')) - 1;
+      });
+      return { ok: true, msg: '', action: 'attack', nationId: targetOwner };
+    }
+
+    return { ok: true, msg: '' };
+  },
+
+  _executeDrop(drag, targetRegionId) {
+    const gameState = (typeof Game !== 'undefined') ? Game.state : null;
+    if (!gameState) return;
+
+    const playerZones = this.nationZones['player'] || [];
+    const targetIsOurs = playerZones.includes(targetRegionId);
+
+    // Find target owner
+    let targetOwner = 'neutral';
+    Object.entries(this.nationZones).forEach(([natId, zones]) => {
+      if (zones.includes(targetRegionId)) targetOwner = natId;
+    });
+
+    if (targetIsOurs) {
+      // Redeploy: move garrison from one region to another
+      const fromDeployed = this.deployedTroops[drag.fromRegion] || 0;
+      if (fromDeployed > 0) {
+        const move = Math.min(fromDeployed, drag.count);
+        this.deployedTroops[drag.fromRegion] = fromDeployed - move;
+        this.deployedTroops[targetRegionId]  = (this.deployedTroops[targetRegionId] || 0) + move;
+        const rName = ALTHORIA_REGIONS.find(r=>r.id===targetRegionId)?.name || targetRegionId;
+        Systems.Log.add(gameState, `🚩 ${move} tropas reubicadas a ${rName}.`, 'good');
+      } else {
+        // Deploy from reserve army
+        const deploy = Math.min(gameState.army, drag.count);
+        if (deploy > 0) {
+          gameState.army -= deploy;
+          this.deployedTroops[targetRegionId] = (this.deployedTroops[targetRegionId] || 0) + deploy;
+          const rName = ALTHORIA_REGIONS.find(r=>r.id===targetRegionId)?.name || targetRegionId;
+          Systems.Log.add(gameState, `⚔️ ${deploy} tropas desplegadas en ${rName}.`, 'good');
+        }
+      }
+    } else if (targetOwner !== 'neutral') {
+      // Attack enemy region — open war confirm
+      const natIdx  = parseInt(targetOwner.replace('ai_','')) - 1;
+      const nation  = gameState.diplomacy[natIdx];
+      if (nation && typeof RegionSelector !== 'undefined') {
+        RegionSelector._showAttackConfirm(targetRegionId,
+          (typeof TerritorySystem !== 'undefined') ? TerritorySystem.getRegionInfo(targetRegionId, gameState) : { name: targetRegionId, owner: targetOwner, ownerName: nation.name, garrison: 200, riskLevel: 'Medio', resources: {} },
+          gameState
+        );
+      }
+    }
+
+    if (typeof UI !== 'undefined') UI.fullRender(gameState);
+    this.render();
+  },
+
+  // ── RENDER DRAG GHOST ───────────────────────────────────────
+  _renderDragGhost(ctx, W, H) {
+    if (!this._drag?.active) return;
+    const drag = this._drag;
+
+    // Highlight valid/invalid target
+    if (drag.targetRegion && drag.targetRegion !== drag.fromRegion) {
+      const targetReg = ALTHORIA_REGIONS.find(r => r.id === drag.targetRegion);
+      if (targetReg) {
+        const playerZones = this.nationZones['player'] || [];
+        const isValid = playerZones.includes(drag.targetRegion) || true; // any region is clickable
+        let owner = 'neutral';
+        Object.entries(this.nationZones).forEach(([n,z])=>{ if(z.includes(drag.targetRegion)) owner=n; });
+        const isEnemy = owner !== 'player' && owner !== 'neutral';
+
+        ctx.save();
+        ctx.beginPath();
+        targetReg.polygon.forEach(([px,py],i) => {
+          const x = px/100*W, y = py/100*H;
+          i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+        });
+        ctx.closePath();
+        ctx.fillStyle = isEnemy ? 'rgba(220,50,50,0.35)' : 'rgba(50,200,100,0.35)';
+        ctx.fill();
+        ctx.strokeStyle = isEnemy ? '#ff4040' : '#40e080';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    // Draw drag ghost at cursor
+    const rect  = this.canvas.getBoundingClientRect();
+    const ghostX = drag.curX - rect.left;
+    const ghostY = drag.curY - rect.top;
+
+    ctx.save();
+    ctx.font = '22px serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 8;
+    ctx.globalAlpha = 0.85;
+    ctx.fillText('⚔️', ghostX, ghostY - 10);
+    ctx.font = 'bold 11px monospace';
+    ctx.fillStyle = '#fff';
+    ctx.shadowBlur = 4;
+    ctx.fillText(drag.count.toLocaleString(), ghostX, ghostY + 12);
+    ctx.restore();
+  },
+
+    _onWheel(e) {
     e.preventDefault();
     const delta = e.deltaY > 0 ? 0.85 : 1.15;
     const newZoom = Math.max(0.8, Math.min(3.5, (this.zoom || 1) * delta));

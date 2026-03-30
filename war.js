@@ -148,6 +148,8 @@ const WarSystem = {
 
     state.morale = Math.min(100, state.morale + 20);
     Progression.awardXP(state, 'battle_won');
+    // Record war summary
+    this._recordSummary(state, nation, w, true, conquered);
     Systems.Log.add(state, `🏆 Victoria contra ${nation.name}! ${conquered ? 'Territorio '+conquered+' conquistado.' : 'Nación sometida.'}`, 'good');
 
     this._endWar(state, nation);
@@ -161,6 +163,7 @@ const WarSystem = {
     // Perder una región nuestra
     TerritorySystem.loseRegion(state, nation);
     Progression.awardXP(state, 'battle_lost');
+    this._recordSummary(state, nation, w, false, null);
     Systems.Log.add(state, `💀 Derrota contra ${nation.name}. Territorio perdido.`, 'crisis');
     this._endWar(state, nation);
   },
@@ -173,6 +176,23 @@ const WarSystem = {
     state.morale    = Math.max(0, state.morale - 10);
     Systems.Log.add(state, `🕊️ Armisticio con ${nation.name} tras ${w.turn} turnos de guerra.`, 'warn');
     this._endWar(state, nation);
+  },
+
+  _recordSummary(state, nation, w, victory, conqueredRegion) {
+    const summary = {
+      nationName:       nation.name,
+      victory,
+      turns:            w.turn,
+      troopsLost:       Math.floor((w.playerArmy || 0) * 0.3 + w.turn * 15),
+      goldSpent:        Math.floor(w.goldBurn * w.turn + w.turn * 30),
+      territoriesGained: victory && conqueredRegion ? 1 : 0,
+      territoriesLost:  !victory ? 1 : 0,
+      stabilityChange:  victory ? +10 : -20,
+      moraleChange:     victory ? +20 : -25,
+    };
+    state._warSummaries = state._warSummaries || [];
+    state._warSummaries.unshift(summary);
+    if (state._warSummaries.length > 3) state._warSummaries.pop();
   },
 
   _endWar(state, nation) {
