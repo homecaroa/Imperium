@@ -1564,3 +1564,27 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 .decision-card:has(.event-img-wrap) .decision-header {
   padding-top: 10px;
 }
+
+/* ═══════════════════════════════════════════════════════
+   UNIT FORMATION — improved layout with emoji thumbnails
+   ═══════════════════════════════════════════════════════ */
+.unit-thumb-emoji {
+  font-size: 20px;
+  flex-shrink: 0;
+  width: 28px;
+  text-align: center;
+  line-height: 1;
+}
+.unit-thumb {
+  width: 28px; height: 28px;
+  object-fit: cover; border-radius: 2px;
+  flex-shrink: 0;
+}
+.formation-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.fl-icon  { display: none; }  /* replaced by unit-thumb-emoji */
+.fl-name  { font-family: var(--font-mono); font-size: 11px; color: var(--text); flex: 1; }
+.fl-count { font-family: var(--font-mono); font-size: 11px; font-weight: bold; color: var(--gold2); }

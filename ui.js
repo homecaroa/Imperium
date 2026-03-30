@@ -278,8 +278,17 @@ const UI = {
       const iconCount = Math.min(proportion, maxIcons);
       const icons     = Array(iconCount).fill(def.icon).join(' ');
       const barPct    = Math.min(100, Math.round(u.count / Math.max(totalAll, 1) * 100));
-      return `<div class="formation-row tb-tip" data-tip="${def.icon} ${def.name}&#10;${def.description}&#10;&#10;Fuerza base: ${def.attack} ataque · ${def.defense} defensa&#10;Coste: ${def.cost.gold}💰${def.cost.iron?' '+def.cost.iron+'⚙️':''}${def.cost.wood?' '+def.cost.wood+'🪵':''}">
-        <div class="formation-label"><span class="fl-icon">${def.icon}</span><span class="fl-name">${def.name}</span><span class="fl-count">${u.count.toLocaleString()}</span></div>
+      // Unit image if available, else large emoji
+      const imgUrl = (typeof ASSET_BASE!=='undefined'?ASSET_BASE:'') + 'units/' + u.typeId + '.png';
+      const unitThumb = def.imgFile
+        ? '<span class="unit-thumb-emoji" style="font-size:22px">'+def.icon+'</span>'
+        : '<span class="unit-thumb-emoji">'+def.icon+'</span>';
+      return `<div class="formation-row tb-tip" data-tip="${def.icon} ${def.name}&#10;${def.description}&#10;&#10;⚔️ Ataque: ${def.attack||def.strength} · 🛡️ Defensa: ${def.defense||Math.floor((def.strength||0)*0.6)}&#10;Coste: ${def.cost.gold}💰${def.cost.iron?' '+def.cost.iron+'⚙️':''}${def.cost.wood?' '+def.cost.wood+'🪵':''}">
+        <div class="formation-label">
+          ${unitThumb}
+          <span class="fl-name">${def.name}</span>
+          <span class="fl-count">${u.count.toLocaleString()}</span>
+        </div>
         <div class="formation-bar"><div class="formation-fill" style="width:${barPct}%;background:${def.color||'var(--gold)'}"></div></div>
         <div class="formation-sprites" title="${u.count.toLocaleString()} ${def.name}">${icons}</div>
       </div>`;

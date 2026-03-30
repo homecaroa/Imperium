@@ -156,7 +156,10 @@ const Game = {
       activePolicies: [],
       currentEvents: [], activeEventIndex: null, resolvedEvents: [],
       log: [],
-      prosperityTurns: 0, collapseTurns: 0, famineturns: 0
+      prosperityTurns: 0, collapseTurns: 0, famineturns: 0,
+      _unlocked: {},        // UnlockSystem cache
+      _warSummaries: [],    // War result history
+      _diplomacyTab: 'neutral'  // default diplomacy tab
     };
     // Inicializar personajes diplomáticos inmediatamente
     if (typeof DiplomacySystem !== "undefined") DiplomacySystem.initCharacters(this.state);
