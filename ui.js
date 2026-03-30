@@ -329,7 +329,7 @@ const UI = {
                 +'<span class="lock-hint">'+hint.split('.')[0]+'</span>'
                 +'</button>';
             }
-            var onclk='Game.recruitUnit("'+id+'",50)';
+            var onclk = 'Game.recruitUnit(\'' + id + '\',50)';
             if (needsPolicy) {
               return '<button class="policy-btn locked-action tb-tip" disabled'
                 +' data-tip="🔒 Requiere política: '+def.requires.join(', ')+'&#10;Actívala en la pestaña 🏛️">'
@@ -799,7 +799,7 @@ const UI = {
 
     const chainTag = ev._chainSource ? '<div class="chained-event-tag">🔗 Evento encadenado</div>' : '';
     const evtImgHtml = ev.image
-      ? `<div class="event-img-wrap"><img src="${ev.image}" class="event-img" alt="${ev.title}" onerror="this.parentElement.style.display='none'"></div>`
+      ? `<div class="event-img-wrap"><img src="${(typeof ASSET_BASE!=='undefined'?ASSET_BASE:'')+ev.image}" class="event-img" alt="${ev.title}" onerror="this.parentElement.style.display='none'"></div>`
       : '';
     container.innerHTML = arcBanner + chainTag + `
       <div class="decision-card">

@@ -293,6 +293,22 @@
 </div><!-- #app -->
 
 <div id="tb-tooltip" class="tb-tooltip-box"></div>
+<script>
+// Detect asset base path — works regardless of server subdirectory
+window.ASSET_BASE = (function() {
+  var scripts = document.querySelectorAll('script[src]');
+  for (var i = 0; i < scripts.length; i++) {
+    var src = scripts[i].src;
+    if (src.indexOf('visual.js') > -1) {
+      return src.replace('visual.js', '');
+    }
+  }
+  // fallback: use current URL path
+  var path = window.location.pathname;
+  var base = path.substring(0, path.lastIndexOf('/') + 1);
+  return window.location.origin + base;
+})();
+</script>
 <script src="visual.js"></script>
 <script src="althoria.js"></script>
 <script src="data.js"></script>

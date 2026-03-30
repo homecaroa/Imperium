@@ -414,9 +414,8 @@ const DiplomacySystem = {
       <div class="dnc-header">
         <div class="nation-portrait">
           ${char.portrait && char.portrait.startsWith('portraits/')
-            ? '<img src="' + char.portrait + '" alt="' + char.name + '" class="portrait-img" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'">'
-              + '<span class="portrait-fallback" style="display:none">👤</span>'
-            : char.portrait || '👤'}
+            ? '<img src="' + (typeof ASSET_BASE!=='undefined'?ASSET_BASE:'') + char.portrait + '" alt="' + char.name + '" class="portrait-img" loading="eager" onerror="this.outerHTML=\'<span style=\\\"font-size:32px;display:flex;align-items:center;justify-content:center;width:100%;height:100%\\\">👤</span>\'">'
+            : '<span style="font-size:32px;display:flex;align-items:center;justify-content:center;width:100%;height:100%">' + (char.portrait || '👤') + '</span>'}
         </div>
         <div class="dnc-info">
           <div class="dnc-name">${nation.icon} ${nation.name} ${warBadge} ${inboxBadge}</div>

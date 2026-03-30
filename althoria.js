@@ -915,11 +915,14 @@ const AlthoriаMap = {
     const dragCount = deployed > 0 ? deployed : Math.floor((gameState.army || 0) * 0.3);
     if (dragCount <= 0) { this._onPanStart(e); return; }
 
+    this._dragMoved = false;  // Track if mouse moved enough to be a drag
     this._drag = {
       active:     true,
       unitType:   'troops',
       count:      dragCount,
       fromRegion: region.id,
+      startX:     e.clientX,
+      startY:     e.clientY,
       curX:       e.clientX,
       curY:       e.clientY,
       targetRegion: null,
@@ -930,6 +933,10 @@ const AlthoriаMap = {
 
   _onMouseMove(e) {
     if (this._drag?.active) {
+      // Mark as a real drag if moved more than 4px
+      const dx = e.clientX - (this._drag.startX || e.clientX);
+      const dy = e.clientY - (this._drag.startY || e.clientY);
+      if (Math.sqrt(dx*dx + dy*dy) > 4) this._dragMoved = true;
       this._drag.curX = e.clientX;
       this._drag.curY = e.clientY;
       const [mx, my] = this._screenToMapPct(e.clientX, e.clientY);
@@ -1123,6 +1130,9 @@ const AlthoriаMap = {
   _onPanStart(e) {
     if (e.button !== 0) return;
     this._panning    = true;
+    this._dragMoved  = false;
+    this._mouseStartX = e.clientX;
+    this._mouseStartY = e.clientY;
     this._panStartX  = e.clientX;
     this._panStartY  = e.clientY;
     this._panStartPX = this.panX || 0;
@@ -1132,6 +1142,9 @@ const AlthoriаMap = {
 
   _onPan(e) {
     if (!this._panning) return;
+    const mdx = e.clientX - (this._mouseStartX||e.clientX);
+    const mdy = e.clientY - (this._mouseStartY||e.clientY);
+    if (Math.sqrt(mdx*mdx + mdy*mdy) > 4) this._dragMoved = true;
     this.panX = this._panStartPX + (e.clientX - this._panStartX);
     this.panY = this._panStartPY + (e.clientY - this._panStartY);
     this._clampPan();
@@ -1162,6 +1175,9 @@ const AlthoriаMap = {
   },
 
   _onClick(e) {
+    // If mouse moved during this gesture, it was a drag/pan — ignore click
+    if (this._dragMoved) { this._dragMoved = false; return; }
+
     const [mapX, mapY] = this._screenToMapPct(e.clientX, e.clientY);
     const region = ALTHORIA_REGIONS.find(r => this._pointInPolygon(mapX, mapY, r.polygon));
     if (!region) return;
