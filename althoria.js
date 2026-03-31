@@ -246,14 +246,16 @@ const AlthoriаMap = {
     this._drag = { active: false, unitType: null, count: 0, fromRegion: null, curX: 0, curY: 0, targetRegion: null };
 
     // Zoom & pan state
-    this.zoom   = 1.0;    // 1.0 = normal, max 3.0, min 0.8
-    this.panX   = 0;
-    this.panY   = 0;
-    this._panning = false;
-    this._panStartX = 0;
-    this._panStartY = 0;
+    this.zoom        = 1.0;
+    this.panX        = 0;
+    this.panY        = 0;
+    this._panning    = false;
+    this._panStartX  = 0;
+    this._panStartY  = 0;
     this._panStartPX = 0;
     this._panStartPY = 0;
+    this._dragMoved  = false;   // must be false, not undefined
+    this._drag       = { active: false };
   },
 
   _loadImage() {
@@ -263,7 +265,7 @@ const AlthoriаMap = {
       this._sizeCanvas();
       if (this.isOpen) this.render();
     };
-    this.img.src = 'althoria_map.png';
+    this.img.src = 'img/map/althoria_map.png';
   },
 
   _sizeCanvas() {
@@ -900,20 +902,20 @@ const AlthoriаMap = {
     const [mx, my] = this._screenToMapPct(e.clientX, e.clientY);
     const region   = ALTHORIA_REGIONS.find(r => this._pointInPolygon(mx, my, r.polygon));
 
-    if (!region) { this._onPanStart(e); return; }
+    if (!region) { this._dragMoved = false; this._onPanStart(e); return; }
 
     // Check if this region belongs to player
     const playerZones = this.nationZones['player'] || [];
-    if (!playerZones.includes(region.id)) { this._onPanStart(e); return; }
+    if (!playerZones.includes(region.id)) { this._dragMoved = false; this._onPanStart(e); return; }
 
     // Check if player has troops to drag
     const deployed = this.deployedTroops[region.id] || 0;
     const gameState = (typeof Game !== 'undefined') ? Game.state : null;
-    if (!gameState || (deployed === 0 && gameState.army === 0)) { this._onPanStart(e); return; }
+    if (!gameState || (deployed === 0 && gameState.army === 0)) { this._dragMoved = false; this._onPanStart(e); return; }
 
     // Start drag
     const dragCount = deployed > 0 ? deployed : Math.floor((gameState.army || 0) * 0.3);
-    if (dragCount <= 0) { this._onPanStart(e); return; }
+    if (dragCount <= 0) { this._dragMoved = false; this._onPanStart(e); return; }
 
     this._dragMoved = false;  // Track if mouse moved enough to be a drag
     this._drag = {
@@ -1152,6 +1154,11 @@ const AlthoriаMap = {
   },
 
   _onPanEnd() {
+    if (this._panning && this._dragMoved) {
+      // Pan gesture ended — suppress the upcoming click event
+      this._panJustEnded = true;
+      setTimeout(() => { this._panJustEnded = false; }, 50);
+    }
     this._panning = false;
     this.canvas.style.cursor = 'crosshair';
   },
@@ -1175,8 +1182,10 @@ const AlthoriаMap = {
   },
 
   _onClick(e) {
-    // If mouse moved during this gesture, it was a drag/pan — ignore click
+    // Ignore click if it was actually a drag or pan gesture
     if (this._dragMoved) { this._dragMoved = false; return; }
+    // Ignore click if pan just ended (mouse moved while button held)
+    if (this._panning || this._panJustEnded) { return; }
 
     const [mapX, mapY] = this._screenToMapPct(e.clientX, e.clientY);
     const region = ALTHORIA_REGIONS.find(r => this._pointInPolygon(mapX, mapY, r.polygon));

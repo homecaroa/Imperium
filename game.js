@@ -724,7 +724,7 @@ const Game = {
     const title   = document.getElementById('modal-title');
     const body    = document.getElementById('modal-body');
     if (!overlay) return;
-    overlay.classList.remove('hidden');
+    // Populate content BEFORE showing — prevents flash of black empty box
 
     const s = this.state;
     const isVictory = result.type === 'victory';
@@ -768,6 +768,7 @@ const Game = {
           </div>`).join('')}
       </div>
     `;
+    overlay.classList.remove('hidden');  // Show AFTER content ready
   },
 
   _generateEndMessages(state, isVictory) {
