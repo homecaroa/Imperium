@@ -279,7 +279,6 @@ const UI = {
       const icons     = Array(iconCount).fill(def.icon).join(' ');
       const barPct    = Math.min(100, Math.round(u.count / Math.max(totalAll, 1) * 100));
       // Unit image if available, else large emoji
-      const imgUrl = (typeof ASSET_BASE!=='undefined'?ASSET_BASE:'') + 'units/' + u.typeId + '.png';
       const unitThumb = def.imgFile
         ? '<span class="unit-thumb-emoji" style="font-size:22px">'+def.icon+'</span>'
         : '<span class="unit-thumb-emoji">'+def.icon+'</span>';
@@ -808,7 +807,7 @@ const UI = {
 
     const chainTag = ev._chainSource ? '<div class="chained-event-tag">🔗 Evento encadenado</div>' : '';
     const evtImgHtml = ev.image
-      ? `<div class="event-img-wrap"><img src="${(typeof ASSET_BASE!=='undefined'?ASSET_BASE:'')+ev.image}" class="event-img" alt="${ev.title}" onerror="this.parentElement.style.display='none'"></div>`
+      ? `<div class="event-img-wrap"><img src="${ev.image}" class="event-img" alt="${ev.title}" onerror="this.parentElement.style.display='none'"></div>`
       : '';
     container.innerHTML = arcBanner + chainTag + `
       <div class="decision-card">

@@ -11,32 +11,32 @@
 const NATION_CHARACTERS = {
   // id del pool → personaje embajador
   'ai_1': [
-    { name:'Vorkan el Implacable',  role:'Gran Caudillo',      portrait:'portraits/vorkan.png', trait:'agresiva'  },
-    { name:'Darius el Conquistador',role:'Señor de la Guerra', portrait:'portraits/darius.png', trait:'agresiva'  }
+    { name:'Vorkan el Implacable',  role:'Gran Caudillo',      portrait:'img/leaders/vorkan.png', trait:'agresiva'  },
+    { name:'Darius el Conquistador',role:'Señor de la Guerra', portrait:'img/leaders/darius.png', trait:'agresiva'  }
   ],
   'ai_2': [
-    { name:'Lady Seraphina',        role:'Cónsul Suprema',     portrait:'portraits/seraphina.png', trait:'diplomática'},
-    { name:'Marcus Bellator',       role:'Senador Plenipotenciario', portrait:'portraits/marcus.png', trait:'diplomática'}
+    { name:'Lady Seraphina',        role:'Cónsul Suprema',     portrait:'img/leaders/seraphina.png', trait:'diplomática'},
+    { name:'Marcus Bellator',       role:'Senador Plenipotenciario', portrait:'img/leaders/marcus.png', trait:'diplomática'}
   ],
   'ai_3': [
-    { name:'Xotl el Astuto',        role:'Jefe de Clan',       portrait:'portraits/xotl.png', trait:'oportunista'},
-    { name:'Keira Dos Mundos',      role:'Chamana Mayor',      portrait:'portraits/keira.png', trait:'oportunista'}
+    { name:'Xotl el Astuto',        role:'Jefe de Clan',       portrait:'img/leaders/xotl.png', trait:'oportunista'},
+    { name:'Keira Dos Mundos',      role:'Chamana Mayor',      portrait:'img/leaders/keira.png', trait:'oportunista'}
   ],
   'ai_4': [
-    { name:'Al-Rashid Ibn Yusuf',   role:'Gran Visir',         portrait:'portraits/alrashid.png', trait:'agresiva'  },
-    { name:'Sultán Mehmed el Pío',  role:'Señor del Sultanato',portrait:'portraits/mehmed.png', trait:'agresiva'  }
+    { name:'Al-Rashid Ibn Yusuf',   role:'Gran Visir',         portrait:'img/leaders/alrashid.png', trait:'agresiva'  },
+    { name:'Sultán Mehmed el Pío',  role:'Señor del Sultanato',portrait:'img/leaders/mehmed.png', trait:'agresiva'  }
   ],
   'ai_5': [
-    { name:'Gilda Tesoro',          role:'Maestra de Gremios', portrait:'portraits/gilda.png', trait:'diplomática'},
-    { name:'Roderic el Banquero',   role:'Cónsul Mercantil',   portrait:'portraits/roderic.png', trait:'diplomática'}
+    { name:'Gilda Tesoro',          role:'Maestra de Gremios', portrait:'img/leaders/gilda.png', trait:'diplomática'},
+    { name:'Roderic el Banquero',   role:'Cónsul Mercantil',   portrait:'img/leaders/roderic.png', trait:'diplomática'}
   ],
   'ai_6': [
-    { name:'Ragnar Colmillo Roto',  role:'Jarl Supremo',       portrait:'portraits/ragnar.png', trait:'agresiva'  },
-    { name:'Sigrid la Furiosa',     role:'Skald de la Batalla',portrait:'portraits/sigrid.png', trait:'agresiva'  }
+    { name:'Ragnar Colmillo Roto',  role:'Jarl Supremo',       portrait:'img/leaders/ragnar.png', trait:'agresiva'  },
+    { name:'Sigrid la Furiosa',     role:'Skald de la Batalla',portrait:'img/leaders/sigrid.png', trait:'agresiva'  }
   ],
   'ai_7': [
-    { name:'Zhang Wei el Eterno',   role:'Canciller Imperial', portrait:'portraits/zhangwei.png', trait:'oportunista'},
-    { name:'Li Bao Celestial',      role:'Mandarín de Jade',   portrait:'portraits/libao.png', trait:'oportunista'}
+    { name:'Zhang Wei el Eterno',   role:'Canciller Imperial', portrait:'img/leaders/zhangwei.png', trait:'oportunista'},
+    { name:'Li Bao Celestial',      role:'Mandarín de Jade',   portrait:'img/leaders/libao.png', trait:'oportunista'}
   ]
 };
 
@@ -413,9 +413,8 @@ const DiplomacySystem = {
       <!-- Cabecera: retrato + info básica -->
       <div class="dnc-header">
         <div class="nation-portrait">
-          ${char.portrait && char.portrait.startsWith('portraits/')
-            ? '<img src="' + (typeof ASSET_BASE!=='undefined'?ASSET_BASE:'') + char.portrait + '" alt="' + char.name + '" class="portrait-img" loading="eager" onerror="this.outerHTML=\'<span style=\\\"font-size:32px;display:flex;align-items:center;justify-content:center;width:100%;height:100%\\\">👤</span>\'">'
-            : '<span style="font-size:32px;display:flex;align-items:center;justify-content:center;width:100%;height:100%">' + (char.portrait || '👤') + '</span>'}
+          <span class="portrait-fallback">&#128100;</span>
+          ${char.portrait ? '<img src="'+char.portrait+'" class="portrait-img" alt="" onerror="this.style.display=&apos;none&apos;">': ''}
         </div>
         <div class="dnc-info">
           <div class="dnc-name">${nation.icon} ${nation.name} ${warBadge} ${inboxBadge}</div>
@@ -506,15 +505,16 @@ const DiplomacySystem = {
     return inbox.map(msg => `
       <div class="diplo-msg-card">
         <div class="dmc-header">
-          <span class="dmc-portrait">${msg.char && msg.char.portrait && msg.char.portrait.indexOf("portraits/")===0
-            ? "<img src=\""+msg.char.portrait+"\" class=\"portrait-img-sm\" onerror=\"this.style.display=&apos;none&apos;\">"
-            : (msg.char && msg.char.portrait || '👤')}</span>
+          <span class="dmc-portrait">
+            <span style="font-size:18px">&#128100;</span>
+            ${msg.char && msg.char.portrait ? '<img src="'+msg.char.portrait+'" class="portrait-img-sm" alt="">' : ''}
+          </span>
           <div>
-            <div class="dmc-from">${msg.nationIcon} ${msg.nationName} · <span style="color:var(--text3)">${msg.char.name}, ${msg.char.role}</span></div>
+            <div class="dmc-from">${msg.nationIcon} ${msg.nationName} · <span style="color:var(--text3);font-size:9px">${msg.charName||''}</span></div>
             <div class="dmc-turn" style="font-size:9px;color:var(--text3)">Turno ${msg.turn}</div>
           </div>
         </div>
-        <div class="dmc-text">"${msg.text}"</div>
+        <div class="dmc-text"><b>"${msg.text}"</b></div>
         <div class="dmc-opts">
           ${(msg.options||[]).map(opt =>
             `<button class="diplo-btn ${opt.action==='ignore'?'':'primary'}" style="font-size:10px"

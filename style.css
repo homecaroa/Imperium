@@ -1464,11 +1464,14 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 
 /* Actual portrait image */
 .portrait-img {
+  position: absolute;
+  top: 0; left: 0;
   width: 100%; height: 100%;
   object-fit: cover;
-  object-position: center top;  /* Show face, not feet */
+  object-position: center top;
   display: block;
   transition: transform 0.3s ease;
+  z-index: 1;
 }
 .nation-portrait:hover .portrait-img {
   transform: scale(1.06);
@@ -1588,3 +1591,33 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 .fl-icon  { display: none; }  /* replaced by unit-thumb-emoji */
 .fl-name  { font-family: var(--font-mono); font-size: 11px; color: var(--text); flex: 1; }
 .fl-count { font-family: var(--font-mono); font-size: 11px; font-weight: bold; color: var(--gold2); }
+
+/* ═══════════════════════════════════════════════════════
+   PORTRAIT — emoji fallback + image overlay pattern
+   ═══════════════════════════════════════════════════════ */
+
+/* The portrait container is position:relative (already set) */
+/* Fallback emoji always visible */
+.portrait-fallback {
+  font-size: 28px;
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; height: 100%;
+  position: absolute; top: 0; left: 0;
+  pointer-events: none;
+}
+
+/* Image overlays the emoji — if it loads, it covers it; if it fails, emoji shows */
+/* portrait-img position already defined above */
+
+/* Small portrait in messages */
+.dmc-portrait {
+  position: relative;
+  overflow: hidden;
+}
+.dmc-portrait .portrait-img-sm {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}

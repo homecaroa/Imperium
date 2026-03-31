@@ -178,6 +178,13 @@ const AlthoriаMap = {
   // Estado
   isOpen:        false,
   canvas:        null,
+  _dragMoved:    false,
+  _panJustEnded: false,
+  _drag:         { active: false },
+  _panning:      false,
+  zoom:          1.0,
+  panX:          0,
+  panY:          0,
   ctx:           null,
   img:           null,
   imgLoaded:     false,
