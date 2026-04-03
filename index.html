@@ -294,6 +294,14 @@
 
 <div id="tb-tooltip" class="tb-tooltip-box"></div>
 
+<script>
+// IMAGE_BASE: absolute URL to the folder containing index.html
+// Works on GitHub Pages, file://, localhost, any subdirectory
+(function() {
+  var loc = window.location.href;
+  window.IMAGE_BASE = loc.substring(0, loc.lastIndexOf('/') + 1);
+})();
+</script>
 <script src="visual.js"></script>
 <script src="althoria.js"></script>
 <script src="data.js"></script>

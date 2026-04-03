@@ -103,7 +103,7 @@ const ALTHORIA_REGIONS = [
     geoType: 'mountain',
     center: [52, 72],
     polygon: [[38,64],[68,62],[72,80],[40,82]],
-    resourceIcon: '🪨',
+    resourceIcon: '🏔️',
     baseResources: { stone: 28, iron: 25, gold: 10 }
   },
   {
@@ -272,7 +272,7 @@ const AlthoriаMap = {
       this._sizeCanvas();
       if (this.isOpen) this.render();
     };
-    this.img.src = 'althoria_map.png';
+    this.img.src = (window.IMAGE_BASE||'') + 'img/map/althoria_map.png';
   },
 
   _sizeCanvas() {
@@ -1326,7 +1326,7 @@ const AlthoriаMap = {
   },
 
   _resIcon(res) {
-    return { food:'🌾', gold:'💰', wood:'🪵', stone:'🪨', iron:'⚙️' }[res] || '';
+    return { food:'🌾', gold:'💰', wood:'🌲', stone:'🏔️', iron:'⚙️' }[res] || '';
   },
 
   // ── ABRIR / CERRAR PANEL ──────────────────────────────────

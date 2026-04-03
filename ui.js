@@ -792,7 +792,7 @@ const UI = {
 
     const chainTag = ev._chainSource ? '<div class="chained-event-tag">🔗 Evento encadenado</div>' : '';
     const evtImgHtml = ev.image
-      ? `<div class="event-img-wrap"><img src="${ev.image}" class="event-img" alt="${ev.title}" onerror="this.parentElement.style.display='none'"></div>`
+      ? `<div class="event-img-wrap"><img src="${(window.IMAGE_BASE||'')+ev.image}" class="event-img" alt="${ev.title}" onerror="this.parentElement.style.display='none'"></div>`
       : '';
     container.innerHTML = arcBanner + chainTag + `
       <div class="decision-card">
