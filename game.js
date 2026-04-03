@@ -579,11 +579,11 @@ const Game = {
   buildIrrigation() {
     const s = this.state;
     if (s.resources.wood < 150 || s.resources.stone < 100 || s.resources.gold < 200) {
-      Systems.Log.add(s, '⚠️ Faltan recursos para irrigación (150🪵 100🪨 200💰).', 'warn');
+      Systems.Log.add(s, '⚠️ Faltan recursos para irrigación (150🌲 100🏔️ 200💰).', 'warn');
       if (typeof showResourceError === 'function') {
         const m=[];
-        if(s.resources.wood<150)  m.push({icon:'🪵',name:'Madera',need:150,have:Math.floor(s.resources.wood)});
-        if(s.resources.stone<100) m.push({icon:'🪨',name:'Piedra', need:100,have:Math.floor(s.resources.stone)});
+        if(s.resources.wood<150)  m.push({icon:'🌲',name:'Madera',need:150,have:Math.floor(s.resources.wood)});
+        if(s.resources.stone<100) m.push({icon:'🏔️',name:'Piedra', need:100,have:Math.floor(s.resources.stone)});
         if(s.resources.gold<200)  m.push({icon:'💰',name:'Oro',    need:200,have:Math.floor(s.resources.gold)});
         if(m.length) showResourceError(m);
       }
@@ -597,7 +597,7 @@ const Game = {
 
   buildGranary() {
     const s = this.state;
-    if (s.resources.wood < 100) { Systems.Log.add(s, '⚠️ Faltan 100🪵 para graneros.', 'warn'); if(typeof showResourceError==='function') showResourceError([{icon:'🪵',name:'Madera',need:100,have:Math.floor(s.resources.wood)}]); }
+    if (s.resources.wood < 100) { Systems.Log.add(s, '⚠️ Faltan 100🌲 para graneros.', 'warn'); if(typeof showResourceError==='function') showResourceError([{icon:'🌲',name:'Madera',need:100,have:Math.floor(s.resources.wood)}]); }
     else {
       s.resources.wood -= 100; s.resources.food += 200;
       Systems.Log.add(s, '🏚️ Graneros construidos. +200 alimentos.', 'good');
@@ -616,7 +616,7 @@ const Game = {
       const miss = [];
       if (def.cost.gold && s.resources.gold < def.cost.gold*(n/50)) miss.push({icon:'💰',name:'Oro',need:Math.ceil(def.cost.gold*(n/50)),have:Math.floor(s.resources.gold)});
       if (def.cost.iron && s.resources.iron < def.cost.iron*(n/50)) miss.push({icon:'⚙️',name:'Hierro',need:Math.ceil(def.cost.iron*(n/50)),have:Math.floor(s.resources.iron)});
-      if (def.cost.wood && s.resources.wood < def.cost.wood*(n/50)) miss.push({icon:'🪵',name:'Madera',need:Math.ceil(def.cost.wood*(n/50)),have:Math.floor(s.resources.wood)});
+      if (def.cost.wood && s.resources.wood < def.cost.wood*(n/50)) miss.push({icon:'🌲',name:'Madera',need:Math.ceil(def.cost.wood*(n/50)),have:Math.floor(s.resources.wood)});
       if (miss.length) { if (typeof showResourceError==='function') showResourceError(miss); return; }
     }
     if (!ActionPoints.spend(this.state, 1, 'Reclutar tropas')) return;
@@ -629,7 +629,7 @@ const Game = {
         const miss = [];
         if (def && def.cost.gold && s.resources.gold < def.cost.gold * (count/50)) miss.push({icon:'💰',name:'Oro',    need: Math.ceil(def.cost.gold*(count/50)),  have:Math.floor(s.resources.gold)});
         if (def && def.cost.iron && s.resources.iron < def.cost.iron * (count/50)) miss.push({icon:'⚙️', name:'Hierro', need: Math.ceil(def.cost.iron*(count/50)), have:Math.floor(s.resources.iron)});
-        if (def && def.cost.wood && s.resources.wood < def.cost.wood * (count/50)) miss.push({icon:'🪵',name:'Madera',  need: Math.ceil(def.cost.wood*(count/50)),  have:Math.floor(s.resources.wood)});
+        if (def && def.cost.wood && s.resources.wood < def.cost.wood * (count/50)) miss.push({icon:'🌲',name:'Madera',  need: Math.ceil(def.cost.wood*(count/50)),  have:Math.floor(s.resources.wood)});
         if (miss.length) showResourceError(miss);
       }
     }
@@ -694,7 +694,7 @@ const Game = {
         const m=[];
         if(rt&&rt.cost.gold &&s.resources.gold <rt.cost.gold)  m.push({icon:'💰',name:'Oro',   need:rt.cost.gold,  have:Math.floor(s.resources.gold)});
         if(rt&&rt.cost.iron &&s.resources.iron <rt.cost.iron)  m.push({icon:'⚙️', name:'Hierro',need:rt.cost.iron,  have:Math.floor(s.resources.iron)});
-        if(rt&&rt.cost.wood &&s.resources.wood <rt.cost.wood)  m.push({icon:'🪵',name:'Madera', need:rt.cost.wood,  have:Math.floor(s.resources.wood)});
+        if(rt&&rt.cost.wood &&s.resources.wood <rt.cost.wood)  m.push({icon:'🌲',name:'Madera', need:rt.cost.wood,  have:Math.floor(s.resources.wood)});
         if(m.length) showResourceError(m);
       }
     }

@@ -109,8 +109,8 @@ const UI = {
       <div class="hover-yields">
         <span>🌾 <b>${yields.food||0}</b></span>
         <span>💰 <b>${yields.gold||0}</b></span>
-        <span>🪵 <b>${yields.wood||0}</b></span>
-        <span>🪨 <b>${yields.stone||0}</b></span>
+        <span>🌲 <b>${yields.wood||0}</b></span>
+        <span>🏔️ <b>${yields.stone||0}</b></span>
         <span>⚙️ <b>${yields.iron||0}</b></span>
       </div>
       <div class="hover-owner">${ownerLabel}${extras ? '  ·  <span style="color:var(--gold)">' + extras + '</span>' : ''}</div>
@@ -267,7 +267,7 @@ const UI = {
       const unitThumb = def.imgFile
         ? '<span class="unit-thumb-emoji" style="font-size:22px">'+def.icon+'</span>'
         : '<span class="unit-thumb-emoji">'+def.icon+'</span>';
-      return `<div class="formation-row tb-tip" data-tip="${def.icon} ${def.name}&#10;${def.description}&#10;&#10;⚔️ Ataque: ${def.attack||def.strength} · 🛡️ Defensa: ${def.defense||Math.floor((def.strength||0)*0.6)}&#10;Coste: ${def.cost.gold}💰${def.cost.iron?' '+def.cost.iron+'⚙️':''}${def.cost.wood?' '+def.cost.wood+'🪵':''}">
+      return `<div class="formation-row tb-tip" data-tip="${def.icon} ${def.name}&#10;${def.description}&#10;&#10;⚔️ Ataque: ${def.attack||def.strength} · 🛡️ Defensa: ${def.defense||Math.floor((def.strength||0)*0.6)}&#10;Coste: ${def.cost.gold}💰${def.cost.iron?' '+def.cost.iron+'⚙️':''}${def.cost.wood?' '+def.cost.wood+'🌲':''}">
         <div class="formation-label">
           ${unitThumb}
           <span class="fl-name">${def.name}</span>
@@ -333,7 +333,7 @@ const UI = {
             return '<button class="policy-btn" onclick="'+onclk+'"'
               +' title="'+def.description+'">' 
               +'<span>'+def.icon+' '+def.name+' ×50</span>'
-              +'<span class="policy-cost">'+def.cost.gold+'💰'+(def.cost.iron?' '+def.cost.iron+'⚙️':'')+(def.cost.wood?' '+def.cost.wood+'🪵':'')+'</span>'
+              +'<span class="policy-cost">'+def.cost.gold+'💰'+(def.cost.iron?' '+def.cost.iron+'⚙️':'')+(def.cost.wood?' '+def.cost.wood+'🌲':'')+'</span>'
               +'</button>';
           }).join('');
         })()}
@@ -347,7 +347,7 @@ const UI = {
             <div style="font-family:var(--font-mono);font-size:9px;color:var(--text3);margin:3px 0">${leg.unlockCondition}</div>
             <div style="font-family:var(--font-mono);font-size:10px;color:var(--text2)">${leg.special}</div>
             <button class="diplo-btn" style="margin-top:5px" onclick="Game.recruitLegendary('${leg.id}')">
-              Reclutar: ${leg.cost.gold}💰 ${leg.cost.iron?leg.cost.iron+'⚙️ ':''}${leg.cost.food?leg.cost.food+'🌾 ':''}${leg.cost.wood?leg.cost.wood+'🪵':''}
+              Reclutar: ${leg.cost.gold}💰 ${leg.cost.iron?leg.cost.iron+'⚙️ ':''}${leg.cost.food?leg.cost.food+'🌾 ':''}${leg.cost.wood?leg.cost.wood+'🌲':''}
             </button>
           </div>`).join('')}
       </div>` : `
@@ -510,7 +510,7 @@ const UI = {
 
       +'<div class="rpanel-section">'
       +'<div class="rpanel-title">📈 Flujo por Turno</div>'
-      +[['🌾 Alimentos',rates.food||0],['💰 Oro',rates.gold||0],['🪵 Madera',rates.wood||0],['🪨 Piedra',rates.stone||0],['⚙️ Hierro',rates.iron||0]].map(function(x){
+      +[['🌾 Alimentos',rates.food||0],['💰 Oro',rates.gold||0],['🌲 Madera',rates.wood||0],['🏔️ Piedra',rates.stone||0],['⚙️ Hierro',rates.iron||0]].map(function(x){
         var l=x[0],v=x[1];
         return '<div class="stat-row"><span class="stat-row-label">'+l+'</span>'
           +'<span style="font-family:var(--font-mono);font-size:11px;color:'+(v>=0?'var(--green2)':'var(--red2)')+'">'+((v>=0?'+':'')+v)+'/t</span></div>';
@@ -532,8 +532,8 @@ const UI = {
       +'<div class="rpanel-title">🏦 Finanzas</div>'
       +'<button class="policy-btn" onclick="Game.takeLoan()">💳 Préstamo (+200💰 +200 deuda)</button>'
       +'<button class="policy-btn" onclick="Game.payDebt()">📤 Pagar deuda (-100💰 -100 deuda)</button>'
-      +'<button class="policy-btn" onclick="Game.buildIrrigation()">🚿 Irrigación (150🪵 100🪨 200💰)</button>'
-      +'<button class="policy-btn" onclick="Game.buildGranary()">🏚️ Graneros (100🪵)</button>'
+      +'<button class="policy-btn" onclick="Game.buildIrrigation()">🚿 Irrigación (150🌲 100🏔️ 200💰)</button>'
+      +'<button class="policy-btn" onclick="Game.buildGranary()">🏚️ Graneros (100🌲)</button>'
       +'</div>';
   },
 
@@ -580,8 +580,8 @@ const UI = {
       </div>
       <div class="rpanel-section">
         <div class="rpanel-title">🌿 Mitigación</div>
-        <button class="policy-btn" onclick="Game.buildIrrigation()">🚿 Irrigación (150🪵 100🪨 200💰)</button>
-        <button class="policy-btn" onclick="Game.buildGranary()">🏚️ Graneros (100🪵 → +200 alimentos)</button>
+        <button class="policy-btn" onclick="Game.buildIrrigation()">🚿 Irrigación (150🌲 100🏔️ 200💰)</button>
+        <button class="policy-btn" onclick="Game.buildGranary()">🏚️ Graneros (100🌲 → +200 alimentos)</button>
       </div>`;
   },
 
