@@ -163,7 +163,6 @@
 
       <!-- COLUMNA IZQUIERDA: Facciones + Agenda (compacta, ~25%) -->
       <div id="map-area">
-        <div id="world-map" style="width:100%;min-height:180px;border-radius:6px;overflow:hidden;"></div>
         <div class="map-tabs">
           <button class="mtab active" onclick="switchMapTab('factions')">⚔️ Facciones</button>
           <span id="map-seed-label" class="seed-label" style="font-size:9px;padding:2px 6px;color:var(--text3);margin-left:auto"></span>
@@ -294,22 +293,7 @@
 </div><!-- #app -->
 
 <div id="tb-tooltip" class="tb-tooltip-box"></div>
-<script>
-// Detect asset base path — works regardless of server subdirectory
-window.ASSET_BASE = (function() {
-  var scripts = document.querySelectorAll('script[src]');
-  for (var i = 0; i < scripts.length; i++) {
-    var src = scripts[i].src;
-    if (src.indexOf('visual.js') > -1) {
-      return src.replace('visual.js', '');
-    }
-  }
-  // fallback: use current URL path
-  var path = window.location.pathname;
-  var base = path.substring(0, path.lastIndexOf('/') + 1);
-  return window.location.origin + base;
-})();
-</script>
+
 <script src="visual.js"></script>
 <script src="althoria.js"></script>
 <script src="data.js"></script>
@@ -317,10 +301,12 @@ window.ASSET_BASE = (function() {
 <script src="systems.js"></script>
 <script src="ai.js"></script>
 <script src="ui.js"></script>
+<script src="arcs.js"></script>
 <script src="mechanics.js"></script>
 <script src="war.js"></script>
 <script src="unlocks.js"></script>
 <script src="diplomacy.js"></script>
+<script src="story_arcs.js"></script>
 <script src="game.js"></script>
 <script src="save.js"></script>
 <script src="battle.js"></script>

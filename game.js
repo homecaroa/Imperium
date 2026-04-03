@@ -45,11 +45,8 @@ const Game = {
     this.initState(civ);
     showScreen('screen-game');
     setTimeout(() => {
-      MapRenderer.init('world-map', this.state.mapData, this.state);
       const seedEl = document.getElementById('map-seed-label');
       if (seedEl) seedEl.textContent = '🗺️ Semilla: ' + this.state.mapSeed;
-      this.renderMapInfoBar();
-      this._attachMapHover();
     }, 50);
     UI.fullRender(this.state);
     // Inicializar mapa de Althoria y contar regiones del jugador

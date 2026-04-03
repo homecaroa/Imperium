@@ -1440,16 +1440,10 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 #althoria-canvas.dragging { cursor: grabbing !important; }
 
 /* ═══════════════════════════════════════════════════════
-   RETRATOS DE LÍDERES — portrait images
+   RETRATOS DE LÍDERES — portrait images (definitive)
    ═══════════════════════════════════════════════════════ */
 
-/* Nation card header layout */
-.dnc-header {
-  display: flex; align-items: flex-start; gap: 12px;
-  margin-bottom: 10px;
-}
-
-/* Portrait container — square box */
+/* Portrait container */
 .nation-portrait {
   width: 80px; height: 80px;
   flex-shrink: 0;
@@ -1457,34 +1451,37 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
   border-radius: 3px;
   overflow: hidden;
   background: var(--bg3);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 32px;
-  position: relative;
+  position: relative;          /* required for absolute children */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.diplo-nation-card:hover 
+
+/* Emoji fallback — always visible underneath the image */
+.portrait-fallback {
+  font-size: 30px;
+  line-height: 1;
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 0;
+  pointer-events: none;
+  user-select: none;
 }
 
-/* Actual portrait image */
+/* Portrait image — overlays the emoji fallback */
 .portrait-img {
   position: absolute;
-  top: 0; left: 0;
+  inset: 0;                    /* top:0; left:0; right:0; bottom:0 */
   width: 100%; height: 100%;
   object-fit: cover;
-  object-position: center top;
+  object-position: center top; /* show face, not feet */
+  z-index: 1;
   display: block;
   transition: transform 0.3s ease;
-  z-index: 1;
 }
-.nation-portrait:hover .portrait-img {
-  transform: scale(1.06);
-}
-
-/* Fallback if image fails */
-.portrait-fallback {
-  font-size: 32px;
-  position: absolute; top: 50%; left: 50%;
-  transform: translate(-50%,-50%);
-}
-
-/* Small portrait in messages */
+.nation-portrait:hover /* Small portrait in inbox messages */
 .dmc-portrait {
   flex-shrink: 0;
   width: 36px; height: 36px;
@@ -1492,32 +1489,25 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
   border-radius: 2px;
   overflow: hidden;
   background: var(--bg3);
+  position: relative;
   display: flex; align-items: center; justify-content: center;
   font-size: 18px;
 }
 .portrait-img-sm {
+  position: absolute;
+  inset: 0;
   width: 100%; height: 100%;
-  object-fit: cover; object-position: center top;
-  display: block;
+  object-fit: cover;
+  object-position: center top;
+  z-index: 1;
 }
 
-/* Nation info block next to portrait */
-.dnc-info { flex: 1; min-width: 0; }
-.dnc-name {
-  font-family: var(--font-title); font-size: 14px;
-  color: var(--gold2); margin-bottom: 3px;
-}
-.dnc-char {
-  font-family: var(--font-mono); font-size: 11px;
-  color: var(--text); font-weight: bold; margin-bottom: 2px;
-}
-.dnc-role { color: var(--text3); font-weight: normal; }
-
-/* Portrait glow on hover of entire card */
-.diplo-nation-card:hover .nation-portrait {
-  border-color: var(--gold);
-  box-shadow: 0 0 10px rgba(200,160,48,0.25);
-}
+/* Nation card layout */
+.dnc-header { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+.dnc-info   { flex: 1; min-width: 0; }
+.dnc-name   { font-family: var(--font-title); font-size: 14px; color: var(--gold2); margin-bottom: 3px; }
+.dnc-char   { font-family: var(--font-mono); font-size: 11px; color: var(--text); font-weight: bold; margin-bottom: 2px; }
+.dnc-role   { color: var(--text3); font-weight: normal; }
 
 /* ═══════════════════════════════════════════════════════
    EVENT ILLUSTRATIONS — imágenes de eventos
@@ -1598,26 +1588,14 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 
 /* The portrait container is position:relative (already set) */
 /* Fallback emoji always visible */
-.portrait-fallback {
-  font-size: 28px;
-  display: flex; align-items: center; justify-content: center;
-  width: 100%; height: 100%;
-  position: absolute; top: 0; left: 0;
-  pointer-events: none;
-}
+
 
 /* Image overlays the emoji — if it loads, it covers it; if it fails, emoji shows */
-/* portrait-img position already defined above */
+
 
 /* Small portrait in messages */
 .dmc-portrait {
   position: relative;
   overflow: hidden;
 }
-.dmc-portrait .portrait-img-sm {
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  object-fit: cover;
-  object-position: center top;
-}
+.dmc-portrait 

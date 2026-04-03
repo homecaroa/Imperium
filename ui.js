@@ -79,22 +79,7 @@ const UI = {
   // ══════════════════════════════════════════════
   // MAPA — delega en MapRenderer
   // ══════════════════════════════════════════════
-  renderMap(state) {
-    if (MapRenderer.canvas && MapRenderer.map) {
-      if (state.mapData) {
-        state.mapData.cells.forEach(cell => {
-          if (state.playerCells && state.playerCells.includes(cell.id)) cell.owner = 'player';
-        });
-        (state.diplomacy || []).forEach((nation, i) => {
-          (nation.cells || []).forEach(cid => {
-            const c = state.mapData.cells[cid];
-            if (c && c.owner !== 'player') c.owner = 'ai_' + (i+1);
-          });
-        });
-      }
-      MapRenderer.refresh(state);
-    }
-  },
+  renderMap(state) { /* MapRenderer removed — using AlthoriаMap instead */ },
 
   // ══════════════════════════════════════════════
   // HOVER INFO — aparece en columna derecha
