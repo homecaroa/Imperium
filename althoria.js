@@ -272,7 +272,7 @@ const AlthoriаMap = {
       this._sizeCanvas();
       if (this.isOpen) this.render();
     };
-    this.img.src = 'img/map/althoria_map.png';
+    this.img.src = 'althoria_map.png';
   },
 
   _sizeCanvas() {

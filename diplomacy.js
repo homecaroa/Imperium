@@ -11,32 +11,32 @@
 const NATION_CHARACTERS = {
   // id del pool → personaje embajador
   'ai_1': [
-    { name:'Vorkan el Implacable',  role:'Gran Caudillo',      portrait:'img/leaders/vorkan.png', trait:'agresiva'  },
-    { name:'Darius el Conquistador',role:'Señor de la Guerra', portrait:'img/leaders/darius.png', trait:'agresiva'  }
+    { name:'Vorkan el Implacable',  role:'Gran Caudillo',      portrait:'portraits/vorkan.png', trait:'agresiva'  },
+    { name:'Darius el Conquistador',role:'Señor de la Guerra', portrait:'portraits/darius.png', trait:'agresiva'  }
   ],
   'ai_2': [
-    { name:'Lady Seraphina',        role:'Cónsul Suprema',     portrait:'img/leaders/seraphina.png', trait:'diplomática'},
-    { name:'Marcus Bellator',       role:'Senador Plenipotenciario', portrait:'img/leaders/marcus.png', trait:'diplomática'}
+    { name:'Lady Seraphina',        role:'Cónsul Suprema',     portrait:'portraits/seraphina.png', trait:'diplomática'},
+    { name:'Marcus Bellator',       role:'Senador Plenipotenciario', portrait:'portraits/marcus.png', trait:'diplomática'}
   ],
   'ai_3': [
-    { name:'Xotl el Astuto',        role:'Jefe de Clan',       portrait:'img/leaders/xotl.png', trait:'oportunista'},
-    { name:'Keira Dos Mundos',      role:'Chamana Mayor',      portrait:'img/leaders/keira.png', trait:'oportunista'}
+    { name:'Xotl el Astuto',        role:'Jefe de Clan',       portrait:'portraits/xotl.png', trait:'oportunista'},
+    { name:'Keira Dos Mundos',      role:'Chamana Mayor',      portrait:'portraits/keira.png', trait:'oportunista'}
   ],
   'ai_4': [
-    { name:'Al-Rashid Ibn Yusuf',   role:'Gran Visir',         portrait:'img/leaders/alrashid.png', trait:'agresiva'  },
-    { name:'Sultán Mehmed el Pío',  role:'Señor del Sultanato',portrait:'img/leaders/mehmed.png', trait:'agresiva'  }
+    { name:'Al-Rashid Ibn Yusuf',   role:'Gran Visir',         portrait:'portraits/alrashid.png', trait:'agresiva'  },
+    { name:'Sultán Mehmed el Pío',  role:'Señor del Sultanato',portrait:'portraits/mehmed.png', trait:'agresiva'  }
   ],
   'ai_5': [
-    { name:'Gilda Tesoro',          role:'Maestra de Gremios', portrait:'img/leaders/gilda.png', trait:'diplomática'},
-    { name:'Roderic el Banquero',   role:'Cónsul Mercantil',   portrait:'img/leaders/roderic.png', trait:'diplomática'}
+    { name:'Gilda Tesoro',          role:'Maestra de Gremios', portrait:'portraits/gilda.png', trait:'diplomática'},
+    { name:'Roderic el Banquero',   role:'Cónsul Mercantil',   portrait:'portraits/roderic.png', trait:'diplomática'}
   ],
   'ai_6': [
-    { name:'Ragnar Colmillo Roto',  role:'Jarl Supremo',       portrait:'img/leaders/ragnar.png', trait:'agresiva'  },
-    { name:'Sigrid la Furiosa',     role:'Skald de la Batalla',portrait:'img/leaders/sigrid.png', trait:'agresiva'  }
+    { name:'Ragnar Colmillo Roto',  role:'Jarl Supremo',       portrait:'portraits/ragnar.png', trait:'agresiva'  },
+    { name:'Sigrid la Furiosa',     role:'Skald de la Batalla',portrait:'portraits/sigrid.png', trait:'agresiva'  }
   ],
   'ai_7': [
-    { name:'Zhang Wei el Eterno',   role:'Canciller Imperial', portrait:'img/leaders/zhangwei.png', trait:'oportunista'},
-    { name:'Li Bao Celestial',      role:'Mandarín de Jade',   portrait:'img/leaders/libao.png', trait:'oportunista'}
+    { name:'Zhang Wei el Eterno',   role:'Canciller Imperial', portrait:'portraits/zhangwei.png', trait:'oportunista'},
+    { name:'Li Bao Celestial',      role:'Mandarín de Jade',   portrait:'portraits/libao.png', trait:'oportunista'}
   ]
 };
 

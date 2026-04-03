@@ -878,18 +878,21 @@ const DynamicEvents = {
   // Convertir a formato del sistema de eventos existente
   toGameEvent(ev) {
     return {
-      id:       ev.id,
-      title:    ev.title,
-      category: ev.category,
-      icon:     ev.icon,
-      priority: ev.priority,
-      options:  (ev.options||[]).map(o => ({
-        label:        o.label,
-        effects:      o.effects || {},
-        chains:       o.chains,
-        specialAction:o.specialAction,
-        hiddenCost:   o.hiddenCost,
-        xpType:       o.xp,
+      id:          ev.id,
+      title:       ev.title,
+      category:    ev.category,
+      icon:        ev.icon,
+      priority:    ev.priority,
+      image:       ev.image || null,   // FIX: preserve image path
+      description: ev.description || '',
+      context:     ev.context || '',
+      options:     (ev.options||[]).map(o => ({
+        label:         o.label,
+        effects:       o.effects || {},
+        chains:        o.chains,
+        specialAction: o.specialAction,
+        hiddenCost:    o.hiddenCost,
+        xpType:        o.xp,
       })),
       _dynamic: true,
     };

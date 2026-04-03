@@ -138,7 +138,7 @@ const TRADE_ROUTES = {
 // POOL DE EVENTOS
 // ============================================================
 const EVENT_POOL = [
-  {id:'trade_caravan',image:'img/events/evt_caravan.png',    category:'ECONOMÍA',  priority:'normal',  icon:'🐪',title:'Caravana Mercante',        description:'Una caravana solicita establecer una ruta comercial permanente.',context:'Potencial: +30 oro/turno | Riesgo: espionaje | Coste: 80 madera',condition:(s)=>s.turn>2,weight:8,
+  {id:'trade_caravan',image:'events/evt_caravan.png',    category:'ECONOMÍA',  priority:'normal',  icon:'🐪',title:'Caravana Mercante',        description:'Una caravana solicita establecer una ruta comercial permanente.',context:'Potencial: +30 oro/turno | Riesgo: espionaje | Coste: 80 madera',condition:(s)=>s.turn>2,weight:8,
     options:[
       {label:'Libre comercio',          effects:{gold_rate:+30,wood:-80,spy_risk:+15},   effectText:['+30 oro/turno','-80 madera','Riesgo espía +15%']},
       {label:'Control estatal',         effects:{gold_rate:+18,wood:-80,corruption:-5},  effectText:['+18 oro/turno','-80 madera','Corrupción -5']},
@@ -148,7 +148,7 @@ const EVENT_POOL = [
       {label:'Austeridad drástica',     effects:{gold_rate:-40,stability:-15,morale:-20,inflation:-30,faction_economy:+20},effectText:['-40 oro/turno','Inflación -30','-15 estabilidad']},
       {label:'Emitir deuda pública',    effects:{gold:+300,debt:+300,inflation:+20},      effectText:['+300 oro','Deuda +300','Inflación +20']},
       {label:'Control de precios',      effects:{morale:+10,gold_rate:-15,faction_economy:-25},effectText:['+10 moral','-15 oro/turno','Comerciantes -25']}]},
-  {id:'faction_coup',image:'img/events/evt_civil_war.png',     category:'POLÍTICA',  priority:'critical',icon:'🗡',title:'Conspiración de Golpe',    description:'Tu espionaje revela que la facción más poderosa conspira para derrocarte.',context:'Si no actúas esta sesión, el golpe procede el próximo turno.',condition:(s)=>{const f=s.factions.reduce((a,b)=>a.satisfaction<b.satisfaction?a:b);return f.satisfaction<20&&f.influence>35;},weight:15,
+  {id:'faction_coup',image:'events/evt_noble_rebellion.png',     category:'POLÍTICA',  priority:'critical',icon:'🗡',title:'Conspiración de Golpe',    description:'Tu espionaje revela que la facción más poderosa conspira para derrocarte.',context:'Si no actúas esta sesión, el golpe procede el próximo turno.',condition:(s)=>{const f=s.factions.reduce((a,b)=>a.satisfaction<b.satisfaction?a:b);return f.satisfaction<20&&f.influence>35;},weight:15,
     options:[
       {label:'Arrestar líderes',        effects:{stability:-20,morale:-15,faction_influence:-30,gold:-150},effectText:['-20 estabilidad','-15 moral','Facción -30 influencia']},
       {label:'Negociar y ceder',        effects:{stability:+5,faction_satisfaction:+30,power:-20},         effectText:['+5 estabilidad','Facción +30','Tu poder -20']},
@@ -163,12 +163,12 @@ const EVENT_POOL = [
       {label:'Ley del Pueblo',          effects:{morale:+25,faction_pueblo:+30,gold_rate:-15,faction_elite:-25},effectText:['+25 moral','Pueblo +30','-15 oro/turno']},
       {label:'Ley del Orden',           effects:{stability:+20,morale:-10,faction_ejercito:+20,faction_pueblo:-15},effectText:['+20 estabilidad','-10 moral','Ejército +20']},
       {label:'Ley del Mercado',         effects:{gold_rate:+25,morale:-5,faction_comerciantes:+30,faction_pueblo:-20},effectText:['+25 oro/turno','Comerciantes +30','Pueblo -20']}]},
-  {id:'plague',image:'img/events/evt_plague.png',           category:'CRISIS',    priority:'critical',icon:'☣',title:'Epidemia',                   description:'Una enfermedad desconocida se propaga. La mortalidad crece.',context:'Sin intervención: -20% población en 5 turnos',condition:(s)=>s.turn>8&&Math.random()<0.10,weight:10,
+  {id:'plague',image:'events/evt_plague.png',           category:'CRISIS',    priority:'critical',icon:'☣',title:'Epidemia',                   description:'Una enfermedad desconocida se propaga. La mortalidad crece.',context:'Sin intervención: -20% población en 5 turnos',condition:(s)=>s.turn>8&&Math.random()<0.10,weight:10,
     options:[
       {label:'Cuarentena total',        effects:{population_loss:-500,gold_rate:-30,morale:-20},effectText:['-500 población','-30 oro/turno','-20 moral']},
       {label:'Investigación médica',    effects:{gold:-400,morale:-5},                          effectText:['-400 oro','-5 moral']},
       {label:'Ignorar',                 effects:{population_loss:-2000,morale:-40,stability:-25},effectText:['-2000 población','-40 moral','-25 estabilidad']}]},
-  {id:'alliance_offer',image:'img/events/evt_golden_age.png',   category:'DIPLOMACIA',priority:'normal',  icon:'🤝',title:'Oferta de Alianza',         description:'Una nación vecina propone alianza con mutua defensa.',context:'Ejército medio | Economía estable | Conflicto latente al este',condition:(s)=>s.turn>3,weight:7,
+  {id:'alliance_offer',image:'events/evt_diplomatic.png',   category:'DIPLOMACIA',priority:'normal',  icon:'🤝',title:'Oferta de Alianza',         description:'Una nación vecina propone alianza con mutua defensa.',context:'Ejército medio | Economía estable | Conflicto latente al este',condition:(s)=>s.turn>3,weight:7,
     options:[
       {label:'Alianza completa',        effects:{diplomacy:+40,military_support:+20},  effectText:['Relación +40','+20% fuerza conjunta','Obligación defensa mutua']},
       {label:'Acuerdo comercial',       effects:{diplomacy:+20,gold_rate:+15},          effectText:['Relación +20','+15 oro/turno','Sin compromiso militar']},
@@ -178,7 +178,7 @@ const EVENT_POOL = [
       {label:'Interrogar y ejecutar',   effects:{spy_intel:+30,diplomacy_target:-40,war_risk:+25},effectText:['+30 inteligencia','-40 relación','+25% riesgo guerra']},
       {label:'Intercambiar prisioneros',effects:{diplomacy_target:+10},                           effectText:['Relación +10','Prisioneros liberados']},
       {label:'Negociar rescate',        effects:{diplomacy_target:-15,gold:+200},                 effectText:['Relación -15','+200 oro']}]},
-  {id:'border_raid',image:'img/events/evt_betrayal.png',      category:'MILITAR',   priority:'high',    icon:'🔥',title:'Incursión Fronteriza',      description:'Guerreros de una tribu saquearon tres aldeas. 200 civiles muertos.',context:'Tribu: ~600 guerreros | Frontera débil | La estación afecta la campaña',condition:(s)=>s.turn>4,weight:9,
+  {id:'border_raid',image:'events/evt_bandits.png',      category:'MILITAR',   priority:'high',    icon:'🔥',title:'Incursión Fronteriza',      description:'Guerreros de una tribu saquearon tres aldeas. 200 civiles muertos.',context:'Tribu: ~600 guerreros | Frontera débil | La estación afecta la campaña',condition:(s)=>s.turn>4,weight:9,
     options:[
       {label:'Represalia militar',      effects:{army:-150,gold:-200,territory:+1,morale:+10,faction_ejercito:+25},effectText:['-150 soldados','-200 oro','+1 territorio','+10 moral']},
       {label:'Negociar y reforzar',     effects:{gold:-150,stability:+5,morale:-10,faction_ejercito:-20},          effectText:['-150 oro','+5 estabilidad','Ejército -20']},
