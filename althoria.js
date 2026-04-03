@@ -520,31 +520,28 @@ const AlthoriаMap = {
 
   // ── CAPA: OVERLAYS DE TERRITORIO ─────────────────────────
   _renderTerritoryOverlays(ctx, W, H) {
+    // Pass 1: AI territories — dimmed so player stands out
     Object.entries(this.nationZones).forEach(([natId, zones]) => {
+      if (natId === 'player') return;  // skip player, drawn in pass 2
       const col = this.NATION_COLORS[natId];
       if (!col) return;
 
+      ctx.globalAlpha = 0.55;  // AI zones visibly dimmer
       zones.forEach(rId => {
         const region = ALTHORIA_REGIONS.find(r => r.id === rId);
         if (!region) return;
-
         const pts = region.polygon.map(([px, py]) => [px / 100 * W, py / 100 * H]);
-
-        // Fill semitransparente más fuerte
         ctx.beginPath();
         ctx.moveTo(pts[0][0], pts[0][1]);
         pts.slice(1).forEach(([x, y]) => ctx.lineTo(x, y));
         ctx.closePath();
-        ctx.fillStyle = col.fill.replace('0.28','0.38').replace('0.30','0.40').replace('0.32','0.42');
+        ctx.fillStyle = col.fill;
         ctx.fill();
-
-        // Borde sólido más grueso
         ctx.strokeStyle = col.border;
-        ctx.lineWidth   = 3.0;
+        ctx.lineWidth = 2;
         ctx.setLineDash([]);
         ctx.stroke();
 
-        // Etiqueta de nación en el centroide
         const cx2 = pts.reduce((s,[x])=>s+x,0)/pts.length;
         const cy2 = pts.reduce((s,[,y])=>s+y,0)/pts.length;
         ctx.font = 'bold 10px Cinzel,serif';
@@ -554,7 +551,48 @@ const AlthoriаMap = {
         ctx.fillStyle = col.border;
         ctx.fillText(col.icon, cx2, cy2);
       });
+      ctx.globalAlpha = 1;
     });
+
+    // Pass 2: PLAYER territories — full opacity, stronger fill, glow border
+    const playerZones = this.nationZones['player'] || [];
+    const pcol = this.NATION_COLORS['player'];
+    if (pcol && playerZones.length) {
+      const pulse = 0.7 + 0.3 * Math.sin(this.animFrame * 0.06);
+
+      playerZones.forEach(rId => {
+        const region = ALTHORIA_REGIONS.find(r => r.id === rId);
+        if (!region) return;
+        const pts = region.polygon.map(([px, py]) => [px / 100 * W, py / 100 * H]);
+        ctx.beginPath();
+        ctx.moveTo(pts[0][0], pts[0][1]);
+        pts.slice(1).forEach(([x, y]) => ctx.lineTo(x, y));
+        ctx.closePath();
+
+        // Richer fill
+        ctx.fillStyle = 'rgba(100,220,130,0.52)';
+        ctx.fill();
+
+        // Outer glow — pulsing
+        ctx.shadowColor = '#72c882';
+        ctx.shadowBlur  = 12 + pulse * 8;
+        ctx.strokeStyle = '#72c882';
+        ctx.lineWidth   = 3.5;
+        ctx.setLineDash([]);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // Inner crown icon
+        const cx2 = pts.reduce((s,[x])=>s+x,0)/pts.length;
+        const cy2 = pts.reduce((s,[,y])=>s+y,0)/pts.length;
+        ctx.font = 'bold 11px Cinzel,serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.fillText('👑', cx2+1, cy2+1);
+        ctx.fillStyle = '#72c882';
+        ctx.fillText('👑', cx2, cy2);
+      });
+    }
   },
 
   // ── CAPA: FRONTERAS PUNTEADAS ─────────────────────────────
