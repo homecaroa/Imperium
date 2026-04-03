@@ -1226,6 +1226,7 @@ const AlthoriаMap = {
 
     _onHover(e) {
     if (this._panning) return;  // Don't hover while panning
+    const rect = this.canvas ? this.canvas.getBoundingClientRect() : {left:0,top:0};
     const [px, py] = this._screenToMapPct(e.clientX, e.clientY);
 
     const region = ALTHORIA_REGIONS.find(r => this._pointInPolygon(px, py, r.polygon));
