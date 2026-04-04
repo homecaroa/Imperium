@@ -65,6 +65,9 @@ const WarSystem = {
     const w = nation._war;
     w.turn++;
 
+    // 0. MODIFICADORES REALISTAS (moral, deserción, corrupción)
+    if (typeof RealisticWarModifiers !== 'undefined') RealisticWarModifiers.applyTurnModifiers(state, nation);
+
     // 1. CONSUMO DE RECURSOS
     const goldCost  = w.goldBurn + Math.floor(w.turn * 8);    // Escala con la duración
     const troopLoss = Math.floor(w.playerArmy * 0.06 * (1 - w.momentum / 200));

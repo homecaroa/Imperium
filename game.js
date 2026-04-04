@@ -160,6 +160,8 @@ const Game = {
     };
     // Inicializar personajes diplomáticos inmediatamente
     if (typeof DiplomacySystem !== "undefined") DiplomacySystem.initCharacters(this.state);
+    // Sistemas profundos
+    if (typeof DeepSystemsIntegration !== "undefined") DeepSystemsIntegration.onInit(this.state);
     // Inicializar arcos narrativos
     if (typeof StoryArcSystem !== "undefined") StoryArcSystem.init(this.state);
     // Inicializar AP para que el primer turno funcione
@@ -304,7 +306,9 @@ const Game = {
     if (typeof ArcSystem !== "undefined") {
       ArcSystem.tick(state);
     }
-    // 18. Render
+    // 18. Sistemas profundos
+    if (typeof DeepSystemsIntegration !== 'undefined') DeepSystemsIntegration.onEndTurn(state);
+    // 19. Render
     UI.fullRender(state);
     // Sync Althoria (war zones, spies, trade routes)
     if (typeof AlthoriаMap !== 'undefined') {

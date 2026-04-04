@@ -204,17 +204,17 @@
 
         <!-- TABS DE GESTIÓN -->
         <div class="panel-tabs">
-          <button class="ptab active" onclick="switchRightTab('politics')" title="Política">🏛️</button>
-          <button class="ptab" onclick="switchRightTab('military')" title="Ejército">⚔️</button>
-          <button class="ptab" onclick="Game.selectAttackTarget()" title="Seleccionar territorio para atacar">🎯</button>
-          <button class="ptab" onclick="switchRightTab('diplomacy')" title="Diplomacia">🤝</button>
-          <button class="ptab" onclick="switchRightTab('economy')" title="Economía">💰</button>
-          <button class="ptab" onclick="switchRightTab('climate')" title="Clima">🌤️</button>
-          <button class="ptab" onclick="switchRightTab('spies')" title="Espías">🕵️</button>
-          <button class="ptab" onclick="switchRightTab('trade')" title="Comercio">⚓</button>
-          <button class="ptab" onclick="switchRightTab('spending')" title="Construcción">🏗️</button>
-          <button class="ptab" onclick="switchRightTab('log')" title="Crónica">📜</button>
-          <button class="ptab tb-tip" data-tip="🔓 Desbloqueos progresivos" onclick="switchRightTab('unlocks')">🔓</button>
+          <button class="ptab active tb-tip" data-tip="🏛️ Política&#10;Facciones, leyes y gobierno." onclick="switchRightTab('politics')">🏛️</button>
+          <button class="ptab tb-tip" data-tip="⚔️ Ejército&#10;Reclutar, formación y combate." onclick="switchRightTab('military')">⚔️</button>
+          <button class="ptab tb-tip" data-tip="🎯 Atacar&#10;Selecciona territorio enemigo para invadir." onclick="Game.selectAttackTarget()">🎯</button>
+          <button class="ptab tb-tip" data-tip="🤝 Diplomacia&#10;Alianzas, mensajes y relaciones." onclick="switchRightTab('diplomacy')">🤝</button>
+          <button class="ptab tb-tip" data-tip="💰 Economía&#10;Ingresos, impuestos y deuda." onclick="switchRightTab('economy')">💰</button>
+          <button class="ptab tb-tip" data-tip="🌤️ Clima&#10;Estaciones y eventos climáticos." onclick="switchRightTab('climate')">🌤️</button>
+          <button class="ptab tb-tip" data-tip="🕵️ Espías&#10;Misiones de inteligencia y sabotaje." onclick="switchRightTab('spies')">🕵️</button>
+          <button class="ptab tb-tip" data-tip="⚓ Comercio&#10;Rutas activas e ingresos por turno." onclick="switchRightTab('trade')">⚓</button>
+          <button class="ptab tb-tip" data-tip="🏗️ Construcción&#10;Infraestructura y gasto público." onclick="switchRightTab('spending')">🏗️</button>
+          <button class="ptab tb-tip" data-tip="📜 Crónica&#10;Historial de eventos y decisiones." onclick="switchRightTab('log')">📜</button>
+          <button class="ptab tb-tip" data-tip="🔓 Desbloqueos&#10;Árbol de progresión y nuevas acciones." onclick="switchRightTab('unlocks')">🔓</button>
         </div>
 
         <div id="rtab-politics"  class="rtab-content active"><div id="politics-panel"></div></div>
@@ -314,7 +314,8 @@
 <script src="war.js"></script>
 <script src="unlocks.js"></script>
 <script src="diplomacy.js"></script>
-<script src="game.js"></script>
+<script src="deep_systems.js"></script>
+    <script src="game.js"></script>
 <script src="save.js"></script>
 <script src="battle.js"></script>
 </body>
