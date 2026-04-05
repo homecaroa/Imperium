@@ -2275,3 +2275,19 @@ body {
   border-top: 2px solid var(--gold2) !important;
   box-shadow: 0 10px 40px rgba(0,0,0,0.95), 0 0 0 1px rgba(200,152,42,0.1) !important;
 }
+
+/* ── Player nation name in top bar ─────────────────────── */
+.player-name-topbar {
+  font-family: var(--font-title);
+  font-size: 13px;
+  font-weight: 700;
+  color: #a0e8b0;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  padding: 4px 8px;
+  border: 1px solid rgba(114,200,130,0.35);
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, rgba(100,220,130,0.12), rgba(100,220,130,0.04));
+  text-shadow: 0 0 8px rgba(100,220,130,0.3);
+  cursor: help;
+}
