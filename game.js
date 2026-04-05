@@ -4,7 +4,7 @@
 // guerra con batalla en mapa, gasto público, guardado
 // ============================================================
 
-const Game = {
+var Game = {
 
   state: null,
 
@@ -310,24 +310,59 @@ const Game = {
     // ⚠️ BLOQUEO: No se puede pasar turno si hay eventos sin decidir
     const pending = state.currentEvents || [];
     if (pending.length > 0) {
-      // Mostrar advertencia en la agenda
-      const warnEl = document.getElementById('agenda-warning');
-      if (warnEl) warnEl.classList.remove('hidden');
+      // ── Auto-resolver eventos bloqueados demasiado tiempo ───────
+      // Si un evento lleva más de 3 turnos pendiente, se auto-resuelve
+      // con la opción menos dañina (índice 0 = primera opción)
+      const autoResolvedNow = [];
+      pending.forEach((ev, idx) => {
+        const evAge = state.turn - (ev._generatedTurn || state.turn);
+        if (evAge >= 3) {
+          autoResolvedNow.push({ ev, idx });
+        }
+      });
+      if (autoResolvedNow.length > 0) {
+        // Resolver del último al primero para no desfasar índices
+        autoResolvedNow.reverse().forEach(({ ev, idx }) => {
+          Systems.Log.add(state, '⏳ Auto-resolución: "' + ev.title + '" sin acción durante 3 turnos. Se elige la primera opción.', 'warn');
+          try { this.resolveEvent(idx, 0); } catch(e) {
+            // Si falla, forzar eliminación
+            state.currentEvents.splice(idx, 1);
+          }
+        });
+        // Si se resolvieron todos, permitir continuar
+        if (!state.currentEvents || state.currentEvents.length === 0) {
+          state.activeEventIndex = null;
+          // Continuar con el endTurn normalmente (no hacer return)
+        } else {
+          // Aún quedan pendientes — bloquear
+          this.selectEvent(0);
+          return;
+        }
+      } else {
+        // Marcar turno de generación en eventos que no lo tengan
+        pending.forEach(ev => {
+          if (ev._generatedTurn === undefined) ev._generatedTurn = state.turn;
+        });
 
-      // Seleccionar el primer evento no resuelto
-      this.selectEvent(0);
+        // Mostrar advertencia en la agenda
+        const warnEl = document.getElementById('agenda-warning');
+        if (warnEl) warnEl.classList.remove('hidden');
+        this.selectEvent(0);
 
-      // Flash del botón
-      const btn = document.getElementById('btn-endturn');
-      if (btn) {
-        btn.style.background = '#c83030';
-        btn.textContent = '⚠ Decide primero';
-        setTimeout(() => {
-          btn.style.background = '';
-          btn.textContent = '⏭ Fin de Turno';
-        }, 2000);
+        // Flash del botón con info de turnos restantes
+        const oldest = Math.min(...pending.map(ev => ev._generatedTurn || state.turn));
+        const turnsLeft = Math.max(0, 3 - (state.turn - oldest));
+        const btn = document.getElementById('btn-endturn');
+        if (btn) {
+          btn.style.background = '#c83030';
+          btn.textContent = turnsLeft > 0 ? '⚠ Decide (' + turnsLeft + 't)' : '⚠ Decide ya';
+          setTimeout(() => {
+            btn.style.background = '';
+            btn.textContent = '⏭ Fin de Turno';
+          }, 2000);
+        }
+        return; // BLOQUEO EFECTIVO
       }
-      return; // BLOQUEO EFECTIVO
     }
 
     // 1. Actualizar clima
@@ -407,6 +442,24 @@ const Game = {
     if (typeof UnlockSystem !== "undefined") UnlockSystem.processTurn(state);
     if (typeof DiplomacySystem !== "undefined") {
       DiplomacySystem.generateTurnMessages(state);
+    }
+    // ── Limpiar inbox: máximo 20 mensajes, purgar los más viejos ──
+    if (state.diplomacyInbox && state.diplomacyInbox.length > 20) {
+      // Marcar como leídos los más viejos y conservar solo los 20 recientes
+      state.diplomacyInbox = state.diplomacyInbox.slice(-20);
+    }
+    // Auto-marcar como leídos mensajes con más de 5 turnos
+    if (state.diplomacyInbox) {
+      state.diplomacyInbox.forEach(function(m) {
+        if (state.turn - (m.turn || 0) >= 5) m.read = true;
+      });
+      // Eliminar mensajes leídos si el inbox supera 15
+      if (state.diplomacyInbox.filter(m=>!m.read).length > 10 ||
+          state.diplomacyInbox.length > 15) {
+        state.diplomacyInbox = state.diplomacyInbox.filter(function(m) {
+          return !m.read || state.turn - (m.turn||0) < 5;
+        }).slice(-15);
+      }
     }
     // 17. Story Arcs y eventos de faccion/civ
     if (typeof ArcSystem !== "undefined") {
