@@ -151,6 +151,12 @@ const WarSystem = {
 
     state.morale = Math.min(100, state.morale + 20);
     Progression.awardXP(state, 'battle_won');
+
+    // ── Contadores de victoria para objetivos ocultos ──
+    state._warsWon = (state._warsWon || 0) + 1;
+    state._winsAgainst = state._winsAgainst || {};
+    state._winsAgainst[nation.id] = (state._winsAgainst[nation.id] || 0) + 1;
+
     // Record war summary
     this._recordSummary(state, nation, w, true, conquered);
     Systems.Log.add(state, `🏆 Victoria contra ${nation.name}! ${conquered ? 'Territorio '+conquered+' conquistado.' : 'Nación sometida.'}`, 'good');
