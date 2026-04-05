@@ -247,7 +247,7 @@ const AlthoriаMap = {
     this.canvas.addEventListener('mousedown',  (e) => this._onMouseDown(e));
     this.canvas.addEventListener('mousemove',  (e) => this._onMouseMove(e));
     this.canvas.addEventListener('mouseup',    (e) => this._onMouseUp(e));
-    this.canvas.addEventListener('mouseleave', ()  => this._cancelDrag());
+    // mouseleave cancelDrag removed (no drag system)
 
     // Drag state
     this._drag = { active: false, unitType: null, count: 0, fromRegion: null, curX: 0, curY: 0, targetRegion: null };
@@ -487,10 +487,10 @@ const AlthoriаMap = {
     this._renderTradeRoutes(ctx, W, H);
 
     // 11. Tropas desplegadas
-    this._renderDeployedTroops(ctx, W, H);
+    // deployedTroops render removed
 
     // Drag ghost — rendered AFTER restore so it's in screen space
-    this._renderDragGhost(ctx, W, H);
+    // drag ghost removed
     ctx.restore();  // Restaurar transform de zoom/pan
     this.animFrame++;
   },
@@ -724,7 +724,7 @@ const AlthoriаMap = {
           const idx = parseInt(natId.replace("ai_",""))-1;
           natName = diplo[idx]?.name || natId;
         }
-        const shortName = natName.split(" ").slice(0,2).join(" ");
+        const shortName = natName;  // nombre completo siempre
 
         // Escalar nombre con zoom — más grande en zoom out
         const z = this.zoom || 1;
@@ -838,41 +838,6 @@ const AlthoriаMap = {
     });
   },
 
-  // ── CAPA: TROPAS DESPLEGADAS ──────────────────────────────
-  _renderDeployedTroops(ctx, W, H) {
-    if (!this.deployedTroops || !Object.keys(this.deployedTroops).length) return;
-    const col = this.NATION_COLORS['player'];
-    if (!col) return;
-
-    Object.entries(this.deployedTroops).forEach(([rId, count]) => {
-      if (!count) return;
-      const region = ALTHORIA_REGIONS.find(r => r.id === rId);
-      if (!region) return;
-      const cx = region.center[0]/100*W;
-      const cy = region.center[1]/100*H;
-
-      // Escalar el tamaño del icono según el tamaño del ejército
-      const size = Math.min(20, Math.max(12, Math.log10(count+1) * 8));
-
-      ctx.save();
-      // Fondo circular
-      ctx.beginPath(); ctx.arc(cx+15, cy-20, size+2, 0, Math.PI*2);
-      ctx.fillStyle='rgba(0,0,0,0.7)'; ctx.fill();
-      ctx.strokeStyle=col.border; ctx.lineWidth=1.5; ctx.stroke();
-
-      // Escudo de tropas
-      ctx.font = size+'px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-      ctx.fillText('⚔️', cx+15, cy-20);
-
-      // Contador
-      ctx.font = 'bold 9px JetBrains Mono,monospace';
-      ctx.fillStyle='rgba(0,0,0,0.8)';
-      ctx.fillText(count>=1000?Math.floor(count/1000)+'k':count, cx+16, cy-8);
-      ctx.fillStyle=col.border;
-      ctx.fillText(count>=1000?Math.floor(count/1000)+'k':count, cx+15, cy-9);
-      ctx.restore();
-    });
-  },
 
   // ── CAPA: ICONOS DE GUERRA ────────────────────────────────
   _renderWarIcons(ctx, W, H) {
@@ -944,218 +909,28 @@ const AlthoriаMap = {
   // Flujo: mousedown en zona del jugador → drag → mouseup en zona válida
 
   _onMouseDown(e) {
-    const [mx, my] = this._screenToMapPct(e.clientX, e.clientY);
-    const region   = ALTHORIA_REGIONS.find(r => this._pointInPolygon(mx, my, r.polygon));
-
-    if (!region) { this._dragMoved = false; this._onPanStart(e); return; }
-
-    // Check if this region belongs to player
-    const playerZones = this.nationZones['player'] || [];
-    if (!playerZones.includes(region.id)) { this._dragMoved = false; this._onPanStart(e); return; }
-
-    // Check if player has troops to drag
-    const deployed = this.deployedTroops[region.id] || 0;
-    const gameState = (typeof Game !== 'undefined') ? Game.state : null;
-    if (!gameState || (deployed === 0 && gameState.army === 0)) { this._dragMoved = false; this._onPanStart(e); return; }
-
-    // Start drag
-    const dragCount = deployed > 0 ? deployed : Math.floor((gameState.army || 0) * 0.3);
-    if (dragCount <= 0) { this._dragMoved = false; this._onPanStart(e); return; }
-
-    this._dragMoved = false;  // Track if mouse moved enough to be a drag
-    this._drag = {
-      active:     true,
-      unitType:   'troops',
-      count:      dragCount,
-      fromRegion: region.id,
-      startX:     e.clientX,
-      startY:     e.clientY,
-      curX:       e.clientX,
-      curY:       e.clientY,
-      targetRegion: null,
-    };
-    this.canvas.style.cursor = 'grabbing';
-    this.render();
+    // Drag-and-drop de tropas eliminado — solo pan
+    this._dragMoved = false;
+    this._onPanStart(e);
   },
 
   _onMouseMove(e) {
-    if (this._drag?.active) {
-      // Mark as a real drag if moved more than 4px
-      const dx = e.clientX - (this._drag.startX || e.clientX);
-      const dy = e.clientY - (this._drag.startY || e.clientY);
-      if (Math.sqrt(dx*dx + dy*dy) > 4) this._dragMoved = true;
-      this._drag.curX = e.clientX;
-      this._drag.curY = e.clientY;
-      const [mx, my] = this._screenToMapPct(e.clientX, e.clientY);
-      const region   = ALTHORIA_REGIONS.find(r => this._pointInPolygon(mx, my, r.polygon));
-      this._drag.targetRegion = region?.id || null;
-      this.render();  // Redraw with drag ghost
-      return;
-    }
     this._onPan(e);
     this._onHover(e);
   },
 
   _onMouseUp(e) {
-    if (!this._drag?.active) { this._onPanEnd(); return; }
-
-    const drag = this._drag;
-    this._drag = { active: false };
-    this.canvas.style.cursor = 'crosshair';
-
-    const [mx, my] = this._screenToMapPct(e.clientX, e.clientY);
-    const targetReg = ALTHORIA_REGIONS.find(r => this._pointInPolygon(mx, my, r.polygon));
-
-    if (!targetReg || targetReg.id === drag.fromRegion) { this.render(); return; }
-
-    // Validate drop
-    const result = this._validateDrop(drag, targetReg.id);
-    if (!result.ok) {
-      if (typeof Systems !== 'undefined' && typeof Game !== 'undefined')
-        Systems.Log.add(Game.state, '⚠️ ' + result.msg, 'warn');
-      this.render();
-      return;
-    }
-
-    // Execute troop movement
-    this._executeDrop(drag, targetReg.id);
+    this._onPanEnd();
   },
 
-  _cancelDrag() {
-    if (this._drag?.active) {
-      this._drag = { active: false };
-      this.canvas.style.cursor = 'crosshair';
-      this._onPanEnd();
-      this.render();
-    }
-  },
 
-  _validateDrop(drag, targetRegionId) {
-    const playerZones   = this.nationZones['player'] || [];
-    const targetIsOurs  = playerZones.includes(targetRegionId);
 
-    // Find owner of target
-    let targetOwner = 'neutral';
-    Object.entries(this.nationZones).forEach(([natId, zones]) => {
-      if (zones.includes(targetRegionId)) targetOwner = natId;
-    });
 
-    const gameState = (typeof Game !== 'undefined') ? Game.state : null;
-    if (!gameState) return { ok: false, msg: 'Estado del juego no disponible' };
 
-    // Can't drop on own region (already there — use deploy panel instead)
-    if (targetIsOurs && targetRegionId !== drag.fromRegion) {
-      return { ok: true, msg: '' }; // Redeploy to another own region
-    }
 
-    // Dropping on enemy region → declare war or reinforce war
-    if (targetOwner !== 'player' && targetOwner !== 'neutral') {
-      const nation = gameState.diplomacy.find(n => {
-        const idx = parseInt(targetOwner.replace('ai_','')) - 1;
-        return gameState.diplomacy[idx]?.id === n.id || gameState.diplomacy.indexOf(n) === parseInt(targetOwner.replace('ai_','')) - 1;
-      });
-      return { ok: true, msg: '', action: 'attack', nationId: targetOwner };
-    }
-
-    return { ok: true, msg: '' };
-  },
-
-  _executeDrop(drag, targetRegionId) {
-    const gameState = (typeof Game !== 'undefined') ? Game.state : null;
-    if (!gameState) return;
-
-    const playerZones = this.nationZones['player'] || [];
-    const targetIsOurs = playerZones.includes(targetRegionId);
-
-    // Find target owner
-    let targetOwner = 'neutral';
-    Object.entries(this.nationZones).forEach(([natId, zones]) => {
-      if (zones.includes(targetRegionId)) targetOwner = natId;
-    });
-
-    if (targetIsOurs) {
-      // Redeploy: move garrison from one region to another
-      const fromDeployed = this.deployedTroops[drag.fromRegion] || 0;
-      if (fromDeployed > 0) {
-        const move = Math.min(fromDeployed, drag.count);
-        this.deployedTroops[drag.fromRegion] = fromDeployed - move;
-        this.deployedTroops[targetRegionId]  = (this.deployedTroops[targetRegionId] || 0) + move;
-        const rName = ALTHORIA_REGIONS.find(r=>r.id===targetRegionId)?.name || targetRegionId;
-        Systems.Log.add(gameState, `🚩 ${move} tropas reubicadas a ${rName}.`, 'good');
-      } else {
-        // Deploy from reserve army
-        const deploy = Math.min(gameState.army, drag.count);
-        if (deploy > 0) {
-          gameState.army -= deploy;
-          this.deployedTroops[targetRegionId] = (this.deployedTroops[targetRegionId] || 0) + deploy;
-          const rName = ALTHORIA_REGIONS.find(r=>r.id===targetRegionId)?.name || targetRegionId;
-          Systems.Log.add(gameState, `⚔️ ${deploy} tropas desplegadas en ${rName}.`, 'good');
-        }
-      }
-    } else if (targetOwner !== 'neutral') {
-      // Attack enemy region — open war confirm
-      const natIdx  = parseInt(targetOwner.replace('ai_','')) - 1;
-      const nation  = gameState.diplomacy[natIdx];
-      if (nation && typeof RegionSelector !== 'undefined') {
-        RegionSelector._showAttackConfirm(targetRegionId,
-          (typeof TerritorySystem !== 'undefined') ? TerritorySystem.getRegionInfo(targetRegionId, gameState) : { name: targetRegionId, owner: targetOwner, ownerName: nation.name, garrison: 200, riskLevel: 'Medio', resources: {} },
-          gameState
-        );
-      }
-    }
-
-    if (typeof UI !== 'undefined') UI.fullRender(gameState);
-    this.render();
-  },
 
   // ── RENDER DRAG GHOST ───────────────────────────────────────
-  _renderDragGhost(ctx, W, H) {
-    if (!this._drag?.active) return;
-    const drag = this._drag;
 
-    // Highlight valid/invalid target
-    if (drag.targetRegion && drag.targetRegion !== drag.fromRegion) {
-      const targetReg = ALTHORIA_REGIONS.find(r => r.id === drag.targetRegion);
-      if (targetReg) {
-        const playerZones = this.nationZones['player'] || [];
-        const isValid = playerZones.includes(drag.targetRegion) || true; // any region is clickable
-        let owner = 'neutral';
-        Object.entries(this.nationZones).forEach(([n,z])=>{ if(z.includes(drag.targetRegion)) owner=n; });
-        const isEnemy = owner !== 'player' && owner !== 'neutral';
-
-        ctx.save();
-        ctx.beginPath();
-        targetReg.polygon.forEach(([px,py],i) => {
-          const x = px/100*W, y = py/100*H;
-          i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
-        });
-        ctx.closePath();
-        ctx.fillStyle = isEnemy ? 'rgba(220,50,50,0.35)' : 'rgba(50,200,100,0.35)';
-        ctx.fill();
-        ctx.strokeStyle = isEnemy ? '#ff4040' : '#40e080';
-        ctx.lineWidth = 3;
-        ctx.stroke();
-        ctx.restore();
-      }
-    }
-
-    // Draw drag ghost at cursor
-    const rect  = this.canvas.getBoundingClientRect();
-    const ghostX = drag.curX - rect.left;
-    const ghostY = drag.curY - rect.top;
-
-    ctx.save();
-    ctx.font = '22px serif';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 8;
-    ctx.globalAlpha = 0.85;
-    ctx.fillText('⚔️', ghostX, ghostY - 10);
-    ctx.font = 'bold 11px monospace';
-    ctx.fillStyle = '#fff';
-    ctx.shadowBlur = 4;
-    ctx.fillText(drag.count.toLocaleString(), ghostX, ghostY + 12);
-    ctx.restore();
-  },
 
     _onWheel(e) {
     e.preventDefault();
@@ -1279,7 +1054,7 @@ const AlthoriаMap = {
     const warHere = this.warZones.some(wz => wz.regionId === region.id);
 
     // Garrison in this region
-    const garrison = (this.deployedTroops || {})[region.id] || 0;
+    const garrison = 0;  // tactical garrisons removed
 
     // Trade routes passing through this region
     const hasRoute = (this.tradeRouteLines || []).some(rt =>
@@ -1313,7 +1088,7 @@ const AlthoriаMap = {
     }
 
     const warBadge   = warHere   ? '<span style="color:#e05050;font-weight:bold"> ⚔️ ZONA DE GUERRA</span>' : '';
-    const garrBadge  = garrison  ? '<span style="color:#6bb5ff"> · 🛡️ ' + garrison.toLocaleString() + ' tropas</span>' : '';
+    const garrBadge  = '';  // tactical garrisons removed
     const routeBadge = hasRoute  ? ' · <span style="color:#c8a030">🐪 Ruta comercial</span>' : '';
 
     const infoBar = document.getElementById('althoria-hover-text');
@@ -1335,7 +1110,7 @@ const AlthoriаMap = {
         '<div class="alth-tip-title">' + region.resourceIcon + ' ' + region.name + '</div>'
         + '<div class="alth-tip-geo">' + geoLabel + '</div>'
         + '<div class="alth-tip-owner">' + ownerLabel + warBadge + '</div>'
-        + (garrison ? '<div class="alth-tip-row">🛡️ Guarnición: <b>' + garrison.toLocaleString() + '</b></div>' : '')
+        // garrison tooltip removed
         + (hasRoute ? '<div class="alth-tip-row">🐪 Ruta comercial activa</div>' : '')
         + '<div class="alth-tip-res">'
         + resEntries.map(([k,v]) => '<span>' + this._resIcon(k) + ' <b>' + v + '</b>/t</span>').join('')
@@ -1378,158 +1153,7 @@ const AlthoriаMap = {
       this.assignZones(gameState);
       this.updateWar(gameState);
       this._syncTradeRoutes(gameState);
-      this._renderDeployPanel(gameState);
     }
-
-    // Esperar al DOM para tener dimensiones reales
-    setTimeout(() => {
-      this._sizeCanvas();
-      this.render();
-      this._startAnimation();
-    }, 60);
-  },
-
-  close() {
-    this.isOpen = false;
-    const panel = document.getElementById('althoria-panel');
-    if (panel) panel.classList.remove('open');
-    this._stopAnimation();
-  },
-
-  toggle(gameState) {
-    if (this.isOpen) this.close();
-    else this.open(gameState);
-  },
-
-  // ── ANIMACIÓN ─────────────────────────────────────────────
-  _startAnimation() {
-    this._stopAnimation();
-    const loop = () => {
-      if (!this.isOpen) return;
-      this.render();
-      this.animTimer = requestAnimationFrame(loop);
-    };
-    this.animTimer = requestAnimationFrame(loop);
-  },
-
-  _stopAnimation() {
-    if (this.animTimer) {
-      cancelAnimationFrame(this.animTimer);
-      this.animTimer = null;
-    }
-  },
-
-  // ── ACTUALIZAR DESDE EL JUEGO ─────────────────────────────
-  // Llamar al final de cada turno para reflejar cambios
-  sync(gameState) {
-    if (!gameState) return;
-    this.updateWar(gameState);
-    this._buildLegend(gameState);
-    this._syncSpies(gameState);
-    this._syncTradeRoutes(gameState);
-    this._renderDeployPanel(gameState);
-  },
-
-  // ── Sincronizar rutas comerciales activas ────────────────
-  _syncTradeRoutes(state) {
-    this.tradeRouteLines = [];
-    if (!state.activeTradeRoutes) return;
-    const myZones = this.nationZones['player'] || [];
-    if (!myZones.length) return;
-    const myRegion = ALTHORIA_REGIONS.find(r => r.id === myZones[0]);
-    if (!myRegion) return;
-
-    state.activeTradeRoutes.forEach(rt => {
-      // Encontrar la nación destino
-      const natIdx = (state.diplomacy||[]).findIndex(n => n.id === rt.nationId);
-      if (natIdx < 0) return;
-      const natId    = 'ai_'+(natIdx+1);
-      const natZones = this.nationZones[natId] || [];
-      if (!natZones.length) return;
-      const natRegion = ALTHORIA_REGIONS.find(r => r.id === natZones[0]);
-      if (!natRegion) return;
-
-      const routeDef = (typeof TRADE_ROUTES !== 'undefined') ? TRADE_ROUTES[rt.routeId] : null;
-      this.tradeRouteLines.push({
-        from: myRegion.center,
-        to:   natRegion.center,
-        type: routeDef && routeDef.type === 'sea' ? 'sea' : 'land',
-        nationId: natId,
-        routeId: rt.routeId,
-        name: routeDef ? routeDef.name : rt.routeId
-      });
-    });
-  },
-
-  // ── Panel de despliegue de tropas ────────────────────────
-  _renderDeployPanel(state) {
-    let panel = document.getElementById('alth-deploy-panel');
-    if (!panel) {
-      const wrap = document.getElementById('althoria-canvas-wrap');
-      if (!wrap) return;
-      panel = document.createElement('div');
-      panel.id = 'alth-deploy-panel';
-      panel.className = 'alth-deploy-panel';
-      wrap.parentNode.insertBefore(panel, wrap.nextSibling.nextSibling || null);
-    }
-    if (!state) { panel.innerHTML = ''; return; }
-
-    const myZones = this.nationZones['player'] || [];
-    const options = myZones.map(rId => {
-      const reg = ALTHORIA_REGIONS.find(r => r.id === rId);
-      const dep = this.deployedTroops[rId] || 0;
-      return `<option value="${rId}">${reg ? reg.name : rId}${dep ? ' ['+dep+' tropas]' : ''}</option>`;
-    }).join('');
-
-    const totalTroops = state.army || 0;
-    const deployed = Object.values(this.deployedTroops).reduce((s,v)=>s+v,0);
-    const available = Math.max(0, totalTroops - deployed);
-
-    const depList = Object.entries(this.deployedTroops).filter(([,v])=>v>0).map(([rId,cnt])=>{
-      const reg = ALTHORIA_REGIONS.find(r=>r.id===rId);
-      return `<div class="alth-deployed-item">
-        <span>⚔️ ${reg?reg.name:rId}</span>
-        <span style="color:var(--gold2)">${cnt.toLocaleString()} tropas</span>
-        <button onclick="AlthoriаMap.undeploy('${rId}')" style="background:none;border:none;color:var(--red2);cursor:pointer;font-size:10px">✕</button>
-      </div>`;
-    }).join('');
-
-    panel.innerHTML = `
-      <div class="alth-deploy-title">⚔️ DESPLEGAR TROPAS · Disponibles: <b style="color:var(--gold2)">${available.toLocaleString()}</b> / ${totalTroops.toLocaleString()}</div>
-      <div class="alth-deploy-row">
-        <select class="alth-region-select" id="alth-region-sel">${options}</select>
-        <input  class="alth-troop-input" id="alth-troop-num" type="number" min="1" max="${available}" value="${Math.floor(available/2)||0}" placeholder="Cantidad">
-        <button class="alth-deploy-btn" onclick="AlthoriаMap.deployTroops(Game.state)">⚔️ Desplegar</button>
-      </div>
-      ${depList ? '<div class="alth-deployed-list">'+depList+'</div>' : ''}
-    `;
-  },
-
-  // ── Desplegar tropas en región ───────────────────────────
-  deployTroops(state) {
-    const sel = document.getElementById('alth-region-sel');
-    const num = document.getElementById('alth-troop-num');
-    if (!sel || !num || !state) return;
-    const rId   = sel.value;
-    const count = parseInt(num.value) || 0;
-    if (count <= 0) return;
-    const deployed = Object.values(this.deployedTroops).reduce((s,v)=>s+v,0);
-    const available = Math.max(0, (state.army||0) - deployed);
-    if (count > available) {
-      if (typeof showResourceError === 'function')
-        showResourceError([{icon:'⚔️',name:'Tropas',need:count,have:available}]);
-      return;
-    }
-    this.deployedTroops[rId] = (this.deployedTroops[rId]||0) + count;
-    this._renderDeployPanel(state);
-    this.render();
-  },
-
-  undeploy(rId) {
-    delete this.deployedTroops[rId];
-    const state = (typeof Game !== 'undefined') ? Game.state : null;
-    this._renderDeployPanel(state);
-    this.render();
   },
 
   _syncSpies(state) {
@@ -1575,7 +1199,51 @@ const AlthoriаMap = {
     if (!this.isOpen) return;
     this._sizeCanvas();
     this.render();
-  }
+  },
+
+  // ── SYNC RUTAS COMERCIALES ───────────────────────────────
+  _syncTradeRoutes(state) {
+    const routes = state.activeTradeRoutes || [];
+    this.tradeRouteLines = [];
+    routes.forEach(rt => {
+      const fromNat = (state.diplomacy||[]).find(n => n.id === rt.nationId);
+      if (!fromNat) return;
+      const fromZones = this.nationZones[rt.nationId] || [];
+      const toZones   = this.nationZones['player']    || [];
+      if (!fromZones.length || !toZones.length) return;
+      const fromReg = ALTHORIA_REGIONS.find(r => r.id === fromZones[0]);
+      const toReg   = ALTHORIA_REGIONS.find(r => r.id === toZones[0]);
+      if (fromReg && toReg) {
+        this.tradeRouteLines.push({
+          from: fromReg.center, to: toReg.center,
+          name: rt.routeId || 'ruta', nationId: rt.nationId
+        });
+      }
+    });
+  },
+
+  // ── SYNC COMPLETO (llamado desde game.endTurn) ───────────
+  sync(state) {
+    if (!state) return;
+    this.assignZones(state);
+    this.updateWar(state);
+    this._syncTradeRoutes(state);
+    this._syncSpies(state);
+    if (this.isOpen) this.render();
+  },
+
+  // ── TOGGLE PANEL ALTHORIA ────────────────────────────────
+  toggle(state) {
+    if (this.isOpen) {
+      this.isOpen = false;
+      const panel = document.getElementById('althoria-panel');
+      if (panel) panel.classList.remove('open');
+    } else {
+      this.open(state);
+    }
+  },
+
+
 };
 
 // Auto-init cuando carga el DOM (el juego lo llamará también)
