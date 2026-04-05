@@ -2291,3 +2291,67 @@ body {
   text-shadow: 0 0 8px rgba(100,220,130,0.3);
   cursor: help;
 }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   SHARE BAR — pantalla de inicio
+   ═══════════════════════════════════════════════════════════════ */
+.share-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(200,152,42,0.15);
+}
+
+.share-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.share-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.share-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border2);
+  background: var(--bg4);
+  color: var(--text2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.18s;
+  position: relative;
+}
+
+.share-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.6);
+}
+
+/* X / Twitter — negro */
+.share-x { border-color: #333; }
+.share-x:hover { background: #000; color: #fff; border-color: #555; box-shadow: 0 4px 14px rgba(0,0,0,0.8); }
+
+/* WhatsApp — verde */
+.share-wa { border-color: #1a5c2a; }
+.share-wa:hover { background: #25d366; color: #fff; border-color: #25d366; box-shadow: 0 4px 14px rgba(37,211,102,0.35); }
+
+/* Email — azul */
+.share-mail { border-color: #1a3a6a; }
+.share-mail:hover { background: #1e4db4; color: #fff; border-color: #3a7ee8; box-shadow: 0 4px 14px rgba(30,77,180,0.4); }
+
+/* Copiar enlace — dorado */
+.share-copy { border-color: var(--border3); }
+.share-copy:hover { background: rgba(200,152,42,0.2); color: var(--gold2); border-color: var(--gold); box-shadow: 0 4px 14px rgba(200,152,42,0.3); }
