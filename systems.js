@@ -86,12 +86,57 @@ const Systems = {
     },
 
     applyRates(state, rates) {
+      // ── Antes de aplicar: detectar ruina económica ─────────────
+      const goldBefore = state.resources.gold || 0;
+
       state.resources.food  = Math.max(0, state.resources.food  + rates.food);
-      state.resources.gold  = Math.max(0, state.resources.gold  + rates.gold);
       state.resources.wood  = Math.max(0, state.resources.wood  + rates.wood);
       state.resources.stone = Math.max(0, state.resources.stone + rates.stone);
       state.resources.iron  = Math.max(0, state.resources.iron  + rates.iron);
       state.rates = rates;
+
+      // Aplicar oro sin clampar a 0 para detectar déficit real
+      const newGold = goldBefore + rates.gold;
+      state.resources.gold = Math.max(0, newGold);
+
+      // ── Ruina económica: consecutivos turnos sin poder pagar ───
+      if (newGold < 0) {
+        // El upkeep no pudo cubrirse — acumular contador de déficit
+        state._deficitTurns = (state._deficitTurns || 0) + 1;
+        const deficit = Math.abs(newGold);
+
+        if (state._deficitTurns === 1) {
+          Systems.Log.add(state, '⚠️ DÉFICIT: No puedes pagar el ejército este turno (-' + deficit + '💰 sin cubrir). Resuelve o perderás tropas.', 'warn');
+        }
+        if (state._deficitTurns === 2) {
+          // Deserción proporcional al déficit
+          const deserters = Math.min(state.army, Math.floor(deficit * 2.5));
+          state.army        = Math.max(0, state.army - deserters);
+          // Actualizar armyUnits proporcionalmente
+          const ratio = state.army / Math.max(1, state.army + deserters);
+          if (state.armyUnits) {
+            state.armyUnits = state.armyUnits.map(u => ({...u, count: Math.max(0, Math.floor(u.count * ratio))})).filter(u=>u.count>0);
+          }
+          state.morale     = Math.max(0, state.morale - 20);
+          state.stability  = Math.max(0, state.stability - 10);
+          Systems.Log.add(state, '💸 BANCARROTA: ' + deserters + ' soldados desertan por falta de pago. Moral -20, Estabilidad -10.', 'crisis');
+        }
+        if (state._deficitTurns >= 3) {
+          // Crisis económica severa: facciones se rebelan
+          const ejercito = (state.factions||[]).find(f=>f.id==='ejercito');
+          const pueblo   = (state.factions||[]).find(f=>f.id==='pueblo');
+          if (ejercito) ejercito.satisfaction = Math.max(0, ejercito.satisfaction - 15);
+          if (pueblo)   pueblo.satisfaction   = Math.max(0, pueblo.satisfaction   - 10);
+          state.morale    = Math.max(0, state.morale - 10);
+          Systems.Log.add(state, '💀 CRISIS ECONÓMICA: ' + state._deficitTurns + ' turnos sin pagar. Las facciones exigen soluciones.', 'crisis');
+        }
+      } else {
+        // Recuperado — resetear contador
+        if (state._deficitTurns > 0) {
+          Systems.Log.add(state, '✅ Economía recuperada tras ' + state._deficitTurns + ' turnos en déficit.', 'good');
+        }
+        state._deficitTurns = 0;
+      }
 
       // Efecto de impuestos en moral (se aplica cada turno)
       const tax = state.economy.taxRate || 20;
