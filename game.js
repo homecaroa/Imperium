@@ -1118,6 +1118,52 @@ function showResourceError(missing) {
   setTimeout(function() { toast.classList.remove('toast-show'); setTimeout(function(){toast.remove();},400); }, 3000);
 }
 
+
+// ══════════════════════════════════════════════════════════
+// COMPARTIR JUEGO
+// ══════════════════════════════════════════════════════════
+function shareGame(platform) {
+  var url  = window.location.href.split('?')[0].split('#')[0];
+  var text = '⚔ IMPERIUM — Estrategia medieval sistémica. Mapas únicos, IA con personalidad, decisiones que duelen. ¡Reta tu destino!';
+
+  if (platform === 'x') {
+    var xUrl = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text) + '&url=' + encodeURIComponent(url);
+    window.open(xUrl, '_blank', 'width=600,height=400');
+
+  } else if (platform === 'whatsapp') {
+    var waUrl = 'https://wa.me/?text=' + encodeURIComponent(text + ' ' + url);
+    window.open(waUrl, '_blank');
+
+  } else if (platform === 'mail') {
+    var subject = '⚔ IMPERIUM — Juego de estrategia';
+    var body    = text + '\n\n' + url;
+    window.location.href = 'mailto:?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+
+  } else if (platform === 'copy') {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(function() {
+        var btn = document.getElementById('share-copy-btn');
+        if (btn) {
+          var orig = btn.innerHTML;
+          btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
+          btn.style.color = '#6ab840';
+          setTimeout(function(){ btn.innerHTML = orig; btn.style.color = ''; }, 2000);
+        }
+      });
+    } else {
+      // Fallback: select a temporary input
+      var tmp = document.createElement('input');
+      tmp.value = url;
+      document.body.appendChild(tmp);
+      tmp.select();
+      document.execCommand('copy');
+      document.body.removeChild(tmp);
+      var btn2 = document.getElementById('share-copy-btn');
+      if (btn2) { btn2.style.color = '#6ab840'; setTimeout(function(){ btn2.style.color=''; }, 2000); }
+    }
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   buildCodex();
   Auth.init();
