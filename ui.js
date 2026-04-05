@@ -141,7 +141,20 @@ const UI = {
       + '<div class="ssr-track"><div class="ssr-fill" style="width:' + val + '%;background:' + color + '"></div></div>'
       + '</div></div>';
 
-    let html = '<div class="sidebar-stats">'
+    // Player nation badge at top of sidebar
+    const civIcon  = state.civIcon  || '👑';
+    const civName  = state.civName  || 'Tu Nación';
+    const govLabels = {república:'República',autocracia_militar:'Autocracia Militar',
+      oligarquia_tribal:'Tribu',teocracia_imperial:'Imperio Teocrático',
+      burocracia_imperial:'Imperio',teocracia:'Teocracia',oligarquia:'Oligarquía'};
+    const govLabel = govLabels[state.government||''] || (state.government||'');
+    let html = '<div class="player-nation-badge tb-tip" data-tip="🏰 Tu Nación&#10;'+civName+'&#10;'+govLabel+'">'
+      + '<span class="pnb-icon">' + civIcon + '</span>'
+      + '<div class="pnb-info"><span class="pnb-name">' + civName + '</span>'
+      + '<span class="pnb-label">TU NACIÓN</span></div>'
+      + '<span class="pnb-tag">👑</span></div>';
+    html +=
+      '<div class="sidebar-stats">'
       + statBar('⚖️','Estabilidad', stability,  sColor, '⚖️ Estabilidad&#10;Llega a 0 → colapso en 2 turnos.')
       + statBar('❤️','Moral',       morale,     mColor, '❤️ Moral&#10;Afecta fuerza de combate y eventos.')
       + statBar('💸','Corrupción',  corruption, cColor, '💸 Corrupción&#10;> 40 reduce ingresos. > 70 → crisis.')
@@ -494,7 +507,7 @@ const UI = {
 
     container.innerHTML =
       '<div class="rpanel-section tax-section">'
-      +'<div class="rpanel-title">📊 Política Fiscal</div>'
+      +'<div class="rpanel-title">💰 Economía &amp; Construcción</div><div class="rpanel-title" style="font-size:11px;margin-top:-8px;margin-bottom:8px;color:var(--text3)">📊 Política Fiscal</div>'
       +'<div class="tax-display"><div class="tax-pct" style="color:'+taxColor+'">'+taxRate+'%</div>'
       +'<div class="tax-label" style="color:'+taxColor+'">'+taxLabel+'</div></div>'
       +'<input type="range" class="tax-slider" id="tax-slider" min="0" max="90" step="5" value="'+taxRate+'"'
@@ -931,9 +944,61 @@ const UI = {
     return html;
   },
 
+  renderTroopsSidebar(state) {
+    const container = document.getElementById('troops-sidebar-panel');
+    if (!container) return;
+    const units = state.armyUnits || [];
+    const total = state.army || 0;
+    const upkeep = Systems.Economy ? Systems.Economy.calculateArmyUpkeep(state) : 0;
+
+    let html = '<div style="padding:4px 2px">'
+      + '<div style="font-family:var(--font-title);font-size:10px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;padding:6px 8px;border-bottom:1px solid var(--border2);margin-bottom:6px">'
+      + '⚔️ Ejército · ' + total.toLocaleString() + ' efectivos'
+      + '</div>';
+
+    if (!units.length) {
+      html += '<div style="font-family:var(--font-mono);font-size:10px;color:var(--text3);padding:12px;text-align:center">Sin unidades desplegadas</div>';
+    } else {
+      const order = {arqueros:0,ballistas:1,caballeria:2,caballeria_pesada:3,guerreros_jaguar:4,legionarios:5,berserkers:6,infanteria:7,levas:8};
+      const sorted = [...units].sort((a,b)=>(order[a.typeId]??9)-(order[b.typeId]??9));
+      sorted.forEach(u => {
+        const def = MILITARY_UNITS[u.typeId];
+        if (!def || u.count === 0) return;
+        const pct = Math.round(u.count / Math.max(total, 1) * 100);
+        html += '<div style="padding:5px 8px;margin-bottom:3px;background:var(--bg4);border:1px solid var(--border);border-left:3px solid '+(def.color||'var(--gold)')+';" class="tb-tip" data-tip="'
+          + def.icon+' '+def.name+'&#10;'+def.description+'&#10;&#10;Fuerza: '+def.strength+' | Ataque: '+def.attack+' | Defensa: '+def.defense+'&#10;Coste mantenimiento: '+def.upkeep+'/soldado/turno">'
+          + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">'
+          + '<span style="font-size:16px">' + def.icon + '</span>'
+          + '<span style="font-family:var(--font-mono);font-size:10px;color:var(--text);flex:1">' + def.name + '</span>'
+          + '<span style="font-family:var(--font-mono);font-size:11px;font-weight:bold;color:var(--gold2)">' + u.count.toLocaleString() + '</span>'
+          + '</div>'
+          + '<div style="height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden">'
+          + '<div style="height:100%;width:'+pct+'%;background:'+(def.color||'var(--gold)')+'"></div>'
+          + '</div>'
+          + '</div>';
+      });
+    }
+
+    if (state.legendaryUnit) {
+      const leg = state.legendaryUnit;
+      html += '<div style="margin-top:8px;padding:6px 8px;background:rgba(200,152,42,0.1);border:1px solid var(--gold);border-radius:3px">'
+        + '<span style="font-family:var(--font-title);font-size:10px;color:var(--gold3)">⭐ '+leg.icon+' '+leg.name+'</span>'
+        + '<div style="font-family:var(--font-mono);font-size:9px;color:var(--text3);margin-top:2px">'+leg.special+'</div>'
+        + '</div>';
+    }
+
+    html += '<div style="margin-top:8px;padding:5px 8px;background:var(--bg3);border:1px solid var(--border);font-family:var(--font-mono);font-size:9px;color:var(--text3)">'
+      + '💰 Upkeep: -' + upkeep + ' oro/turno'
+      + '</div>';
+
+    html += '</div>';
+    container.innerHTML = html;
+  },
+
   fullRender(state) {
     this.updateTopBar(state);
     this.renderFactions(state);
+    this.renderTroopsSidebar(state);
     this.renderMilitary(state);
     this.renderTradeOverlay(state);
     this.renderWarPanel(state);
@@ -948,7 +1013,6 @@ const UI = {
     this.renderUnlocks(state);
     this.renderEventQueue(state);
     this.renderActiveEvent(state);
-    this.renderLog(state);
   }
 };
 

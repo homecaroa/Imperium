@@ -326,6 +326,29 @@ const AI = {
           Systems.Log.add(state, `Tu ejército es demasiado pequeño para intimidar a ${nation.name}. Necesitas al menos 400 soldados.`, 'warn');
           break;
         }
+        if (nation._tributePending) {
+          Systems.Log.add(state, `Ya enviaste una exigencia de tributo a ${nation.name}. Espera su respuesta.`, 'warn');
+          break;
+        }
+        nation._tributePending = true;
+        nation._tributePendingTurn = state.turn;
+        Systems.Log.add(state, `💰 Exigencia de tributo enviada a ${nation.name}. Respuesta en el siguiente turno.`, 'info');
+        (function(){
+          state.diplomacyInbox = state.diplomacyInbox || [];
+          state.diplomacyInbox.push({
+            id: 'diplo_' + Date.now() + Math.random(),
+            nationId: nation.id,
+            nationIcon: nation.icon || '🏳',
+            nationName: nation.name,
+            charName: nation.character ? nation.character.name : '',
+            char: nation.character || null,
+            text: 'Hemos recibido tu exigencia. Decidiremos si cumplimos... o resistimos.',
+            turn: state.turn,
+            read: false,
+            options: [{label:'De acuerdo',action:'ignore',effect:''}]
+          });
+        })()
+        break; // Early exit — response resolved in processPendingDiplomacy
 
         // Probabilidad: ejército propio vs rival, máx 75%
         const playerStr   = Systems.Military.calculateEffectiveStrength(state);
@@ -363,13 +386,34 @@ const AI = {
       }
 
       case 'propose_alliance':
-        if (nation.relation > 30) {
-          nation.treaties.push('alliance');
-          nation.relation = Math.min(100, nation.relation + 15);
-          Systems.Log.add(state, `${nation.name} acepta la alianza. Acuerdo de defensa mutua firmado.`, 'good');
-        } else {
-          Systems.Log.add(state, `${nation.name} rechaza la alianza. Las relaciones deben mejorar primero.`, 'warn');
+        // Petición asíncrona: se registra y se resuelve el siguiente turno
+        if (nation._alliancePending) {
+          Systems.Log.add(state, `Ya hay una propuesta de alianza pendiente con ${nation.name}. Espera su respuesta.`, 'warn');
+          break;
         }
+        if (nation.allied) {
+          Systems.Log.add(state, `${nation.name} ya es tu aliado.`, 'warn');
+          break;
+        }
+        nation._alliancePending = true;
+        nation._alliancePendingTurn = state.turn;
+        Systems.Log.add(state, `📨 Propuesta de alianza enviada a ${nation.name}. Respuesta en el siguiente turno.`, 'info');
+        // Añadir mensaje diplomático de confirmación
+        (function(){
+          state.diplomacyInbox = state.diplomacyInbox || [];
+          state.diplomacyInbox.push({
+            id: 'diplo_' + Date.now() + Math.random(),
+            nationId: nation.id,
+            nationIcon: nation.icon || '🏳',
+            nationName: nation.name,
+            charName: nation.character ? nation.character.name : '',
+            char: nation.character || null,
+            text: 'Recibimos tu propuesta. Deliberaremos y responderemos pronto.',
+            turn: state.turn,
+            read: false,
+            options: [{label:'Entendido',action:'ignore',effect:''}]
+          });
+        })()
         break;
 
       case 'declare_war':

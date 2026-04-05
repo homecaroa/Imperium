@@ -165,6 +165,7 @@
       <div id="map-area">
         <div class="map-tabs">
           <button class="mtab active" onclick="switchMapTab('factions')">⚔️ Facciones</button>
+          <button class="mtab" onclick="switchMapTab('troops')">🪖 Tropas</button>
           <span id="map-seed-label" class="seed-label" style="font-size:9px;padding:2px 6px;color:var(--text3);margin-left:auto"></span>
         </div>
 
@@ -172,6 +173,11 @@
         <div id="mtab-factions" class="mtab-content active">
           <div id="factions-list"></div>
           <div id="trade-map-overlay" class="trade-map-overlay"></div>
+        </div>
+
+        <!-- TROPAS — panel izquierdo, no tapa el mapa -->
+        <div id="mtab-troops" class="mtab-content">
+          <div id="troops-sidebar-panel" style="padding:4px;overflow-y:auto;flex:1"></div>
         </div>
 
         <!-- AGENDA siempre visible abajo -->
@@ -208,28 +214,21 @@
           <button class="ptab tb-tip" data-tip="⚔️ Ejército&#10;Reclutar, formación y combate." onclick="switchRightTab('military')">⚔️</button>
           <button class="ptab tb-tip" data-tip="🎯 Atacar&#10;Selecciona territorio enemigo para invadir." onclick="Game.selectAttackTarget()">🎯</button>
           <button class="ptab tb-tip" data-tip="🤝 Diplomacia&#10;Alianzas, mensajes y relaciones." onclick="switchRightTab('diplomacy')">🤝</button>
-          <button class="ptab tb-tip" data-tip="💰 Economía&#10;Ingresos, impuestos y deuda." onclick="switchRightTab('economy')">💰</button>
+          <button class="ptab tb-tip" data-tip="💰 Economía y Construcción&#10;Ingresos, impuestos, infraestructura." onclick="switchRightTab('economy')">💰</button>
           <button class="ptab tb-tip" data-tip="🌤️ Clima&#10;Estaciones y eventos climáticos." onclick="switchRightTab('climate')">🌤️</button>
           <button class="ptab tb-tip" data-tip="🕵️ Espías&#10;Misiones de inteligencia y sabotaje." onclick="switchRightTab('spies')">🕵️</button>
           <button class="ptab tb-tip" data-tip="⚓ Comercio&#10;Rutas activas e ingresos por turno." onclick="switchRightTab('trade')">⚓</button>
-          <button class="ptab tb-tip" data-tip="🏗️ Construcción&#10;Infraestructura y gasto público." onclick="switchRightTab('spending')">🏗️</button>
-          <button class="ptab tb-tip" data-tip="📜 Crónica&#10;Historial de eventos y decisiones." onclick="switchRightTab('log')">📜</button>
           <button class="ptab tb-tip" data-tip="🔓 Desbloqueos&#10;Árbol de progresión y nuevas acciones." onclick="switchRightTab('unlocks')">🔓</button>
         </div>
 
         <div id="rtab-politics"  class="rtab-content active"><div id="politics-panel"></div></div>
         <div id="rtab-military"  class="rtab-content"><div id="military-panel"></div></div>
         <div id="rtab-diplomacy" class="rtab-content"><div id="diplomacy-panel"></div></div>
-        <div id="rtab-economy"   class="rtab-content"><div id="economy-panel"></div></div>
+        <div id="rtab-economy"   class="rtab-content"><div id="economy-panel"></div><div id="spending-panel"></div></div>
         <div id="rtab-climate"   class="rtab-content"><div id="climate-panel"></div></div>
         <div id="rtab-spies"     class="rtab-content"><div id="spies-panel"></div></div>
         <div id="rtab-trade"     class="rtab-content"><div id="trade-panel"></div></div>
-        <div id="rtab-spending"  class="rtab-content"><div id="spending-panel"></div></div>
         <div id="rtab-unlocks"   class="rtab-content"><div id="unlocks-panel"></div></div>
-        <div id="rtab-log"       class="rtab-content">
-          <div class="log-header">📜 Crónica del Reino</div>
-          <div id="game-log"></div>
-        </div>
       </div>
     </div>
   </div>

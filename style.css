@@ -2087,3 +2087,191 @@ body {
   border-radius: var(--radius);
   background: rgba(232,184,64,0.06);
 }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   OVERHAUL VISUAL DRAMÁTICO — más vistoso, más carácter
+   ═══════════════════════════════════════════════════════════════ */
+
+/* === TOP BAR — banda de poder === */
+#top-bar {
+  background: linear-gradient(180deg, #1a1408 0%, #0e0b06 100%) !important;
+  border-bottom: 1px solid #6a4a18 !important;
+  box-shadow: 0 3px 20px rgba(0,0,0,0.9), 0 1px 0 rgba(200,152,42,0.25) !important;
+}
+
+/* === RESOURCE BLOCKS — más impacto === */
+.resource-block {
+  background: linear-gradient(180deg, #1e1810 0%, #16120a 100%) !important;
+  border: 1px solid #3a2c18 !important;
+  border-top: 1px solid #5a4020 !important;
+}
+.res-val { font-size: 14px !important; font-weight: 700 !important; }
+.res-icon { font-size: 16px !important; }
+
+/* === STAT PILLS — color fuerte === */
+.stat-pill.stability { background: linear-gradient(135deg,rgba(32,64,96,0.4),rgba(32,64,96,0.2)) !important; border-color: #3468a0 !important; color: #80c0e8 !important; }
+.stat-pill.morale    { background: linear-gradient(135deg,rgba(128,48,48,0.4),rgba(128,48,48,0.2)) !important; border-color: #a04040 !important; color: #f09090 !important; }
+.stat-pill.military  { background: linear-gradient(135deg,rgba(80,70,50,0.4),rgba(80,70,50,0.2)) !important; border-color: #6a5a38 !important; color: #c8b870 !important; }
+
+/* === PANEL TABS — estilo de pergamino medieval === */
+.panel-tabs {
+  background: linear-gradient(180deg, #1a1408 0%, #0e0b06 100%) !important;
+  border-bottom: 2px solid #5a3e18 !important;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.8) !important;
+}
+.ptab { font-size: 18px !important; }
+.ptab:hover { background: linear-gradient(180deg,rgba(200,152,42,0.15),rgba(200,152,42,0.05)) !important; }
+.ptab.active {
+  background: linear-gradient(180deg,rgba(200,152,42,0.25),rgba(200,152,42,0.08)) !important;
+  box-shadow: inset 0 -3px 0 var(--gold2), 0 0 8px rgba(200,152,42,0.2) !important;
+}
+
+/* === BTN END TURN — CTA principal máximo impacto === */
+#btn-endturn {
+  background: linear-gradient(180deg, #f0d060 0%, #c89020 50%, #a06810 100%) !important;
+  border: 1px solid #e8c040 !important;
+  color: #1a0e00 !important;
+  font-weight: 900 !important;
+  letter-spacing: 2.5px !important;
+  box-shadow: 0 3px 16px rgba(200,152,42,0.5), 0 1px 0 rgba(255,230,100,0.4), inset 0 1px 0 rgba(255,255,200,0.15) !important;
+  text-shadow: 0 1px 0 rgba(255,230,100,0.3) !important;
+}
+#btn-endturn:hover {
+  background: linear-gradient(180deg, #fce870 0%, #e0a830 50%, #c07820 100%) !important;
+  box-shadow: 0 4px 24px rgba(200,152,42,0.7) !important;
+  transform: translateY(-1px);
+}
+
+/* === RPANEL TITLE — más autoridad === */
+.rpanel-title {
+  font-size: 12px !important;
+  color: var(--gold2) !important;
+  border-bottom: 1px solid rgba(200,152,42,0.3) !important;
+  padding-bottom: 8px !important;
+  text-shadow: 0 0 8px rgba(200,152,42,0.3) !important;
+}
+
+/* === FACTION CARDS — más relieve === */
+.faction-card {
+  background: linear-gradient(135deg, #1e1810 0%, #161208 100%) !important;
+  border: 1px solid #3a2c18 !important;
+  border-left: 3px solid var(--border3) !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.5) !important;
+}
+.faction-card:hover {
+  border-color: var(--border3) !important;
+  border-left-color: var(--gold) !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.7), -2px 0 6px rgba(200,152,42,0.15) !important;
+}
+
+/* === PLAYER NATION BADGE — joya de la interfaz === */
+.player-nation-badge {
+  background: linear-gradient(135deg, rgba(100,220,130,0.22) 0%, rgba(100,220,130,0.06) 100%) !important;
+  border: 1px solid #5a9850 !important;
+  border-left: 4px solid #72c882 !important;
+  box-shadow: 0 2px 14px rgba(114,200,130,0.22), inset 0 0 20px rgba(100,220,130,0.05) !important;
+}
+.pnb-icon { filter: drop-shadow(0 0 8px rgba(114,200,130,0.7)) !important; font-size: 30px !important; }
+.pnb-name { font-size: 14px !important; color: #c8f0d0 !important; }
+
+/* === OPTION BUTTONS — decisiones con peso === */
+.option-btn {
+  background: linear-gradient(135deg, #1e1810 0%, #141008 100%) !important;
+  border: 1px solid #3a2c18 !important;
+  border-left: 4px solid #5a4020 !important;
+  transition: all 0.12s !important;
+}
+.option-btn:hover {
+  background: linear-gradient(135deg, #2a2010 0%, #1a1408 100%) !important;
+  border-left-color: var(--gold2) !important;
+  box-shadow: 0 0 12px rgba(200,152,42,0.2) !important;
+  transform: translateX(3px) !important;
+}
+
+/* === DIPLOMACY CARDS === */
+.diplo-nation-card {
+  background: linear-gradient(135deg, #1a1408 0%, #100c06 100%) !important;
+  border: 1px solid #3a2c18 !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.6) !important;
+}
+.diplo-nation-card:hover {
+  border-color: #6a4a20 !important;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.8) !important;
+}
+
+/* === SCROLLBAR — más elegante === */
+::-webkit-scrollbar { width: 5px !important; }
+::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #5a4020, #3a2c18) !important; border-radius: 3px !important; }
+::-webkit-scrollbar-thumb:hover { background: var(--gold) !important; }
+
+/* === AP DISPLAY — muy visible === */
+.ap-display {
+  background: linear-gradient(135deg, rgba(232,184,64,0.12), rgba(232,184,64,0.04)) !important;
+  border: 1px solid rgba(232,184,64,0.4) !important;
+  font-size: 16px !important;
+  letter-spacing: 3px !important;
+  box-shadow: 0 0 10px rgba(232,184,64,0.15) !important;
+}
+
+/* === POLICY BUTTONS — más claros === */
+.policy-btn {
+  background: linear-gradient(135deg, #1e1810 0%, #141008 100%) !important;
+  border-left-width: 4px !important;
+}
+.policy-btn:hover {
+  background: linear-gradient(135deg, #2a2014 0%, #1a1408 100%) !important;
+}
+.policy-btn.active {
+  background: linear-gradient(135deg, rgba(74,132,40,0.18) 0%, rgba(74,132,40,0.06) 100%) !important;
+  box-shadow: -3px 0 10px rgba(74,132,40,0.2) !important;
+}
+
+/* === FORMATION ROWS === */
+.formation-row {
+  background: linear-gradient(135deg, #1e1810 0%, #141008 100%) !important;
+  border-left-width: 4px !important;
+}
+
+/* === BAR FILLS — color rico === */
+.bar-fill {
+  background: linear-gradient(90deg, var(--green2), var(--green3)) !important;
+  box-shadow: 0 0 4px rgba(74,132,40,0.4) !important;
+}
+
+/* === EVENT CARD === */
+.decision-card {
+  background: linear-gradient(180deg, #1c1610 0%, #100c06 100%) !important;
+  border: 1px solid #4a3618 !important;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.8) !important;
+}
+
+/* === SIDEBAR STATS (barras) === */
+.ssr-fill {
+  box-shadow: 0 0 5px currentColor !important;
+}
+
+/* === MAP AREA === */
+#map-area {
+  background: linear-gradient(180deg, #100c06 0%, #0a0806 100%) !important;
+  box-shadow: 3px 0 16px rgba(0,0,0,0.7) !important;
+}
+
+/* === MAP TABS === */
+.map-tabs {
+  background: linear-gradient(180deg, #1a1408 0%, #100c06 100%) !important;
+  border-bottom: 1px solid #5a3e18 !important;
+}
+.mtab.active {
+  background: linear-gradient(180deg,rgba(200,152,42,0.2),rgba(200,152,42,0.05)) !important;
+  border-bottom-color: var(--gold2) !important;
+  text-shadow: 0 0 8px rgba(200,152,42,0.4) !important;
+}
+
+/* === TOOLTIP === */
+.tb-tooltip-box {
+  background: linear-gradient(180deg, #1a1408 0%, #0e0b06 100%) !important;
+  border: 1px solid #6a4a18 !important;
+  border-top: 2px solid var(--gold2) !important;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.95), 0 0 0 1px rgba(200,152,42,0.1) !important;
+}

@@ -194,12 +194,118 @@ const Game = {
   // ══════════════════════════════════════════════
   // FIN DE TURNO — BLOQUEO si hay evento crítico sin resolver
   // ══════════════════════════════════════════════
+  // ── RESOLVER PETICIONES DIPLOMÁTICAS PENDIENTES ─────────────
+  _processPendingDiplomacy(state) {
+    (state.diplomacy || []).forEach(nation => {
+
+      // ── ALIANZA PENDIENTE ─────────────────────────────────────
+      if (nation._alliancePending && state.turn > nation._alliancePendingTurn) {
+        nation._alliancePending = false;
+        const accepts = nation.relation > 30 && Math.random() < 0.7 + (nation.relation / 300);
+        if (accepts) {
+          nation.allied = true;
+          nation.treaties = nation.treaties || [];
+          if (!nation.treaties.includes('alliance')) nation.treaties.push('alliance');
+          nation.relation = Math.min(100, nation.relation + 15);
+          Systems.Log.add(state, '🛡 ' + nation.name + ' ACEPTA la alianza. ¡Acuerdo de defensa mutua!', 'good');
+          (function(){
+          state.diplomacyInbox = state.diplomacyInbox || [];
+          state.diplomacyInbox.push({
+            id: 'diplo_' + Date.now() + Math.random(),
+            nationId: nation.id,
+            nationIcon: nation.icon || '🏳',
+            nationName: nation.name,
+            charName: nation.character ? nation.character.name : '',
+            char: nation.character || null,
+            text: 'Aceptamos la alianza. Nuestras naciones lucharán juntas.',
+            turn: state.turn,
+            read: false,
+            options: [{label:'Excelente',action:'ignore',effect:''}]
+          });
+        })()
+        } else {
+          nation.relation = Math.max(-100, nation.relation - 5);
+          Systems.Log.add(state, '❌ ' + nation.name + ' rechaza la alianza. Relaciones insuficientes.', 'warn');
+          (function(){
+          state.diplomacyInbox = state.diplomacyInbox || [];
+          state.diplomacyInbox.push({
+            id: 'diplo_' + Date.now() + Math.random(),
+            nationId: nation.id,
+            nationIcon: nation.icon || '🏳',
+            nationName: nation.name,
+            charName: nation.character ? nation.character.name : '',
+            char: nation.character || null,
+            text: 'Declino la propuesta. Las circunstancias no son favorables.',
+            turn: state.turn,
+            read: false,
+            options: [{label:'Entendido',action:'ignore',effect:''}]
+          });
+        })()
+        }
+      }
+
+      // ── TRIBUTO PENDIENTE ─────────────────────────────────────
+      if (nation._tributePending && state.turn > nation._tributePendingTurn) {
+        nation._tributePending = false;
+        const playerStr   = Systems.Military.calculateEffectiveStrength(state);
+        const defenderStr = (nation.army || 200) * (0.8 + Math.random() * 0.4);
+        const successChance = Math.min(0.75, Math.max(0.1, playerStr / (playerStr + defenderStr)));
+        const success = Math.random() < successChance;
+
+        if (success) {
+          const amount = 80 + Math.floor(successChance * 200) + Math.floor(Math.random() * 80);
+          state.resources.gold += amount;
+          nation.relation = Math.max(-100, nation.relation - 15);
+          nation._lastTributeTurn = state.turn;
+          nation._tributeCount    = (nation._tributeCount || 0) + 1;
+          Systems.Log.add(state, '💰 ' + nation.name + ' PAGA el tributo: +' + amount + ' oro.', 'good');
+          (function(){
+          state.diplomacyInbox = state.diplomacyInbox || [];
+          state.diplomacyInbox.push({
+            id: 'diplo_' + Date.now() + Math.random(),
+            nationId: nation.id,
+            nationIcon: nation.icon || '🏳',
+            nationName: nation.name,
+            charName: nation.character ? nation.character.name : '',
+            char: nation.character || null,
+            text: 'Pagamos el tributo... por ahora. No olvides que la paciencia tiene límites.',
+            turn: state.turn,
+            read: false,
+            options: [{label:'Bien',action:'ignore',effect:''}]
+          });
+        })()
+        } else {
+          nation.relation = Math.max(-100, nation.relation - 25);
+          Systems.Log.add(state, '😤 ' + nation.name + ' RECHAZA el tributo. Relación -25.', 'crisis');
+          (function(){
+          state.diplomacyInbox = state.diplomacyInbox || [];
+          state.diplomacyInbox.push({
+            id: 'diplo_' + Date.now() + Math.random(),
+            nationId: nation.id,
+            nationIcon: nation.icon || '🏳',
+            nationName: nation.name,
+            charName: nation.character ? nation.character.name : '',
+            char: nation.character || null,
+            text: '¡Nos niegas el respeto? No cederemos ante tu intimidación.',
+            turn: state.turn,
+            read: false,
+            options: [{label:'Comprendido',action:'ignore',effect:''}]
+          });
+        })()
+        }
+      }
+    });
+  },
+
   endTurn() {
     const state = this.state;
     if (!state) return;
 
     // ── Puntos de Acción: resetear al inicio del siguiente turno ──
     ActionPoints.reset(state);
+
+    // ── Resolver peticiones diplomáticas del turno anterior ──
+    this._processPendingDiplomacy(state);
 
     // ⚠️ BLOQUEO: No se puede pasar turno si hay eventos sin decidir
     const pending = state.currentEvents || [];
@@ -397,6 +503,20 @@ const Game = {
   generateTurnEvents() {
     const state  = this.state;
     let events   = Systems.Events.generateForTurn(state);
+    // Enrich events with dynamic nation context
+    events = events.map(ev => {
+      if (!ev._dynamic && ev.id === 'alliance_offer') {
+        // Find the event def in EVENT_POOL
+        const def = EVENT_POOL.find(e => e.id === 'alliance_offer');
+        if (def) {
+          if (def._buildTitle)   ev.title       = def._buildTitle(state);
+          if (def._buildDesc)    ev.description = def._buildDesc(state);
+          if (def._buildContext) ev.context     = def._buildContext(state);
+          if (def._nationId)     ev._offerNationId = def._nationId(state);
+        }
+      }
+      return ev;
+    });
     // Añadir eventos de arcos narrativos y eventos encadenados
     if (typeof ArcManager !== 'undefined') {
       ArcManager.applyTurnBonus(state);
