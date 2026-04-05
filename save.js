@@ -155,7 +155,34 @@ const SaveSystem = {
     const minimal = { ...state };
     // Guardar solo la seed del mapa, no todo el mapData
     minimal._mapSeed = state.mapSeed;
-    minimal.mapData = null; // no serializar
+    minimal.mapData  = null; // demasiado grande — se regenera desde seed
+
+    // ── Campos de deep_systems: serializar explícitamente ──
+    // (ya están en el spread, pero verificamos que existan)
+    minimal._reputation         = state._reputation         || 50;
+    minimal._cities             = state._cities             || [];
+    minimal._hiddenObjectives   = state._hiddenObjectives   || [];
+    minimal._permanentDecisions = state._permanentDecisions || {};
+    minimal._secrets            = state._secrets            || {};
+    minimal._locked             = state._locked             || {};
+    minimal._granted            = state._granted            || {};
+    minimal._diploMemory        = state._diploMemory        || {};
+    minimal._moralHistory       = state._moralHistory       || [];
+    minimal._warsWon            = state._warsWon            || 0;
+    minimal._winsAgainst        = state._winsAgainst        || {};
+    minimal._warSummaries       = state._warSummaries       || [];
+    minimal._goldRateBonus      = state._goldRateBonus      || 0;
+    minimal._armyStrengthBonus  = state._armyStrengthBonus  || 0;
+
+    // Eliminar funciones no serializables (de _buildTitle etc. en eventos dinámicos)
+    if (minimal.currentEvents) {
+      minimal.currentEvents = minimal.currentEvents.map(ev => {
+        const safe = Object.assign({}, ev);
+        delete safe._buildTitle; delete safe._buildDesc; delete safe._buildContext; delete safe._nationId;
+        return safe;
+      });
+    }
+
     return JSON.parse(JSON.stringify(minimal));
   },
 
@@ -168,6 +195,32 @@ const SaveSystem = {
     // Restaurar referencias de civData
     const civ = CIVILIZATIONS.find(c => c.id === data.civId);
     if (civ) data.civData = civ;
+
+    // ── Garantizar campos de deep_systems con defaults seguros ──
+    data._reputation         = data._reputation         ?? 50;
+    data._cities             = data._cities             || [];
+    data._hiddenObjectives   = data._hiddenObjectives   || [];
+    data._permanentDecisions = data._permanentDecisions || {};
+    data._secrets            = data._secrets            || {};
+    data._locked             = data._locked             || {};
+    data._granted            = data._granted            || {};
+    data._diploMemory        = data._diploMemory        || {};
+    data._moralHistory       = data._moralHistory       || [];
+    data._warsWon            = data._warsWon            || 0;
+    data._winsAgainst        = data._winsAgainst        || {};
+    data._warSummaries       = data._warSummaries       || [];
+    data._goldRateBonus      = data._goldRateBonus      || 0;
+    data._armyStrengthBonus  = data._armyStrengthBonus  || 0;
+
+    // Reinicializar ciudades si están vacías (partida anterior sin deep_systems)
+    if (!data._cities.length && typeof CitySystem !== 'undefined') {
+      CitySystem.init(data);
+    }
+    // Reinicializar objetivos si faltan
+    if (!data._hiddenObjectives.length && typeof HiddenObjectives !== 'undefined') {
+      HiddenObjectives.init(data);
+    }
+
     return data;
   },
 
