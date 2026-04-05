@@ -1167,6 +1167,19 @@ const AlthoriаMap = {
       this.updateWar(gameState);
       this._syncTradeRoutes(gameState);
     }
+
+    // Resize canvas to fill panel, then render
+    this._sizeCanvas();
+    if (this.imgLoaded) {
+      this.render();
+    } else {
+      // Image not loaded yet — render when it loads (handled in _loadImage onload)
+      this.img.onload = () => {
+        this.imgLoaded = true;
+        this._sizeCanvas();
+        if (this.isOpen) this.render();
+      };
+    }
   },
 
   _syncSpies(state) {
@@ -1253,12 +1266,6 @@ const AlthoriаMap = {
   },
 
   // ── TOGGLE PANEL ALTHORIA ────────────────────────────────
-  close() {
-    this.isOpen = false;
-    const panel = document.getElementById('althoria-panel');
-    if (panel) panel.classList.remove('open');
-  },
-
   toggle(state) {
     if (this.isOpen) {
       this.close();
