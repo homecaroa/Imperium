@@ -272,7 +272,20 @@ const AlthoriаMap = {
       this._sizeCanvas();
       if (this.isOpen) this.render();
     };
-    this.img.src = (window.IMAGE_BASE||'') + 'img/map/althoria_map.png';
+    // Detect correct base path (GitHub Pages, localhost, file://)
+    var _mapBase = (function() {
+      // Try script tag first
+      var scripts = document.querySelectorAll('script[src]');
+      for (var i = 0; i < scripts.length; i++) {
+        if (scripts[i].src.indexOf('althoria.js') > -1) {
+          return scripts[i].src.replace('althoria.js', '');
+        }
+      }
+      // Fallback: current page URL directory
+      var loc = window.location.href;
+      return loc.substring(0, loc.lastIndexOf('/') + 1);
+    })();
+    this.img.src = _mapBase + 'img/map/althoria_map.png';
   },
 
   _sizeCanvas() {
@@ -1232,12 +1245,23 @@ const AlthoriаMap = {
     if (this.isOpen) this.render();
   },
 
+  // ── CERRAR PANEL ─────────────────────────────────────────
+  close() {
+    this.isOpen = false;
+    const panel = document.getElementById('althoria-panel');
+    if (panel) panel.classList.remove('open');
+  },
+
   // ── TOGGLE PANEL ALTHORIA ────────────────────────────────
+  close() {
+    this.isOpen = false;
+    const panel = document.getElementById('althoria-panel');
+    if (panel) panel.classList.remove('open');
+  },
+
   toggle(state) {
     if (this.isOpen) {
-      this.isOpen = false;
-      const panel = document.getElementById('althoria-panel');
-      if (panel) panel.classList.remove('open');
+      this.close();
     } else {
       this.open(state);
     }
