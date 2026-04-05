@@ -58,13 +58,6 @@ const UI = {
     sv('val-year',  state.year);
     sv('val-turn',  state.turn);
 
-    // ── Nombre completo de la nación del jugador en top-bar ──
-    var nameEl = document.getElementById('player-nation-name');
-    if (nameEl) {
-      var playerName = (state.civIcon||'👑') + ' ' + (state.civName||'Tu Nación');
-      nameEl.textContent = playerName;
-      if (nameEl.setAttribute) nameEl.setAttribute('data-tip', (state.civName||'Tu Nación') + '\n' + (state.government||''));
-    }
 
     // Estación
     const currentKey = state.climate.current;
