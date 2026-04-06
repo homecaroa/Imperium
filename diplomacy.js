@@ -317,7 +317,7 @@ const DiplomacySystem = {
     }
 
     if (typeof UI !== 'undefined') UI.fullRender(state);
-    if (typeof AlthoriаMap !== 'undefined') AlthoriаMap.sync(state);
+    if (typeof AlthoriaMap !== 'undefined') AlthoriaMap.sync(state);
   },
 
   // ── CEDER TERRITORIO ──────────────────────────────────────
@@ -330,22 +330,22 @@ const DiplomacySystem = {
     let regionToCede = null;
     if (regionId === 'auto' || !regionId) {
       // Ceder la región más alejada de la capital
-      const playerZones = (typeof AlthoriаMap !== 'undefined') ? (AlthoriаMap.nationZones['player']||[]) : [];
+      const playerZones = (typeof AlthoriaMap !== 'undefined') ? (AlthoriaMap.nationZones['player']||[]) : [];
       if (!playerZones.length) return { ok:false, msg:'No tienes regiones que ceder' };
       regionToCede = playerZones[playerZones.length-1]; // la última (más periférica)
     } else {
       regionToCede = regionId;
     }
 
-    if (typeof AlthoriаMap !== 'undefined') {
-      const pz = AlthoriаMap.nationZones['player'] || [];
-      const nz = AlthoriаMap.nationZones[natId]    || [];
+    if (typeof AlthoriaMap !== 'undefined') {
+      const pz = AlthoriaMap.nationZones['player'] || [];
+      const nz = AlthoriaMap.nationZones[natId]    || [];
       const idx = pz.indexOf(regionToCede);
       if (idx > -1) {
         pz.splice(idx, 1);
         nz.push(regionToCede);
         state.althoriaRegions = pz.length;
-        AlthoriаMap.sync(state);
+        AlthoriaMap.sync(state);
       }
     }
     return { ok:true, regionId: regionToCede };
@@ -395,7 +395,7 @@ const DiplomacySystem = {
     const inboxBadge = inbox.length ? `<span class="diplo-inbox-badge">${inbox.length}</span>` : '';
 
     // Regiones de Althoria controladas
-    const natZones = (typeof AlthoriаMap!=='undefined') ? (AlthoriаMap.nationZones[natId]||[]).length : '?';
+    const natZones = (typeof AlthoriaMap!=='undefined') ? (AlthoriaMap.nationZones[natId]||[]).length : '?';
 
     // Historial breve
     const histHtml = (nation.messageHistory||[]).slice(-3).reverse().map(h=>
@@ -403,7 +403,7 @@ const DiplomacySystem = {
     ).join('');
 
     // Ceder territorio — solo si tengo más de 1 región
-    const playerZones = (typeof AlthoriаMap!=='undefined') ? (AlthoriаMap.nationZones['player']||[]) : [];
+    const playerZones = (typeof AlthoriaMap!=='undefined') ? (AlthoriaMap.nationZones['player']||[]) : [];
     const cedeHtml = playerZones.length > 1 ? `
       <button class="diplo-btn warn" onclick="DiplomacySystem.playerCedeTerritory(Game.state,'${nation.id}',null)"
         title="Cedes tu región más periférica. Relación +20.">🗺️ Ceder Región</button>` : '';
