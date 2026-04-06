@@ -8,7 +8,7 @@
 // ============================================================
 
 // ── GOBERNADORES / PERSONAJES POR NACIÓN ──────────────────
-const NATION_CHARACTERS = {
+var NATION_CHARACTERS = {
   // id del pool → personaje embajador
   'ai_1': [
     { name:'Vorkan el Implacable',  role:'Gran Caudillo',      portrait:'img/leaders/vorkan.png', trait:'agresiva'  },
@@ -41,7 +41,7 @@ const NATION_CHARACTERS = {
 };
 
 // ── MENSAJES POR PERSONALIDAD Y SITUACIÓN ─────────────────
-const DIPLOMACY_MESSAGES = {
+var DIPLOMACY_MESSAGES = {
   agresiva: {
     turn_start: [
       'Nuestros ejércitos se preparan. ¿Tienes algo que ofrecernos, o seguimos avanzando?',
@@ -143,7 +143,7 @@ const DIPLOMACY_MESSAGES = {
 };
 
 // ── SISTEMA DE MENSAJERÍA ─────────────────────────────────
-const DiplomacySystem = {
+window.DiplomacySystem = window.DiplomacySystem || {
 
   // Inicializar personaje de cada nación
   initCharacters(state) {
@@ -525,3 +525,5 @@ const DiplomacySystem = {
       </div>`).join('');
   }
 };
+
+var DiplomacySystem = window.DiplomacySystem;
