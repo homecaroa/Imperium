@@ -4,7 +4,7 @@
 // guerra con batalla en mapa, gasto público, guardado
 // ============================================================
 
-var Game = {
+window.Game = window.Game || {
 
   state: null,
 
@@ -799,6 +799,49 @@ var Game = {
   // ══════════════════════════════════════════════
   // MILITAR
   // ══════════════════════════════════════════════
+
+  // ── DESPLEGAR TROPAS EN REGIÓN ────────────────────────────
+  deployToRegion() {
+    const state = this.state;
+    if (!state) return;
+    const sel = document.getElementById('garrison-region-sel');
+    const inp = document.getElementById('garrison-amount');
+    if (!sel || !inp) return;
+
+    const regionId = sel.value;
+    const amount   = parseInt(inp.value) || 0;
+    const maxMove  = Math.floor((state.army || 0) * 0.5);
+
+    if (!regionId) { Systems.Log.add(state,'⚠️ Selecciona una región de destino.','warn'); UI.renderMilitary(state); return; }
+    if (amount <= 0) { Systems.Log.add(state,'⚠️ Indica cuántos soldados desplegar.','warn'); UI.renderMilitary(state); return; }
+    if (amount > maxMove) { Systems.Log.add(state,'⚠️ Máximo 50% del ejército ('+maxMove+').','warn'); UI.renderMilitary(state); return; }
+    if (amount > state.army) { Systems.Log.add(state,'⚠️ No tienes suficientes soldados.','warn'); UI.renderMilitary(state); return; }
+
+    const playerZones = (typeof AlthoriаMap !== 'undefined') ? (AlthoriаMap.nationZones||{})['player']||[] : [];
+    if (playerZones.length > 0 && !playerZones.includes(regionId)) {
+      Systems.Log.add(state,'⚠️ Solo puedes desplegar en tus propias regiones.','warn'); UI.renderMilitary(state); return;
+    }
+
+    state.army -= amount;
+    state._garrisons = state._garrisons || {};
+    state._garrisons[regionId] = (state._garrisons[regionId] || 0) + amount;
+    const region = typeof ALTHORIA_REGIONS !== 'undefined' ? ALTHORIA_REGIONS.find(r=>r.id===regionId) : null;
+    Systems.Log.add(state,'🗺️ '+amount.toLocaleString()+' tropas desplegadas en '+(region?region.name:regionId)+'.','good');
+    UI.fullRender(state);
+  },
+
+  recallGarrison(regionId) {
+    const state = this.state;
+    if (!state) return;
+    const garrison = (state._garrisons||{})[regionId] || 0;
+    if (!garrison) return;
+    state.army += garrison;
+    delete state._garrisons[regionId];
+    const region = typeof ALTHORIA_REGIONS !== 'undefined' ? ALTHORIA_REGIONS.find(r=>r.id===regionId) : null;
+    Systems.Log.add(state,'↩ '+garrison.toLocaleString()+' tropas retiradas de '+(region?region.name:regionId)+'.','info');
+    UI.fullRender(state);
+  },
+
   recruitUnit(typeId, count) {
     // Check resources BEFORE spending AP
     const def = MILITARY_UNITS[typeId];
@@ -1178,6 +1221,7 @@ function shareGame(platform) {
   }
 }
 
+var Game = window.Game;  // local alias
 document.addEventListener('DOMContentLoaded', () => {
   buildCodex();
   Auth.init();
