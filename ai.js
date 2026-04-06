@@ -4,7 +4,7 @@
 // Cada nación evalúa el estado del mundo y toma decisiones
 // ============================================================
 
-const AI = {
+window.AI = window.AI || {
 
   // ============================================================
   // PERSONALIDADES
@@ -439,3 +439,5 @@ const AI = {
     }
   }
 };
+
+var AI = window.AI;
