@@ -50,9 +50,9 @@ window.Game = window.Game || {
     }, 50);
     UI.fullRender(this.state);
     // Inicializar mapa de Althoria y contar regiones del jugador
-    if (typeof AlthoriаMap !== 'undefined') {
-      AlthoriаMap.assignZones(this.state);
-      this.state.althoriaRegions = (AlthoriаMap.nationZones['player'] || []).length;
+    if (typeof AlthoriaMap !== 'undefined') {
+      AlthoriaMap.assignZones(this.state);
+      this.state.althoriaRegions = (AlthoriaMap.nationZones['player'] || []).length;
     }
     // Inicializar personajes diplomáticos
     if (typeof DiplomacySystem !== 'undefined') DiplomacySystem.initCharacters(this.state);
@@ -484,9 +484,9 @@ window.Game = window.Game || {
       setTimeout(() => ChronicleSystem.show(state, _prevSnapshot), 200);
     }
     // Sync Althoria (war zones, spies, trade routes)
-    if (typeof AlthoriаMap !== 'undefined') {
-      AlthoriаMap.sync(state);
-      AlthoriаMap._syncTradeRoutes(state);  // Refresh route lines every turn
+    if (typeof AlthoriaMap !== 'undefined') {
+      AlthoriaMap.sync(state);
+      AlthoriaMap._syncTradeRoutes(state);  // Refresh route lines every turn
     }
     Systems.Log.add(state, '📅 Año ' + state.year + ', Turno ' + state.turn + ' — Población: ' + state.population.toLocaleString(), 'info');
     // UI.renderLog removed — game-log panel removed from HTML
@@ -673,9 +673,10 @@ window.Game = window.Game || {
       nation.relation = Math.max(-100, nation.relation - 30);
       Systems.Trade.closeRoutesForNation(state, nationId);
       Systems.Log.add(state, '⚔️ Guerra declarada contra ' + nation.name, 'crisis');
-      if (typeof AlthoriаMap !== 'undefined') AlthoriаMap.updateWar(state);
+      if (typeof AlthoriaMap !== 'undefined') AlthoriaMap.updateWar(state);
+      if (typeof BattleSystem !== 'undefined') BattleSystem.initBattle(state, nation);
     }
-    UI.fullRender(this.state);
+    if (typeof BattleSystem === 'undefined') UI.fullRender(this.state);
   },
 
   // Select attack target from map
@@ -851,7 +852,7 @@ window.Game = window.Game || {
     if (amount > maxMove) { Systems.Log.add(state,'⚠️ Máximo 50% del ejército ('+maxMove+').','warn'); UI.renderMilitary(state); return; }
     if (amount > state.army) { Systems.Log.add(state,'⚠️ No tienes suficientes soldados.','warn'); UI.renderMilitary(state); return; }
 
-    const playerZones = (typeof AlthoriаMap !== 'undefined') ? (AlthoriаMap.nationZones||{})['player']||[] : [];
+    const playerZones = (typeof AlthoriaMap !== 'undefined') ? (AlthoriaMap.nationZones||{})['player']||[] : [];
     if (playerZones.length > 0 && !playerZones.includes(regionId)) {
       Systems.Log.add(state,'⚠️ Solo puedes desplegar en tus propias regiones.','warn'); UI.renderMilitary(state); return;
     }
