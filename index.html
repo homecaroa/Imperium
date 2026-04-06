@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>⚔ IMPERIUM — Civilización, Poder y Consecuencias</title>
@@ -167,7 +170,7 @@
       <div class="tb-sep"></div>
       <div class="tb-actions">
         <button id="btn-endturn" onclick="Game.endTurn()">⏭ Turno</button>
-        <button id="btn-althoria" onclick="AlthoriаMap.toggle(Game.state)" class="tb-tip" data-tip="🗺️ Abrir mapa de Althoria">🗺️</button>
+        <button id="btn-althoria" onclick="AlthoriaMap.toggle(Game.state)" class="tb-tip" data-tip="🗺️ Abrir mapa de Althoria">🗺️</button>
         <button class="btn-save tb-tip" data-tip="💾 Guardar partida rápida" onclick="SaveSystem.quickSave()">💾</button>
         <button class="btn-save btn-load tb-tip" data-tip="📂 Cargar partida guardada" onclick="SaveSystem.showLoadMenu()">📂</button>
         <button class="btn-save tb-tip" data-tip="⚡ Modo Blitz: 20 turnos, economía acelerada, IA agresiva desde T1" onclick="Game.startBlitzMode()" style="background:rgba(200,120,20,0.2);border-color:#c87810;color:#f0a040">⚡ Blitz</button>
@@ -297,8 +300,6 @@
     </div>
   </div>
 
-</div><!-- #app -->
-
 <!-- ╔═══════════════════════╗ -->
 <!-- ║  CRÓNICA DEL TURNO    ║ -->
 <!-- ╚═══════════════════════╝ -->
@@ -321,6 +322,9 @@
     </div>
   </div>
 </div>
+
+</div><!-- #app -->
+
 <div id="tb-tooltip" class="tb-tooltip-box"></div>
 
 <script>
@@ -340,22 +344,22 @@ window.addEventListener('error', function(e) {
   }
 }, true);
 </script>
-<script src="visual.js"></script>
-<script src="althoria.js"></script>
-<script src="data.js"></script>
-<script src="map.js"></script>
-<script src="systems.js"></script>
-<script src="ai.js"></script>
-<script src="ui.js"></script>
-<script src="arcs.js"></script>
-<script src="mechanics.js"></script>
-<script src="war.js"></script>
-<script src="unlocks.js"></script>
-<script src="diplomacy.js"></script>
-<script src="deep_systems.js"></script>
-    <script src="chronicle.js"></script>
-    <script src="game.js"></script>
-<script src="save.js"></script>
-<script src="battle.js"></script>
+<script src="visual.js?v=20"></script>
+<script src="althoria.js?v=20"></script>
+<script src="data.js?v=20"></script>
+<script src="map.js?v=20"></script>
+<script src="systems.js?v=20"></script>
+<script src="ai.js?v=20"></script>
+<script src="ui.js?v=20"></script>
+<script src="arcs.js?v=20"></script>
+<script src="mechanics.js?v=20"></script>
+<script src="war.js?v=20"></script>
+<script src="unlocks.js?v=20"></script>
+<script src="diplomacy.js?v=20"></script>
+<script src="deep_systems.js?v=20"></script>
+    <script src="chronicle.js?v=20"></script>
+    <script src="game.js?v=20"></script>
+<script src="save.js?v=20"></script>
+<script src="battle.js?v=20"></script>
 </body>
 </html>
