@@ -301,6 +301,16 @@ var Game = {
     const state = this.state;
     if (!state) return;
 
+    // ── Snapshot del estado ANTES del turno para la crónica ──
+    const _prevSnapshot = {
+      morale:     state.morale,
+      stability:  state.stability,
+      resources:  { gold: state.resources.gold },
+      diplomacy:  (state.diplomacy || []).map(n => ({ id: n.id, atWar: n.atWar, relation: n.relation, allied: n.allied })),
+      _deficitTurns: state._deficitTurns || 0,
+      _warsWon:   state._warsWon || 0,
+    };
+
     // ── Puntos de Acción: resetear al inicio del siguiente turno ──
     ActionPoints.reset(state);
 
@@ -469,6 +479,10 @@ var Game = {
     if (typeof DeepSystemsIntegration !== 'undefined') DeepSystemsIntegration.onEndTurn(state);
     // 19. Render
     UI.fullRender(state);
+    // 20. Crónica del turno
+    if (typeof ChronicleSystem !== 'undefined') {
+      setTimeout(() => ChronicleSystem.show(state, _prevSnapshot), 200);
+    }
     // Sync Althoria (war zones, spies, trade routes)
     if (typeof AlthoriаMap !== 'undefined') {
       AlthoriаMap.sync(state);
