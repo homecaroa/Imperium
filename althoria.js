@@ -1292,6 +1292,12 @@ window.AlthoriaMap = window.AlthoriaMap || {
 
 // Auto-init cuando carga el DOM (el juego lo llamará también)
 var AlthoriaMap = window.AlthoriaMap;
+// Compatibility: expose under old Cyrillic variable name in case browser has cached onclick
+(function() {
+  var key = 'Althorian'.slice(0,7) + String.fromCharCode(0x0430) + 'Map';
+  if (!window[key]) window[key] = window.AlthoriaMap;
+})();
+
 document.addEventListener('DOMContentLoaded', () => {
   AlthoriaMap.init();
   window.addEventListener('resize', () => AlthoriaMap.onResize());
