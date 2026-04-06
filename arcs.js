@@ -5,7 +5,7 @@
 // ============================================================
 
 // ── POOL DE ARCOS NARRATIVOS ─────────────────────────────
-const STORY_ARCS = [
+var STORY_ARCS = [
 
   // ── ARC 1: LA CONSPIRACIÓN INTERIOR ──────────────────────
   {
@@ -190,7 +190,7 @@ const STORY_ARCS = [
 
 // ── EVENTOS ENCADENADOS SIMPLES ─────────────────────────
 // (Eventos individuales que se disparan tras decisiones específicas)
-const CHAINED_EVENTS = {
+var CHAINED_EVENTS = {
 
   // Tras aceptar préstamo → si deuda > 400 después de 5 turnos
   'debt_crisis_followup': {
@@ -254,7 +254,7 @@ const CHAINED_EVENTS = {
 };
 
 // ── GESTOR DE ARCOS ──────────────────────────────────────
-const ArcManager = {
+window.ArcManager = window.ArcManager || {
 
   // Inicializar sistema de arcos
   init(state) {
@@ -422,7 +422,7 @@ const ArcManager = {
 // ════════════════════════════════════════════════════════════════
 
 // ── ARCOS DE FACCIÓN ─────────────────────────────────────────
-const FACTION_ARCS = {
+var FACTION_ARCS = {
   pueblo: {
     name:'El Grito del Pueblo', icon:'👥',
     missions: [
@@ -528,7 +528,7 @@ const FACTION_ARCS = {
 };
 
 // ── ARCOS DE CIVILIZACIÓN ────────────────────────────────────
-const CIV_ARCS = {
+var CIV_ARCS = {
   roman:{
     events:[
       {id:'civ_roman_1',turnMin:6,
@@ -606,7 +606,7 @@ const CIV_ARCS = {
 
 // ── MOTOR DE ARCOS EXTENDIDO ────────────────────────────────
 // Complementa a ArcManager con los nuevos tipos de arcos
-const ArcSystem = {
+window.ArcSystem = window.ArcSystem || {
 
   init(state) {
     ArcManager.init(state);
@@ -707,3 +707,7 @@ const ArcSystem = {
     }
   }
 };
+
+var ArcSystem = window.ArcSystem;
+
+var ArcManager = window.ArcManager;
