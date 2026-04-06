@@ -12,7 +12,7 @@
 // condición de desbloqueo, hint de qué hacer para desbloquearlo
 // ============================================================
 
-const UNLOCK_TREE = {
+var UNLOCK_TREE = {
 
   // ═══════════════════════════════════════════════════════
   // POLÍTICA Y GOBIERNO
@@ -370,7 +370,7 @@ const UNLOCK_TREE = {
 };
 
 // ── SISTEMA DE DESBLOQUEOS ─────────────────────────────────
-const UnlockSystem = {
+window.UnlockSystem = window.UnlockSystem || {
 
   // Calcular todos los desbloqueos activos para el estado actual
   getUnlocked(state) {
@@ -485,6 +485,8 @@ const UnlockSystem = {
     return html;
   }
 };
+
+var UnlockSystem = window.UnlockSystem;
 
 // ── TOAST DE DESBLOQUEO ────────────────────────────────────
 function showUnlockToast(unlocks) {
