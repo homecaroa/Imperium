@@ -12,7 +12,7 @@
 // SIMPLEX NOISE — implementación compacta y eficiente
 // Basada en Stefan Gustavson's Simplex Noise
 // ============================================================
-const Noise = (() => {
+var Noise = (() => {
   const grad3 = [
     [1,1,0],[-1,1,0],[1,-1,0],[-1,-1,0],
     [1,0,1],[-1,0,1],[1,0,-1],[-1,0,-1],
@@ -99,7 +99,7 @@ const Noise = (() => {
 // Determinados por elevación + humedad
 // Cada bioma tiene efectos en producción de recursos
 // ============================================================
-const BIOMES = {
+var BIOMES = {
   deep_water: {
     name: 'Mar Profundo',    icon: '🌊', color: '#0a3a6a',
     passable: false, settleable: false,
@@ -189,7 +189,7 @@ const BIOMES = {
 // ============================================================
 // GENERADOR DE MAPAS
 // ============================================================
-const MapGenerator = {
+window.MapGenerator = window.MapGenerator || {
 
   // Parámetros del grid
   COLS: 40,
@@ -430,10 +430,10 @@ const MapGenerator = {
       { id: 'gold_mine',  icon: '⛏', biomes: ['mountains','hills'], bonus: { gold: 25 }, label: 'Mina de Oro' },
       { id: 'iron_vein',  icon: '🔩', biomes: ['mountains','hills'], bonus: { iron: 30 }, label: 'Veta de Hierro' },
       { id: 'fertile',    icon: '🌻', biomes: ['plains','grassland'], bonus: { food: 25 }, label: 'Tierra Fértil' },
-      { id: 'quarry',     icon: '🪨', biomes: ['hills','mountains'], bonus: { stone: 30 }, label: 'Cantera' },
+      { id: 'quarry',     icon: '🏔️', biomes: ['hills','mountains'], bonus: { stone: 30 }, label: 'Cantera' },
       { id: 'oasis',      icon: '🌴', biomes: ['desert'], bonus: { food: 30, gold: 10 }, label: 'Oasis' },
       { id: 'ruins',      icon: '🏛', biomes: ['plains','hills','desert'], bonus: { gold: 15 }, label: 'Ruinas Antiguas' },
-      { id: 'forest_hut', icon: '🪵', biomes: ['forest','dense_forest'], bonus: { wood: 30 }, label: 'Aserradero Natural' },
+      { id: 'forest_hut', icon: '🌲', biomes: ['forest','dense_forest'], bonus: { wood: 30 }, label: 'Aserradero Natural' },
     ];
 
     const numFeatures = 12 + Math.floor(rng() * 8); // 12-20 recursos especiales
@@ -624,7 +624,7 @@ const MapGenerator = {
 // Paleta: marron oscuro · marron claro · verde · azul
 // Celdas 20% mas grandes: 26x22px
 // ============================================================
-const MapRenderer = {
+window.MapRenderer = window.MapRenderer || {
 
   CELL_W: 26, CELL_H: 22,
   canvas:null, ctx:null, map:null, state:null,
@@ -873,3 +873,7 @@ const MapRenderer = {
     this.render();
   }
 };
+
+var MapRenderer = window.MapRenderer;
+
+var MapGenerator = window.MapGenerator;
