@@ -173,7 +173,7 @@ const GEO_AFFINITY = {
 };
 
 // ── SISTEMA PRINCIPAL DE ALTHORIA ───────────────────────────
-const AlthoriаMap = {
+const AlthoriaMap = {
 
   // Estado
   isOpen:        false,
@@ -224,7 +224,7 @@ const AlthoriаMap = {
           <span>ALTHORIA</span>
         </div>
         <div id="althoria-legend-row"></div>
-        <button id="althoria-close" onclick="AlthoriаMap.close()">✕</button>
+        <button id="althoria-close" onclick="AlthoriaMap.close()">✕</button>
       </div>
       <div id="althoria-canvas-wrap">
         <canvas id="althoria-canvas"></canvas>
@@ -1279,6 +1279,6 @@ const AlthoriаMap = {
 
 // Auto-init cuando carga el DOM (el juego lo llamará también)
 document.addEventListener('DOMContentLoaded', () => {
-  AlthoriаMap.init();
-  window.addEventListener('resize', () => AlthoriаMap.onResize());
+  AlthoriaMap.init();
+  window.addEventListener('resize', () => AlthoriaMap.onResize());
 });
