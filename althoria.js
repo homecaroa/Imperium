@@ -15,7 +15,7 @@
 // ── DEFINICIÓN DE REGIONES DE ALTHORIA ──────────────────────
 // Cada región tiene: nombre, polígono (% de imagen), tipo geográfico
 // Los polígonos son arrays de [x%, y%] sobre la imagen 855×1115px
-const ALTHORIA_REGIONS = [
+var ALTHORIA_REGIONS = [
   {
     id: 'norte_glaciar',
     name: 'Glaciar Cuerno de Escarcha',
@@ -163,7 +163,7 @@ const ALTHORIA_REGIONS = [
 ];
 
 // Tipos geográficos que prefieren ciertos tipos de nación
-const GEO_AFFINITY = {
+var GEO_AFFINITY = {
   mountain_cold: ['norse','mongol'],
   mountain:      ['roman','byzantine','norse'],
   forest:        ['aztec','norse'],
@@ -173,7 +173,7 @@ const GEO_AFFINITY = {
 };
 
 // ── SISTEMA PRINCIPAL DE ALTHORIA ───────────────────────────
-const AlthoriaMap = {
+window.AlthoriaMap = window.AlthoriaMap || {
 
   // Estado
   isOpen:        false,
@@ -1278,6 +1278,7 @@ const AlthoriaMap = {
 };
 
 // Auto-init cuando carga el DOM (el juego lo llamará también)
+var AlthoriaMap = window.AlthoriaMap;
 document.addEventListener('DOMContentLoaded', () => {
   AlthoriaMap.init();
   window.addEventListener('resize', () => AlthoriaMap.onResize());
