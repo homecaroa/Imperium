@@ -7,7 +7,7 @@
 // ── STORY ARCS ───────────────────────────────────────────────
 // Formato: { id, civId (null=global), title, phases:[] }
 // Cada phase: { id, title, condition, eventId (evento que dispara esta fase) }
-const STORY_ARCS = [
+var STORY_ARCS = [
 
   // ── ARCO GLOBAL: La Sombra de la Plaga ──────────────────
   {
@@ -189,7 +189,7 @@ const STORY_ARCS = [
 ];
 
 // ── EVENTOS DE ARC (conectados a los arcos anteriores) ────
-const ARC_EVENTS = {
+var ARC_EVENTS = {
 
   // ── PLAGA ──────────────────────────────────────────────
   arc_plague_rumours: {
@@ -450,7 +450,7 @@ const ARC_EVENTS = {
 };
 
 // ── SISTEMA GESTOR DE ARCOS ───────────────────────────────
-const StoryArcSystem = {
+window.StoryArcSystem = window.StoryArcSystem || {
 
   // Inicializar para la partida
   init(state) {
@@ -615,3 +615,5 @@ const StoryArcSystem = {
     });
   }
 };
+
+var StoryArcSystem = window.StoryArcSystem;
