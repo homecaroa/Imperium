@@ -62,7 +62,7 @@ window.Game = window.Game || {
     if (typeof ArcSystem !== 'undefined') ArcSystem.init(this.state);
     else if (typeof ArcManager !== 'undefined') ArcManager.init(this.state);
     Systems.Log.add(this.state, '⚔️ ' + civ.name + ' comienza su historia. Que los dioses os guíen.', 'good');
-    UI.renderLog(this.state);
+
     if (typeof DiplomacySystem !== "undefined") DiplomacySystem.initCharacters(this.state);
     if (this._blitzMode) BlitzMode.apply(this.state);
     // Init AP so first-turn actions work immediately
@@ -489,7 +489,7 @@ window.Game = window.Game || {
       AlthoriаMap._syncTradeRoutes(state);  // Refresh route lines every turn
     }
     Systems.Log.add(state, '📅 Año ' + state.year + ', Turno ' + state.turn + ' — Población: ' + state.population.toLocaleString(), 'info');
-    UI.renderLog(state);
+    // UI.renderLog removed — game-log panel removed from HTML
   },
 
   // ══════════════════════════════════════════════
@@ -547,13 +547,13 @@ window.Game = window.Game || {
       // Activar — coste de activación único
       if (sp.costOneTime && state.resources.gold < sp.costOneTime) {
         Systems.Log.add(state, '⚠️ Oro insuficiente para activar ' + sp.name + ' (necesitas ' + sp.costOneTime + '💰)', 'warn');
-        UI.renderLog(state);
+        // UI.renderLog removed — game-log panel removed from HTML
         return;
       }
       if (sp.oneTimeCost) {
         const oc = sp.oneTimeCost;
-        if (oc.stone && state.resources.stone < oc.stone) { Systems.Log.add(state, '⚠️ Piedra insuficiente', 'warn'); UI.renderLog(state); return; }
-        if (oc.wood  && state.resources.wood  < oc.wood)  { Systems.Log.add(state, '⚠️ Madera insuficiente', 'warn');  UI.renderLog(state); return; }
+        if (oc.stone && state.resources.stone < oc.stone) { Systems.Log.add(state, '⚠️ Piedra insuficiente', 'warn'); return; }
+        if (oc.wood  && state.resources.wood  < oc.wood)  { Systems.Log.add(state, '⚠️ Madera insuficiente', 'warn'); return; }
         if (oc.stone) state.resources.stone -= oc.stone;
         if (oc.wood)  state.resources.wood  -= oc.wood;
       }
@@ -715,7 +715,7 @@ window.Game = window.Game || {
       }
       if (policy.cost_gold > 0 && state.resources.gold < policy.cost_gold) {
         Systems.Log.add(state, '⚠️ Oro insuficiente para ' + policy.name, 'warn');
-        UI.renderLog(state);
+        // UI.renderLog removed — game-log panel removed from HTML
         return;
       }
       if (policy.cost_gold > 0) state.resources.gold -= policy.cost_gold;
@@ -773,7 +773,7 @@ window.Game = window.Game || {
     state.rates = rates;
     UI.updateTopBar(state);
     UI.renderEconomy(state);
-    UI.renderLog(state);
+    // UI.renderLog removed — game-log panel removed from HTML
   },
 
   raiseTexes() {
@@ -816,15 +816,34 @@ window.Game = window.Game || {
   // ══════════════════════════════════════════════
 
   // ── DESPLEGAR TROPAS EN REGIÓN ────────────────────────────
-  deployToRegion() {
+  deployToRegion(btnOrSelId, numId) {
     const state = this.state;
     if (!state) return;
-    const sel = document.getElementById('garrison-region-sel');
-    const inp = document.getElementById('garrison-amount');
-    if (!sel || !inp) return;
-
-    const regionId = sel.value;
-    const amount   = parseInt(inp.value) || 0;
+    // Support both (button el with dataset) and (selId, numId strings)
+    let regionId, amount;
+    if (typeof btnOrSelId === 'string') {
+      const sel = document.getElementById(btnOrSelId);
+      const inp = document.getElementById(numId || 'troops-deploy-num');
+      if (!sel || !inp) return;
+      regionId = sel.value;
+      amount   = parseInt(inp.value) || 0;
+    } else if (btnOrSelId && btnOrSelId.dataset) {
+      // Called from data-attribute button
+      const selId = btnOrSelId.dataset.sel || 'garrison-region-sel';
+      const numId2 = btnOrSelId.dataset.num || 'garrison-amount';
+      const sel = document.getElementById(selId);
+      const inp = document.getElementById(numId2);
+      if (!sel || !inp) return;
+      regionId = sel.value;
+      amount   = parseInt(inp.value) || 0;
+    } else {
+      // Fallback: try default IDs
+      const sel = document.getElementById('garrison-region-sel') || document.getElementById('troops-region-sel');
+      const inp = document.getElementById('garrison-amount') || document.getElementById('troops-deploy-num');
+      if (!sel || !inp) return;
+      regionId = sel.value;
+      amount   = parseInt(inp.value) || 0;
+    }
     const maxMove  = Math.floor((state.army || 0) * 0.5);
 
     if (!regionId) { Systems.Log.add(state,'⚠️ Selecciona una región de destino.','warn'); UI.renderMilitary(state); return; }
@@ -845,9 +864,14 @@ window.Game = window.Game || {
     UI.fullRender(state);
   },
 
-  recallGarrison(regionId) {
+  recallGarrison(regionIdOrBtn) {
     const state = this.state;
     if (!state) return;
+    // Support both string regionId and button element with data-rid
+    const regionId = (typeof regionIdOrBtn === 'string')
+      ? regionIdOrBtn
+      : (regionIdOrBtn && regionIdOrBtn.dataset && regionIdOrBtn.dataset.rid) || '';
+    if (!regionId) return;
     const garrison = (state._garrisons||{})[regionId] || 0;
     if (!garrison) return;
     state.army += garrison;
