@@ -331,6 +331,15 @@
   window.IMAGE_BASE = loc.substring(0, loc.lastIndexOf('/') + 1);
 })();
 </script>
+<script>
+// Silence image 404 errors in console
+window.addEventListener('error', function(e) {
+  if (e.target && e.target.tagName === 'IMG') {
+    e.target.style.display = 'none';
+    e.stopPropagation();
+  }
+}, true);
+</script>
 <script src="visual.js"></script>
 <script src="althoria.js"></script>
 <script src="data.js"></script>
