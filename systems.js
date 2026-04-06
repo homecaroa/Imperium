@@ -4,7 +4,7 @@
 // Ejército multiunidad, Espías, Comercio, Eventos
 // ============================================================
 
-const Systems = {
+window.Systems = window.Systems || {
 
   // ============================================================
   // ECONOMÍA
@@ -972,3 +972,5 @@ const Systems = {
     }
   }
 };
+
+var Systems = window.Systems;
