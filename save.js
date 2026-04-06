@@ -5,7 +5,7 @@
 // ============================================================
 
 // ── AUTH ────────────────────────────────────────────────────
-const Auth = {
+window.Auth = window.Auth || {
   currentUser: null,
 
   init() {
@@ -59,7 +59,7 @@ const Auth = {
 };
 
 // ── SAVE SYSTEM ─────────────────────────────────────────────
-const SaveSystem = {
+window.SaveSystem = window.SaveSystem || {
   MAX_SLOTS: 3,
   KEY_PREFIX: 'imperium_save_',
 
@@ -118,9 +118,9 @@ const SaveSystem = {
         if (state.mapData) {
           try { MapRenderer.init('world-map', state.mapData, state); } catch(e) {}
         }
-        if (typeof AlthoriаMap !== 'undefined') {
-          AlthoriаMap.assignZones(state);
-          AlthoriаMap.updateWar(state);
+        if (typeof AlthoriaMap !== 'undefined') {
+          AlthoriaMap.assignZones(state);
+          AlthoriaMap.updateWar(state);
         }
         UI.fullRender(state);
         Game.generateTurnEvents();
@@ -316,3 +316,7 @@ const SaveSystem = {
       `).join('');
   }
 };
+
+var SaveSystem = window.SaveSystem;
+
+var Auth = window.Auth;
