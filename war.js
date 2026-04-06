@@ -20,7 +20,7 @@
 // }
 // ─────────────────────────────────────────────────────────────
 
-const WarSystem = {
+window.WarSystem = window.WarSystem || {
 
   MIN_TURNS: 3,
 
@@ -281,7 +281,7 @@ const WarSystem = {
 // ─────────────────────────────────────────────────────────────
 // SISTEMA DE TERRITORIOS — conquista y pérdida
 // ─────────────────────────────────────────────────────────────
-const TerritorySystem = {
+window.TerritorySystem = window.TerritorySystem || {
 
   // Conquista un territorio enemigo y lo transfiere al jugador
   conquer(state, nation, regionId) {
@@ -381,7 +381,7 @@ const TerritorySystem = {
 // ─────────────────────────────────────────────────────────────
 // DECLARACIÓN DE GUERRA BASADA EN RELACIÓN
 // ─────────────────────────────────────────────────────────────
-const WarDeclaration = {
+window.WarDeclaration = window.WarDeclaration || {
 
   // Evaluar si declarar guerra y qué tipo de respuesta
   // Returns: { result: 'immediate_war'|'tension'|'warning'|'blocked', message }
@@ -485,7 +485,7 @@ const WarDeclaration = {
 // ─────────────────────────────────────────────────────────────
 // SELECCIÓN DE TERRITORIO EN EL MAPA
 // ─────────────────────────────────────────────────────────────
-const RegionSelector = {
+window.RegionSelector = window.RegionSelector || {
   _active:     false,
   _callback:   null,
   _filter:     null, // fn(regionId, owner) => bool
@@ -558,3 +558,11 @@ const RegionSelector = {
     WarDeclaration.declare(state, info.owner, regionId);
   },
 };
+
+var RegionSelector = window.RegionSelector;
+
+var WarDeclaration = window.WarDeclaration;
+
+var TerritorySystem = window.TerritorySystem;
+
+var WarSystem = window.WarSystem;
