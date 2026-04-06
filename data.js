@@ -2,7 +2,7 @@
 // IMPERIUM — DATA.JS  (v2)
 // ============================================================
 
-const CIVILIZATIONS = [
+var CIVILIZATIONS = [
   { id:'roman',    name:'República Aurea',      icon:'🦅', description:'Estado republicano maduro. Senado poderoso, tradición militar.',       government:'república',          startResources:{food:300,gold:250,wood:200,stone:180,iron:120}, startStats:{population:8000,stability:65,morale:70,army:400},  factions:['senado','ejercito','pueblo','comerciantes'], traits:['+15% fuerza militar','+10% estabilidad','-5% alimentos'],         unitBonuses:{legionarios:1.2,ballistas:1.15} },
   { id:'mongol',   name:'Horda de las Estepas', icon:'🐎', description:'Pueblo guerrero nómada. Ejército devastador, economía frágil.',         government:'autocracia_militar', startResources:{food:200,gold:150,wood:100,stone:50, iron:180}, startStats:{population:5000,stability:45,morale:80,army:700},  factions:['ejercito','nobleza','chamanes','pueblo'],    traits:['+30% poder militar','Conquistas→recursos','-15% estabilidad'],    unitBonuses:{caballeria:1.35,arqueros:1.2} },
   { id:'byzantine',name:'Imperio del Este',     icon:'🕌', description:'Maestros de la diplomacia y el espionaje. Economía diversificada.',     government:'teocracia_imperial', startResources:{food:280,gold:350,wood:150,stone:220,iron:90},  startStats:{population:10000,stability:60,morale:65,army:280}, factions:['iglesia','burocracia','comerciantes','ejercito'], traits:['+20% oro','+2 espías iniciales','-10% ejército'],                unitBonuses:{ballistas:1.2}, startSpies:2 },
@@ -11,7 +11,7 @@ const CIVILIZATIONS = [
   { id:'aztec',    name:'Alianza Triple',        icon:'🌞', description:'Imperio teocrático. El ritual mantiene la moral.',                      government:'teocracia',          startResources:{food:350,gold:180,wood:200,stone:250,iron:80},  startStats:{population:9000,stability:50,morale:75,army:450},  factions:['sacerdotes','guerreros','pueblo','comerciantes'], traits:['+15% moral','Rituales potencian ejército','-20% diplomacia'],    unitBonuses:{guerreros_jaguar:1.4,infanteria:1.1} }
 ];
 
-const FACTION_DEFINITIONS = {
+var FACTION_DEFINITIONS = {
   senado:       {name:'Senado',       icon:'🏛',wants:['estabilidad','leyes'],       hates:['guerra_prolongada'],   color:'#c8a84b',baseInfluence:30},
   ejercito:     {name:'Ejército',     icon:'⚔', wants:['guerra','equipamiento'],     hates:['paz_prolongada'],      color:'#888',   baseInfluence:25},
   pueblo:       {name:'Pueblo',       icon:'👥',wants:['alimentos','paz'],            hates:['hambre','impuestos'],  color:'#7c9c7c',baseInfluence:35},
@@ -26,7 +26,7 @@ const FACTION_DEFINITIONS = {
   sacerdotes:   {name:'Sacerdotes',   icon:'🌞',wants:['rituales','expansion'],       hates:['derrota'],             color:'#d0a030',baseInfluence:35}
 };
 
-const GOVERNMENT_TYPES = {
+var GOVERNMENT_TYPES = {
   república:           {name:'República',           stabilityBonus:10,  corruptionPenalty:-5,  factionInfluenceMultiplier:1.3, description:'Poder compartido entre instituciones.'},
   autocracia_militar:  {name:'Autocracia Militar',  stabilityBonus:-10, corruptionPenalty:10,  factionInfluenceMultiplier:0.7, description:'El caudillo decide solo. Rápido pero frágil.'},
   teocracia_imperial:  {name:'Teocracia Imperial',  stabilityBonus:5,   corruptionPenalty:5,   factionInfluenceMultiplier:1.0, description:'Dios y Estado como uno.'},
@@ -39,7 +39,7 @@ const GOVERNMENT_TYPES = {
 // ESTACIONES — eje temporal del clima
 // 4 estaciones × 4 turnos = 16 turnos/año
 // ============================================================
-const SEASONS = {
+var SEASONS = {
   spring:{name:'Primavera',icon:'🌱',foodMod:+18,goldMod:+5, woodMod:+5, moraleMod:+6, armyMod:0,
     extremeEvents:['lluvias_torrenciales','florecimiento_excepcional'],extremeChance:0.12,
     description:'Cosechas tempranas. Ideal para construir y negociar.',
@@ -61,7 +61,7 @@ const SEASONS = {
 // ============================================================
 // EVENTOS CLIMÁTICOS EXTREMOS — con encadenamiento
 // ============================================================
-const EXTREME_CLIMATE_EVENTS = {
+var EXTREME_CLIMATE_EVENTS = {
   lluvias_torrenciales:{name:'Lluvias Torrenciales',icon:'⛈',foodMod:-15,goldMod:-5, moraleMod:-8, armyMod:-20,duration:[2,3],triggersChain:'inundacion_fluvial',chainChance:0.4,  message:'Lluvias torrenciales inundan campos. Los ríos amenazan desbordarse.'},
   florecimiento_excepcional:{name:'Florecimiento Excepcional',icon:'🌸',foodMod:+30,goldMod:+10,moraleMod:+15,armyMod:0,duration:[1,2],triggersChain:null,chainChance:0,           message:'Florecimiento excepcional. Los campos producen el doble.'},
   sequia_leve:{name:'Sequía Leve',icon:'🌤',foodMod:-20,goldMod:0,  moraleMod:-5, armyMod:0,  duration:[2,3],triggersChain:'sequia_severa',chainChance:0.30,                        message:'El verano es seco. Los campesinos miran al cielo.'},
@@ -82,7 +82,7 @@ const EXTREME_CLIMATE_EVENTS = {
 // ============================================================
 // UNIDADES MILITARES
 // ============================================================
-const MILITARY_UNITS = {
+var MILITARY_UNITS = {
   levas:             {name:'Levas',             icon:'🪓',category:'infantry',      cost:{gold:20,iron:0},        upkeep:0.2,strength:8,  count:50,terrainBonus:{plains:1.0,hills:0.9,forest:0.85,mountains:0.7}, vsBonus:{infantry:1.0,cavalry:0.7,ranged:1.1,siege:1.2},  description:'Campesinos armados. Baratos pero débiles.',buildTurns:1,attack:6,defense:4,color:'#8a7050'},
   infanteria:        {name:'Infantería',        icon:'⚔', category:'infantry',      cost:{gold:60,iron:20},       upkeep:0.5,strength:20, count:40,terrainBonus:{plains:1.0,hills:1.0,forest:0.9,mountains:0.8},  vsBonus:{infantry:1.0,cavalry:0.9,ranged:1.15,siege:1.3}, description:'Soldado entrenado. Versátil.',buildTurns:1,attack:16,defense:14,color:'#6a8a6a'},
   legionarios:       {name:'Legionarios',       icon:'🛡',category:'heavy_infantry', cost:{gold:100,iron:40},      upkeep:0.9,strength:35, count:30,terrainBonus:{plains:1.2,hills:1.0,forest:0.75,mountains:0.7},vsBonus:{infantry:1.3,cavalry:1.1,ranged:1.2,siege:1.4},  description:'Élite pesada. Invencibles en campo abierto.',buildTurns:2,requires:['standing_army'],attack:28,defense:30,color:'#8a6a30'},
@@ -97,7 +97,7 @@ const MILITARY_UNITS = {
 // ============================================================
 // UNIDADES LEGENDARIAS
 // ============================================================
-const LEGENDARY_UNITS = [
+var LEGENDARY_UNITS = [
   {id:'titan_de_bronce',  name:'Titán de Bronce',      icon:'🗿',cost:{gold:500,iron:200,stone:100},upkeep:3.0,strength:180,count:1,description:'Máquina de guerra de bronce. Impenetrable e imparable.',    unlockCondition:'3 balistas + economía de guerra',    special:'Inmune a arqueros. +100% vs infantería.',             flavorText:'"Cuando los ingenieros construyen dioses, los reyes conquistan imperios."',attack:34,defense:26,color:'#3a8a5a'},
   {id:'dragon_de_guerra', name:'Dragón de Guerra',     icon:'🐲',cost:{gold:600,iron:50,food:200},  upkeep:4.0,strength:220,count:1,description:'Bestia mítica domesticada. Su fuego arrasa formaciones.',  unlockCondition:'Moral > 85 + 3 victorias consecutivas', special:'-30 moral enemiga al inicio. Devastador en todo terreno.',flavorText:'"Los hombres huyen ante el rugido."'},
   {id:'guardia_inmortal', name:'Guardia Inmortal',     icon:'⚱', cost:{gold:450,iron:150},          upkeep:2.5,strength:160,count:1,description:'Mil soldados de élite que se reemplazan al caer.',         unlockCondition:'Estabilidad > 75 + ejército > 800 (5 turnos)',special:'Las bajas no afectan a la moral. +50% defensa.',  flavorText:'"¿Cómo matas a los que no mueren?"'},
@@ -111,7 +111,7 @@ const LEGENDARY_UNITS = [
 // ============================================================
 // MISIONES DE ESPÍAS
 // ============================================================
-const SPY_MISSIONS = {
+var SPY_MISSIONS = {
   reconocimiento:   {name:'Reconocimiento Militar',   cost:{gold:80}, duration:2,successChance:0.70,icon:'🔍',description:'Descubre ejército y composición de tropas enemigas.'},
   sabotaje_economico:{name:'Sabotaje Económico',      cost:{gold:150},duration:3,successChance:0.50,icon:'💣',description:'Destruye reservas de recursos del rival.'},
   intriga_politica: {name:'Intriga Política',         cost:{gold:200},duration:4,successChance:0.40,icon:'🎭',description:'Siembra discordia en las facciones rivales.'},
@@ -122,7 +122,7 @@ const SPY_MISSIONS = {
 // ============================================================
 // RUTAS COMERCIALES
 // ============================================================
-const TRADE_ROUTES = {
+var TRADE_ROUTES = {
   // ── RUTAS TERRESTRES ──────────────────────────────────────
   basico:           {name:'Acuerdo Básico',        icon:'🤝',type:'land',  cost:{gold:50},          requires:{relation:15},              income:{gold:20},                duration:'permanent',relationBonus:+1, description:'Intercambio básico de bienes por tierra.'},
   ruta_seda:        {name:'Ruta de la Seda',       icon:'🐪',type:'land',  cost:{gold:150,wood:50}, requires:{relation:30},              income:{gold:45,morale:+3},      duration:'permanent',relationBonus:+2, description:'Caravanas de lujo. Mejora la moral del pueblo.'},
@@ -137,7 +137,7 @@ const TRADE_ROUTES = {
 // ============================================================
 // POOL DE EVENTOS
 // ============================================================
-const EVENT_POOL = [
+var EVENT_POOL = [
   {id:'trade_caravan',image:'img/events/evt_caravan.png',    category:'ECONOMÍA',  priority:'normal',  icon:'🐪',title:'Caravana Mercante',        description:'Una caravana solicita establecer una ruta comercial permanente.',context:'Potencial: +30 oro/turno | Riesgo: espionaje | Coste: 80 madera',condition:(s)=>s.turn>2,weight:8,
     options:[
       {label:'Libre comercio',          effects:{gold_rate:+30,wood:-80,spy_risk:+15},   effectText:['+30 oro/turno','-80 madera','Riesgo espía +15%']},
@@ -200,7 +200,7 @@ const EVENT_POOL = [
 ];
 
 // Pool completo de 7 naciones — se eligen 3 aleatoriamente cada partida
-const AI_NATIONS_POOL = [
+var AI_NATIONS_POOL = [
   {id:'ai_1',name:'Imperio Dorado',    icon:'🌟',personality:'agresiva',    government:'autocracia_militar', startRelation:-10,color:'#c8a020'},
   {id:'ai_2',name:'República del Mar', icon:'⚓', personality:'diplomática', government:'república',          startRelation:20, color:'#4a6a9c'},
   {id:'ai_3',name:'Tribu del Bosque',  icon:'🌲',personality:'oportunista', government:'oligarquia_tribal',  startRelation:5,  color:'#4a7c59'},
@@ -228,7 +228,7 @@ function pickAINations(seed) {
 // Compatibilidad: AI_NATIONS como alias del pool completo
 var AI_NATIONS = AI_NATIONS_POOL;
 
-const POLICIES = {
+var POLICIES = {
   economia:[
     {id:'free_market',   name:'Mercado Libre',     cost_gold:0,  effect_rate:{gold:+20,morale:-5},        factionEffect:{comerciantes:+20,pueblo:-10},  description:'Menos regulación, más crecimiento.'},
     {id:'state_control', name:'Economía Dirigida', cost_gold:50, effect_rate:{gold:-10,food:+15},         factionEffect:{pueblo:+15,comerciantes:-20},  description:'El Estado planifica.'},
@@ -243,14 +243,14 @@ const POLICIES = {
     {id:'mercenaries',   name:'Mercenarios',        cost_gold:300,effect_rate:{army_strength:+50,loyalty:-20},factionEffect:{comerciantes:-10},         description:'Los mejores, lealtad al oro.'}]
 };
 
-const WIN_CONDITIONS = [
+var WIN_CONDITIONS = [
   {id:'domination', name:'Dominio',             description:'Controla el 85% del territorio de Althoria (14/16 regiones)', check:(s)=>(s.althoriaRegions||0)>=14},
   {id:'prosperity', name:'Era de Prosperidad',  description:'Estabilidad>80 y Moral>80 durante 15 turnos',       check:(s)=>s.stability>=80&&s.morale>=80&&(s.prosperityTurns||0)>=15},
   {id:'economic',   name:'Hegemonía Económica', description:'Acumula 8000 oro',                                   check:(s)=>s.resources.gold>=8000},
   {id:'diplomatic', name:'Hegemonía Diplomática',description:'3 alianzas + 3 rutas comerciales',                  check:(s)=>(s.activeTradeRoutes||[]).length>=3&&(s.diplomacy||[]).filter(n=>(n.treaties||[]).includes('alliance')).length>=3}
 ];
 
-const LOSE_CONDITIONS = [
+var LOSE_CONDITIONS = [
   {id:'collapse',   name:'Colapso Social',  description:'Estabilidad ≤ 0 durante 2 turnos', check:(s)=>s.stability<=0&&(s.collapseTurns||0)>=2},
   {id:'starvation', name:'Hambruna Masiva', description:'Alimentos ≤ 0 durante 3 turnos',   check:(s)=>s.resources.food<=0&&(s.famineturns||0)>=3},
   {id:'revolution', name:'Revolución',      description:'Moral ≤ 10 y Estabilidad ≤ 15',    check:(s)=>s.morale<=10&&s.stability<=15},
@@ -260,7 +260,7 @@ const LOSE_CONDITIONS = [
 // ============================================================
 // GASTO PÚBLICO — opciones con reacción de la población
 // ============================================================
-const PUBLIC_SPENDING = {
+var PUBLIC_SPENDING = {
   feast: {
     icon: '🍖', name: 'Banquetes Populares',
     costPerTurn: 40, costOneTime: 0,
