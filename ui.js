@@ -384,7 +384,51 @@ const UI = {
           }).join('');
         })()}
       </div>
-      ${typeof TacticalMap !== 'undefined' ? TacticalMap.renderGarrisonPanel(state) : ''}`;
+      ${typeof TacticalMap !== 'undefined' ? TacticalMap.renderGarrisonPanel(state) : ''}
+      <div class="rpanel-section">
+        <div class="rpanel-title">🗺️ Mover Tropas</div>
+        ${(function(){
+          const regions = (state.althoriaRegions > 1 || (state.playerCells && state.playerCells.length > 1))
+            ? true : false;
+          const garrs = state._garrisons || {};
+          const garList = Object.entries(garrs).filter(([,v])=>v>0).map(([k,v])=>
+            '<div class="mil-unit-row" style="font-size:10px">' +
+              '<span>🛡 ' + k + ': <b>' + v.toLocaleString() + '</b> soldados</span>' +
+              '<button class="diplo-btn" style="padding:2px 7px;font-size:9px" ' +
+                'onclick="Game.recallGarrison(\''+k+'\')">↩ Retirar</button>' +
+            '</div>'
+          ).join('');
+          const availRegions = typeof ALTHORIA_REGIONS !== 'undefined'
+            ? ALTHORIA_REGIONS.filter(r => {
+                const pz = typeof AlthoriаMap !== 'undefined' ? (AlthoriаMap.nationZones||{})['player']||[] : [];
+                return pz.includes(r.id);
+              })
+            : [];
+          const regionOpts = availRegions.length > 1
+            ? availRegions.map(r=>'<option value="'+r.id+'">'+r.name+'</option>').join('')
+            : '<option value="">— Sin regiones disponibles —</option>';
+          const maxMove = Math.floor((state.army||0) * 0.5);
+          return '<div style="font-family:var(--font-mono);font-size:10px;color:var(--text3);margin-bottom:6px">' +
+            'Despliega tropas en una región tuya para reforzar su defensa.<br>' +
+            'Máximo: 50% del ejército (' + maxMove.toLocaleString() + ' soldados).' +
+            '</div>' +
+            (availRegions.length > 1
+              ? '<div style="display:flex;flex-direction:column;gap:5px">' +
+                  '<select id="garrison-region-sel" class="alth-region-select" style="font-size:10px;padding:4px">' +
+                    regionOpts +
+                  '</select>' +
+                  '<div style="display:flex;gap:5px;align-items:center">' +
+                    '<input id="garrison-amount" type="number" min="10" max="'+maxMove+'" value="'+Math.min(100,maxMove)+'" ' +
+                      'style="width:80px;font-family:var(--font-mono);font-size:10px;padding:4px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:2px">' +
+                    '<button class="diplo-btn primary" style="flex:1" onclick="Game.deployToRegion()">⚔ Desplegar</button>' +
+                  '</div>' +
+                '</div>'
+              : '<div style="color:var(--text3);font-size:10px">Necesitas controlar más de una región en el mapa de Althoria.</div>') +
+            (garList ? '<div style="margin-top:8px;border-top:1px solid var(--border2);padding-top:6px">' +
+              '<div style="font-family:var(--font-title);font-size:9px;color:var(--text3);letter-spacing:1px;margin-bottom:4px">GUARNICIONES ACTIVAS</div>' +
+              garList + '</div>' : '');
+        })()}
+      </div>`;
   },
 
   // ══════════════════════════════════════════════
@@ -631,7 +675,7 @@ const UI = {
                   if(adv.indexOf(id)>=2) uid='robo_planos';
                   var ok=(typeof UnlockSystem==='undefined')||UnlockSystem.isUnlocked(state,uid);
                   if(!ok){var h=(typeof UnlockSystem!=='undefined')?UnlockSystem.getHint(uid):'';return '<button class="diplo-btn tb-tip" disabled data-tip="🔒 '+h+'">🔒 '+m.icon+'</button>';}
-                  var oc='Game.sendSpy("'+id+'","'+nation.id+'")'; return '<button class="diplo-btn" onclick="'+oc+'" title="'+m.description+' ('+Math.round(m.successChance*100)+'% éxito)">'+m.icon+' '+m.cost.gold+'💰</button>';
+                  var oc="Game.sendSpy('" +id+"','" +nation.id+"')"; return '<button class="diplo-btn" onclick="'+oc+'" title="'+m.description+' ('+Math.round(m.successChance*100)+'% éxito)">'+m.icon+' '+m.cost.gold+'💰</button>';
                 }).join('');
               })()}
             </div>
