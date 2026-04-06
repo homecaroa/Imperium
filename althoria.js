@@ -234,7 +234,7 @@ window.AlthoriaMap = window.AlthoriaMap || {
         <span id="althoria-hover-text">Pasa el cursor sobre una región para ver información</span>
       </div>
     `;
-    document.getElementById('app').appendChild(panel);
+    document.body.appendChild(panel);
 
     this.canvas  = document.getElementById('althoria-canvas');
     this.ctx     = this.canvas.getContext('2d');
@@ -1160,7 +1160,14 @@ window.AlthoriaMap = window.AlthoriaMap || {
   open(gameState) {
     this.isOpen = true;
     const panel = document.getElementById('althoria-panel');
-    if (panel) panel.classList.add('open');
+    if (panel) {
+      panel.classList.add('open');
+      // Force visibility via inline styles — CSS transition may fail
+      panel.style.right      = '0';
+      panel.style.display    = 'flex';
+      panel.style.visibility = 'visible';
+      panel.style.zIndex     = '9500';
+    }
 
     if (gameState) {
       this.assignZones(gameState);
@@ -1262,7 +1269,13 @@ window.AlthoriaMap = window.AlthoriaMap || {
   close() {
     this.isOpen = false;
     const panel = document.getElementById('althoria-panel');
-    if (panel) panel.classList.remove('open');
+    if (panel) {
+      panel.classList.remove('open');
+      panel.style.right   = '-82%';
+      setTimeout(() => {
+        if (!this.isOpen) panel.style.display = '';
+      }, 400);
+    }
   },
 
   // ── TOGGLE PANEL ALTHORIA ────────────────────────────────
