@@ -604,14 +604,29 @@ window.Game = window.Game || {
   },
 
   resolveEvent(eventIdx, optionIdx) {
-    // Notificar al sistema de arcos antes de resolver
-    const _event = this.state && this.state.currentEvents && this.state.currentEvents[eventIdx];
-    if (typeof StoryArcSystem !== "undefined" && _event) {
-      StoryArcSystem.onEventDecision(this.state, _event, optionIdx);
-    }
     const state = this.state;
+    if (!state || !state.currentEvents) return;
     const event = state.currentEvents[eventIdx];
     if (!event) return;
+
+    // Notificar al sistema de arcos antes de resolver
+    if (typeof StoryArcSystem !== "undefined") {
+      StoryArcSystem.onEventDecision(state, event, optionIdx);
+    }
+
+    // Guard: validate option exists before applying
+    if (!event.options || !event.options[optionIdx]) {
+      // Event has no valid option — just remove it
+      state.currentEvents.splice(eventIdx, 1);
+      if (state.currentEvents.length > 0) {
+        state.activeEventIndex = Math.min(eventIdx, state.currentEvents.length - 1);
+      } else {
+        state.activeEventIndex = null;
+      }
+      UI.renderEventQueue(state);
+      UI.renderActiveEvent(state);
+      return;
+    }
 
     Systems.Events.applyDecision(state, event, optionIdx);
     // Procesar decisión de arco si corresponde
@@ -1221,7 +1236,6 @@ function shareGame(platform) {
   }
 }
 
-var Game = window.Game;  // local alias
 document.addEventListener('DOMContentLoaded', () => {
   buildCodex();
   Auth.init();
