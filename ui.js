@@ -992,32 +992,34 @@ const UI = {
   renderTroopsSidebar(state) {
     const container = document.getElementById('troops-sidebar-panel');
     if (!container) return;
-    const units = state.armyUnits || [];
-    const total = state.army || 0;
-    const upkeep = Systems.Economy ? Systems.Economy.calculateArmyUpkeep(state) : 0;
+    const units    = state.armyUnits || [];
+    const total    = state.army || 0;
+    const upkeep   = typeof Systems !== 'undefined' ? Systems.Economy.calculateArmyUpkeep(state) : 0;
+    const garrisons = state._garrisons || {};
+    const maxDeploy = Math.floor(total * 0.5);
 
+    // ── Composición del ejército ──────────────────────────
     let html = '<div style="padding:4px 2px">'
-      + '<div style="font-family:var(--font-title);font-size:10px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;padding:6px 8px;border-bottom:1px solid var(--border2);margin-bottom:6px">'
-      + '⚔️ Ejército · ' + total.toLocaleString() + ' efectivos'
+      + '<div style="font-family:var(--font-title);font-size:10px;color:var(--gold);'
+      +   'letter-spacing:2px;text-transform:uppercase;padding:6px 8px;'
+      +   'border-bottom:1px solid var(--border2);margin-bottom:6px">'
+      + '⚔️ ' + total.toLocaleString() + ' efectivos · -' + upkeep + '💰/t'
       + '</div>';
 
     if (!units.length) {
-      html += '<div style="font-family:var(--font-mono);font-size:10px;color:var(--text3);padding:12px;text-align:center">Sin unidades desplegadas</div>';
+      html += '<div style="font-family:var(--font-mono);font-size:10px;color:var(--text3);padding:8px;text-align:center">Sin unidades reclutadas</div>';
     } else {
-      const order = {arqueros:0,ballistas:1,caballeria:2,caballeria_pesada:3,guerreros_jaguar:4,legionarios:5,berserkers:6,infanteria:7,levas:8};
-      const sorted = [...units].sort((a,b)=>(order[a.typeId]??9)-(order[b.typeId]??9));
-      sorted.forEach(u => {
-        const def = MILITARY_UNITS[u.typeId];
+      units.forEach(u => {
+        const def = typeof MILITARY_UNITS !== 'undefined' ? MILITARY_UNITS[u.typeId] : null;
         if (!def || u.count === 0) return;
-        const pct = Math.round(u.count / Math.max(total, 1) * 100);
-        html += '<div style="padding:5px 8px;margin-bottom:3px;background:var(--bg4);border:1px solid var(--border);border-left:3px solid '+(def.color||'var(--gold)')+';" class="tb-tip" data-tip="'
-          + def.icon+' '+def.name+'&#10;'+def.description+'&#10;&#10;Fuerza: '+def.strength+' | Ataque: '+def.attack+' | Defensa: '+def.defense+'&#10;Coste mantenimiento: '+def.upkeep+'/soldado/turno">'
-          + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">'
-          + '<span style="font-size:16px">' + def.icon + '</span>'
-          + '<span style="font-family:var(--font-mono);font-size:10px;color:var(--text);flex:1">' + def.name + '</span>'
-          + '<span style="font-family:var(--font-mono);font-size:11px;font-weight:bold;color:var(--gold2)">' + u.count.toLocaleString() + '</span>'
+        const pct = Math.round(u.count / Math.max(total,1) * 100);
+        html += '<div style="padding:4px 8px;margin-bottom:3px;background:var(--bg4);border:1px solid var(--border);border-left:3px solid '+(def.color||'var(--gold)')+';">'
+          + '<div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">'
+          + '<span style="font-size:14px">'+def.icon+'</span>'
+          + '<span style="font-family:var(--font-mono);font-size:9px;color:var(--text);flex:1">'+def.name+'</span>'
+          + '<span style="font-family:var(--font-mono);font-size:10px;font-weight:bold;color:var(--gold2)">'+u.count.toLocaleString()+'</span>'
           + '</div>'
-          + '<div style="height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden">'
+          + '<div style="height:3px;background:rgba(255,255,255,0.06);border-radius:2px">'
           + '<div style="height:100%;width:'+pct+'%;background:'+(def.color||'var(--gold)')+'"></div>'
           + '</div>'
           + '</div>';
@@ -1025,20 +1027,62 @@ const UI = {
     }
 
     if (state.legendaryUnit) {
-      const leg = state.legendaryUnit;
-      html += '<div style="margin-top:8px;padding:6px 8px;background:rgba(200,152,42,0.1);border:1px solid var(--gold);border-radius:3px">'
-        + '<span style="font-family:var(--font-title);font-size:10px;color:var(--gold3)">⭐ '+leg.icon+' '+leg.name+'</span>'
-        + '<div style="font-family:var(--font-mono);font-size:9px;color:var(--text3);margin-top:2px">'+leg.special+'</div>'
+      html += '<div style="margin-top:6px;padding:5px 8px;background:rgba(200,152,42,0.1);border:1px solid var(--gold)">'
+        + '<span style="font-size:10px;color:var(--gold3)">⭐ '+state.legendaryUnit.icon+' '+state.legendaryUnit.name+'</span>'
         + '</div>';
     }
 
-    html += '<div style="margin-top:8px;padding:5px 8px;background:var(--bg3);border:1px solid var(--border);font-family:var(--font-mono);font-size:9px;color:var(--text3)">'
-      + '💰 Upkeep: -' + upkeep + ' oro/turno'
-      + '</div>';
+    // ── Desplegar tropas en región ─────────────────────────
+    html += '<div style="margin-top:10px;padding:8px;background:var(--bg3);border:1px solid var(--border2)">'
+      + '<div style="font-family:var(--font-title);font-size:9px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">🗺️ Desplegar en Región</div>';
 
-    html += '</div>';
+    // Get player-owned Althoria regions
+    const playerZones = (typeof AlthoriаMap !== 'undefined') ? (AlthoriаMap.nationZones||{})['player']||[] : [];
+    const availRegions = (typeof ALTHORIA_REGIONS !== 'undefined')
+      ? ALTHORIA_REGIONS.filter(r => playerZones.includes(r.id))
+      : [];
+
+    if (availRegions.length < 2) {
+      html += '<div style="font-family:var(--font-mono);font-size:9px;color:var(--text3)">Necesitas controlar 2+ regiones en Althoria.</div>';
+    } else {
+      html += '<select id="troops-region-sel" style="width:100%;font-family:var(--font-mono);font-size:10px;padding:4px;background:var(--bg4);border:1px solid var(--border2);color:var(--text);margin-bottom:5px">'
+        + availRegions.map(r => {
+            const g = garrisons[r.id] || 0;
+            return '<option value="'+r.id+'">'+r.name+(g?' ('+g.toLocaleString()+' desplegados)':'')+'</option>';
+          }).join('')
+        + '</select>'
+        + '<div style="display:flex;gap:5px;margin-bottom:5px">'
+        + '<input id="troops-deploy-num" type="number" min="10" max="'+maxDeploy+'" value="'+Math.min(100,maxDeploy)+'" '
+        + 'style="width:70px;font-family:var(--font-mono);font-size:10px;padding:4px;background:var(--bg4);border:1px solid var(--border2);color:var(--text)">'
+        + '<button onclick="Game.deployToRegion(this)" data-sel="troops-region-sel" data-num="troops-deploy-num" '
+        + 'style="flex:1;font-family:var(--font-title);font-size:9px;font-weight:700;letter-spacing:1px;'
+        + 'background:linear-gradient(180deg,var(--gold2),var(--gold));color:#0a0800;border:none;padding:5px;cursor:pointer">⚔ DESPLEGAR</button>'
+        + '</div>';
+    }
+
+    // ── Guarniciones activas ─────────────────────────────
+    const garEntries = Object.entries(garrisons).filter(([,v])=>v>0);
+    if (garEntries.length) {
+      html += '<div style="border-top:1px solid var(--border2);margin-top:6px;padding-top:6px">'
+        + '<div style="font-family:var(--font-mono);font-size:9px;color:var(--text3);margin-bottom:4px">GUARNICIONES</div>';
+      garEntries.forEach(([rId, cnt]) => {
+        const reg = (typeof ALTHORIA_REGIONS !== 'undefined') ? ALTHORIA_REGIONS.find(r=>r.id===rId) : null;
+        html += '<div style="display:flex;align-items:center;gap:4px;margin-bottom:3px">'
+          + '<span style="font-family:var(--font-mono);font-size:9px;color:var(--text2);flex:1">🛡 '+(reg?reg.name:rId)+'</span>'
+          + '<span style="font-family:var(--font-mono);font-size:9px;color:var(--gold2);font-weight:bold">'+cnt.toLocaleString()+'</span>'
+          + '<button onclick="Game.recallGarrison(this.dataset.rid)" data-rid="'+rId+'" '
+          + 'style="font-size:9px;background:none;border:1px solid var(--border2);color:var(--text3);padding:1px 5px;cursor:pointer">↩</button>'
+          + '</div>';
+      });
+      html += '</div>';
+    }
+
+    html += '</div>'; // deploy panel
+    html += '</div>'; // main wrapper
+
     container.innerHTML = html;
   },
+
 
   fullRender(state) {
     this.updateTopBar(state);
