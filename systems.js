@@ -921,7 +921,10 @@ const Systems = {
         DynamicEvents.applyDecision(state, event, optionIndex);
         return;
       }
+      // Guard: options may be missing or malformed (arc events, stripped serialization)
+      if (!event.options || !Array.isArray(event.options)) return;
       const option = event.options[optionIndex];
+      if (!option) return;  // optionIndex out of range
       const effects = option.effects;
       if (!effects) return;
 
