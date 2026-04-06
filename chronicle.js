@@ -162,22 +162,37 @@ var ChronicleSystem = {
 
   // ── MOSTRAR MODAL ────────────────────────────────────────
   show(state, prev) {
-    // No mostrar en el turno 1 (inicio de partida)
+    // No mostrar en turno 1
     if (!state || (state.turn || 1) <= 1) return;
 
-    const text = this.generateChronicle(state, prev);
+    const text  = this.generateChronicle(state, prev);
     const modal = document.getElementById('chronicle-modal');
-    const body  = document.getElementById('chronicle-body');
-    const turnEl= document.getElementById('chronicle-turn');
-    if (!modal || !body) return;
+    if (!modal) return;
 
-    if (turnEl) turnEl.textContent = 'Año ' + (state.year||1) + ' · Turno ' + (state.turn||1);
-    body.textContent = text;
+    // Rebuild inner HTML fresh each time — avoids stale DOM state
+    modal.innerHTML = '<div class="chronicle-box">' +
+      '<div class="chronicle-header">' +
+        '<div class="chronicle-ornament">✦ ─────── ✦</div>' +
+        '<div class="chronicle-title">📜 Crónica del Reino</div>' +
+        '<div class="chronicle-subtitle">Año ' + (state.year||1) + ' · Turno ' + (state.turn||1) + '</div>' +
+        '<div class="chronicle-ornament">✦ ─────── ✦</div>' +
+      '</div>' +
+      '<div class="chronicle-scroll">' +
+        '<p class="chronicle-text">' + text.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</p>' +
+      '</div>' +
+      '<div class="chronicle-footer">' +
+        '<button class="chronicle-btn" onclick="ChronicleSystem.close()">' +
+          '<span>⚔</span> Continuar el reinado' +
+        '</button>' +
+        '<div class="chronicle-esc">o pulsa ESC</div>' +
+      '</div>' +
+    '</div>';
 
     modal.classList.add('open');
-    if (modal.setAttribute) modal.setAttribute('aria-hidden', 'false');
+    modal.style.display = 'flex';
+    modal.style.opacity = '1';
+    modal.style.pointerEvents = 'all';
 
-    // Close on backdrop click
     modal.onclick = (e) => { if (e.target === modal) this.close(); };
   },
 
@@ -185,7 +200,16 @@ var ChronicleSystem = {
     const modal = document.getElementById('chronicle-modal');
     if (modal) {
       modal.classList.remove('open');
-      if (modal.setAttribute) modal.setAttribute('aria-hidden', 'true');
+      modal.style.opacity = '0';
+      modal.style.pointerEvents = 'none';
+      // Delay display:none until transition finishes
+      setTimeout(() => {
+        if (!modal.classList.contains('open')) {
+          modal.style.display = 'none';
+          // Reset so next show() starts fresh
+          modal.style.display = '';
+        }
+      }, 400);
     }
   },
 
