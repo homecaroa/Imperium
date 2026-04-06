@@ -395,15 +395,27 @@ var HiddenObjectives = {
   // Chequear progreso cada turno
   checkProgress(state) {
     if (!state._hiddenObjectives) return;
+    // Restore conditions from OBJECTIVES template if stripped by JSON serialization
+    const civId = state.civId || 'roman';
+    const templates = this.OBJECTIVES[civId] || this.OBJECTIVES.roman || [];
     state._hiddenObjectives.forEach(obj => {
       if (obj.completed) return;
+      // Re-attach condition function if it was stripped by JSON
+      if (typeof obj.condition !== 'function') {
+        const tmpl = templates.find(t => t.id === obj.id);
+        if (tmpl && typeof tmpl.condition === 'function') {
+          obj.condition = tmpl.condition;
+        } else {
+          return; // cannot evaluate — skip
+        }
+      }
       if (obj.condition(state)) {
         obj._progress = (obj._progress || 0) + 1;
         if (obj._progress >= obj.turns_required) {
           this._complete(state, obj);
         }
       } else {
-        if (obj.turns_required > 1) obj._progress = 0; // reset streak
+        if (obj.turns_required > 1) obj._progress = 0;
       }
     });
   },
@@ -411,7 +423,16 @@ var HiddenObjectives = {
   _complete(state, obj) {
     obj.completed = true;
     obj.revealed = true;
+
+    // Restore reward from template if missing (after JSON deserialization)
+    if (!obj.reward) {
+      const civId = state.civId || 'roman';
+      const templates = this.OBJECTIVES[civId] || this.OBJECTIVES.roman || [];
+      const tmpl = templates.find(t => t.id === obj.id);
+      if (tmpl) obj.reward = tmpl.reward;
+    }
     const r = obj.reward;
+    if (!r) return;  // no reward definition — skip safely
 
     // Aplicar recompensa
     if (r.stability)     state.stability     = Math.min(100, state.stability     + r.stability);
