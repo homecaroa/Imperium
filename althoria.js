@@ -274,26 +274,36 @@ window.AlthoriaMap = window.AlthoriaMap || {
     };
     // Detect correct base path (GitHub Pages, localhost, file://)
     var _mapBase = (function() {
-      // Try script tag first
+      // Try script tag first — strip ?v=XX and filename
       var scripts = document.querySelectorAll('script[src]');
       for (var i = 0; i < scripts.length; i++) {
-        if (scripts[i].src.indexOf('althoria.js') > -1) {
-          return scripts[i].src.replace('althoria.js', '');
+        var src = scripts[i].src || '';
+        var idx = src.indexOf('althoria.js');
+        if (idx > -1) {
+          return src.substring(0, idx);
         }
       }
-      // Fallback: current page URL directory
-      var loc = window.location.href;
+      // Fallback: use window.IMAGE_BASE (set in index.html before scripts load)
+      if (typeof window.IMAGE_BASE === 'string' && window.IMAGE_BASE) {
+        return window.IMAGE_BASE;
+      }
+      // Last resort: current page URL directory
+      var loc = window.location.href.split('?')[0];
       return loc.substring(0, loc.lastIndexOf('/') + 1);
     })();
-    this.img.src = _mapBase + 'img/map/althoria_map.png';
+    this.img.src = (window.IMAGE_BASE || _mapBase) + 'img/map/althoria_map.png';
+    this.img.onerror = () => { console.warn('Map image not found at:', this.img.src); };
   },
 
   _sizeCanvas() {
     const wrap = document.getElementById('althoria-canvas-wrap');
-    if (!wrap || !this.img.naturalWidth) return;
+    if (!wrap) return;
     const wW = wrap.clientWidth  || 600;
     const wH = wrap.clientHeight || 700;
-    const ratio = this.img.naturalWidth / this.img.naturalHeight;
+    // Use image ratio if loaded, otherwise default 4:3
+    const ratio = (this.img && this.img.naturalWidth)
+      ? this.img.naturalWidth / this.img.naturalHeight
+      : 4/3;
     let cW = wW, cH = wW / ratio;
     if (cH > wH) { cH = wH; cW = wH * ratio; }
     this.canvas.width  = Math.floor(cW);
@@ -451,10 +461,10 @@ window.AlthoriaMap = window.AlthoriaMap || {
 
   // ── RENDER PRINCIPAL ──────────────────────────────────────
   render() {
-    if (!this.ctx || !this.imgLoaded) return;
+    if (!this.ctx) return;
     const ctx = this.ctx;
-    const W   = this.canvas.width;
-    const H   = this.canvas.height;
+    const W   = this.canvas.width  || 600;
+    const H   = this.canvas.height || 700;
 
     // Limpiar
     ctx.clearRect(0, 0, W, H);
@@ -467,10 +477,20 @@ window.AlthoriaMap = window.AlthoriaMap || {
     ctx.translate(px, py);
     ctx.scale(z, z);
 
-    // 1. Imagen base (con imageSmoothingQuality alta para evitar pixelado)
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(this.img, 0, 0, W, H);
+    // 1. Imagen base (o fondo oscuro si no cargó)
+    if (this.imgLoaded && this.img && this.img.naturalWidth) {
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(this.img, 0, 0, W, H);
+    } else {
+      // Fondo de mapa sin imagen — mapa de polígonos sobre fondo oscuro
+      ctx.fillStyle = '#0e1a0e';
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = 'rgba(200,152,42,0.15)';
+      ctx.font = 'bold 14px serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('🗺️ Cargando mapa...', W/2, 30);
+    }
 
     // 2. Halos de influencia (capa más profunda)
     this._renderInfluenceHalos(ctx, W, H);
@@ -1177,14 +1197,16 @@ window.AlthoriaMap = window.AlthoriaMap || {
 
     // Resize canvas to fill panel, then render
     this._sizeCanvas();
-    if (this.imgLoaded) {
-      this.render();
-    } else {
-      // Image not loaded yet — render when it loads (handled in _loadImage onload)
+    // Always render — if image not loaded, renders polygons on dark background
+    this.render();
+    if (!this.imgLoaded) {
+      // Re-render when image loads
+      const _prevOnload = this.img.onload;
       this.img.onload = () => {
         this.imgLoaded = true;
         this._sizeCanvas();
         if (this.isOpen) this.render();
+        if (_prevOnload) _prevOnload();
       };
     }
   },
