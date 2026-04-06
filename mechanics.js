@@ -13,7 +13,7 @@
 // ─────────────────────────────────────────────────────────────
 // 1. PUNTOS DE ACCIÓN
 // ─────────────────────────────────────────────────────────────
-const ActionPoints = {
+window.ActionPoints = window.ActionPoints || {
 
   BASE_AP: 3,
 
@@ -59,7 +59,7 @@ const ActionPoints = {
 // ─────────────────────────────────────────────────────────────
 // 2. COSTES OCULTOS ACUMULATIVOS
 // ─────────────────────────────────────────────────────────────
-const HiddenCosts = {
+var HiddenCosts = {
 
   // Registrar un coste oculto que se aplica en turnos futuros
   add(state, type, amount, turns) {
@@ -104,7 +104,7 @@ const HiddenCosts = {
 // ─────────────────────────────────────────────────────────────
 // 3. PROGRESIÓN Y ADICCIÓN
 // ─────────────────────────────────────────────────────────────
-const Progression = {
+window.Progression = window.Progression || {
 
   XP_TABLE: {
     turn_survived:    5,
@@ -257,7 +257,7 @@ const Progression = {
 // ─────────────────────────────────────────────────────────────
 // 4. MODO BLITZ (10 minutos)
 // ─────────────────────────────────────────────────────────────
-const BlitzMode = {
+var BlitzMode = {
 
   apply(state) {
     state._blitzMode      = true;
@@ -293,11 +293,11 @@ const BlitzMode = {
 // ─────────────────────────────────────────────────────────────
 // 5. EVENTOS DINÁMICOS ENCADENADOS
 // ─────────────────────────────────────────────────────────────
-const DYNAMIC_EVENT_POOL = [
+var DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_HARVEST_FAILURE',
-    image: 'events/evt_harvest.png',
+    image: 'img/events/evt_harvest.png',
     title: '🌾 Cosecha Catastrófica',
     category: 'CRISIS',
     priority: 'high',
@@ -326,7 +326,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_FAMINE_REVOLT',
-    image: 'events/evt_famine_revolt.png',
+    image: 'img/events/evt_famine_revolt.png',
     title: '✊ Revuelta por Hambre',
     category: 'CRISIS',
     priority: 'critical',
@@ -351,7 +351,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_CIVIL_WAR',
-    image: 'events/evt_civil_war.png',
+    image: 'img/events/evt_civil_war.png',
     title: '🔥 Guerra Civil',
     category: 'GUERRA',
     priority: 'critical',
@@ -372,7 +372,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_MERCHANT_CARAVAN',
-    image: 'events/evt_caravan.png',
+    image: 'img/events/evt_caravan.png',
     title: '🐪 Caravana de Mercaderes',
     category: 'ECONOMÍA',
     priority: 'normal',
@@ -401,7 +401,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_GENERAL_BETRAYAL',
-    image: 'events/evt_betrayal.png',
+    image: 'img/events/evt_betrayal.png',
     title: '🗡️ Traición del General',
     category: 'TRAICIÓN',
     priority: 'critical',
@@ -429,7 +429,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_PLAGUE',
-    image: 'events/evt_plague.png',
+    image: 'img/events/evt_plague.png',
     title: '💀 Epidemia',
     category: 'CRISIS',
     priority: 'critical',
@@ -459,7 +459,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_DIPLOMATIC_INCIDENT',
-    image: 'events/evt_diplomatic.png',
+    image: 'img/events/evt_diplomatic.png',
     title: '💢 Incidente Diplomático',
     category: 'DIPLOMACIA',
     priority: 'high',
@@ -483,7 +483,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_GOLDEN_AGE',
-    image: 'events/evt_golden_age.png',
+    image: 'img/events/evt_golden_age.png',
     title: '✨ Era de Prosperidad',
     category: 'OPORTUNIDAD',
     priority: 'normal',
@@ -551,7 +551,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_SPY_CAPTURED',
-    image: 'events/evt_spy.png',
+    image: 'img/events/evt_spy.png',
     title: '🕵️ Espía Capturado',
     category: 'DIPLOMACIA', priority: 'high', icon: '🕵️',
     weight: s => (s.spies?.active > 0 ? 30 : 0) + (s.diplomacy.some(n=>n.relation<-20)?15:0),
@@ -566,7 +566,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_BANDIT_UPRISING',
-    image: 'events/evt_bandits.png',
+    image: 'img/events/evt_bandits.png',
     title: '🗡️ Levantamiento de Bandidos',
     category: 'SEGURIDAD', priority: 'high', icon: '🗡️',
     weight: s => (s.economy.corruption > 25 ? 35 : 5) + (s.stability < 40 ? 20 : 0),
@@ -610,7 +610,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_MUTINY_RISK',
-    image: 'events/evt_mutiny.png',
+    image: 'img/events/evt_mutiny.png',
     title: '😡 Amago de Motín Militar',
     category: 'MILITAR', priority: 'critical', icon: '😡',
     weight: s => (s.morale < 30 ? 50 : 0) + (s.army > 600 && s.resources.gold < 100 ? 30 : 0),
@@ -625,7 +625,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_PLAGUE_RATS',
-    image: 'events/evt_plague.png',
+    image: 'img/events/evt_plague.png',
     title: '🐀 Plaga de Ratas en los Graneros',
     category: 'ECONÓMICO', priority: 'high', icon: '🐀',
     weight: s => (s.resources.food > 300 ? 20 : 5) + (s.population > 7000 ? 15 : 0),
@@ -668,7 +668,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_NOBLE_REBELLION',
-    image: 'events/evt_noble_rebellion.png',
+    image: 'img/events/evt_noble_rebellion.png',
     title: '👑 Rebelión de la Nobleza',
     category: 'POLÍTICA', priority: 'critical', icon: '👑',
     weight: s => (s.economy.corruption > 35 ? 30 : 0) + (s.stability < 35 ? 25 : 0),
@@ -684,7 +684,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_DESERT_CARAVAN',
-    image: 'events/evt_caravan.png',
+    image: 'img/events/evt_caravan.png',
     title: '🐪 Gran Caravana del Desierto',
     category: 'ECONÓMICO', priority: 'normal', icon: '🐪',
     weight: s => 15 + ((s.activeTradeRoutes||[]).length * 8),
@@ -699,7 +699,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_VOLCANIC_WINTER',
-    image: 'events/evt_volcanic.png',
+    image: 'img/events/evt_volcanic.png',
     title: '🌋 Invierno Volcánico',
     category: 'CLIMA', priority: 'critical', icon: '🌋',
     weight: s => 8,
@@ -714,7 +714,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_RELIGIOUS_SCHISM',
-    image: 'events/evt_schism.png',
+    image: 'img/events/evt_schism.png',
     title: '✝️ Cisma Religioso',
     category: 'SOCIAL', priority: 'high', icon: '✝️',
     weight: s => (s.morale < 45 ? 25 : 8) + (s.stability < 50 ? 10 : 0),
@@ -729,7 +729,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_TECHNOLOGICAL_DISCOVERY',
-    image: 'events/evt_discovery.png',
+    image: 'img/events/evt_discovery.png',
     title: '⚙️ Descubrimiento Técnico',
     category: 'OPORTUNIDAD', priority: 'normal', icon: '⚙️',
     weight: s => (s.stability > 60 && s.resources.iron > 80) ? 22 : 4,
@@ -746,7 +746,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_ALLIED_REQUEST',
-    image: 'events/evt_diplomatic.png',
+    image: 'img/events/evt_diplomatic.png',
     title: '📨 Petición de Ayuda de Aliado',
     category: 'DIPLOMACIA', priority: 'high', icon: '📨',
     weight: s => (s.diplomacy.some(n=>n.relation>40) ? 28 : 0),
@@ -763,7 +763,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_PIRATE_RAID',
-    image: 'events/evt_pirates.png',
+    image: 'img/events/evt_pirates.png',
     title: '🏴‍☠️ Ataque Pirata a Puertos',
     category: 'MILITAR', priority: 'high', icon: '🏴‍☠️',
     weight: s => ((s.activeTradeRoutes||[]).some(r=>r.routeId?.includes('mar')) ? 35 : 5),
@@ -791,7 +791,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_DROUGHT',
-    image: 'events/evt_drought.png',
+    image: 'img/events/evt_drought.png',
     title: '☀️ Gran Sequía',
     category: 'CLIMA', priority: 'critical', icon: '☀️',
     weight: s => (s.climate?.drought ? 60 : 8) + (s.resources.food < 200 ? 20 : 0),
@@ -822,7 +822,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_HERO_EMERGES',
-    image: 'events/evt_hero.png',
+    image: 'img/events/evt_hero.png',
     title: '⭐ Héroe del Pueblo',
     category: 'MILITAR', priority: 'normal', icon: '⭐',
     weight: s => (s.army > 400 && s.morale > 55) ? 18 : 3,
@@ -837,7 +837,7 @@ const DYNAMIC_EVENT_POOL = [
 
   {
     id: 'EVT_SLAVE_REVOLT',
-    image: 'events/evt_workers_revolt.png',
+    image: 'img/events/evt_workers_revolt.png',
     title: '✊ Revuelta de los Trabajadores',
     category: 'SOCIAL', priority: 'critical', icon: '✊',
     weight: s => (s.economy.corruption > 30 && s.morale < 40) ? 45 : 5,
@@ -853,7 +853,7 @@ const DYNAMIC_EVENT_POOL = [
 ];
 
 // Motor de selección de eventos dinámicos
-const DynamicEvents = {
+window.DynamicEvents = window.DynamicEvents || {
 
   selectForTurn(state) {
     const available = DYNAMIC_EVENT_POOL.filter(e => {
@@ -994,7 +994,7 @@ const DynamicEvents = {
 // ─────────────────────────────────────────────────────────────
 // 6. SABOTAJE DE RUTAS COMERCIALES
 // ─────────────────────────────────────────────────────────────
-const RouteSabotage = {
+var RouteSabotage = {
 
   // Atacar ruta de un rival (acción del jugador)
   attackRoute(state, targetNationId) {
@@ -1072,7 +1072,7 @@ const RouteSabotage = {
 // ─────────────────────────────────────────────────────────────
 // 7. POSICIONAMIENTO TÁCTICO
 // ─────────────────────────────────────────────────────────────
-const TacticalMap = {
+var TacticalMap = {
 
   NODES: {
     highlands:    { name:'Tierras Altas',    defBonus:0.35, atkPenalty:0.10, type:'highland',   maxGarrison:500  },
@@ -1165,7 +1165,7 @@ const TacticalMap = {
 // ─────────────────────────────────────────────────────────────
 // 8. VISUAL FEEDBACK RULES (aplicadas en cada render)
 // ─────────────────────────────────────────────────────────────
-const VisualFeedback = {
+var VisualFeedback = {
 
   apply(state) {
     if (!state) return;
@@ -1212,3 +1212,9 @@ const VisualFeedback = {
     }
   }
 };
+
+var DynamicEvents = window.DynamicEvents;
+
+var Progression = window.Progression;
+
+var ActionPoints = window.ActionPoints;
