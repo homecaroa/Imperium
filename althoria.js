@@ -181,6 +181,7 @@ window.AlthoriaMap = window.AlthoriaMap || {
   _dragMoved:    false,
   _panJustEnded: false,
   _drag:         { active: false },
+  _troopSel:     null,   // { regionId, amount } — región origen seleccionada
   _panning:      false,
   zoom:          1.0,
   panX:          0,
@@ -590,6 +591,7 @@ window.AlthoriaMap = window.AlthoriaMap || {
     // Pass 2: PLAYER territories — full opacity, stronger fill, glow border
     const playerZones = this.nationZones['player'] || [];
     const pcol = this.NATION_COLORS['player'];
+    const selectedRegionId = this._troopSel ? this._troopSel.regionId : null;
     if (pcol && playerZones.length) {
       const pulse = 0.7 + 0.3 * Math.sin(this.animFrame * 0.06);
 
@@ -624,6 +626,29 @@ window.AlthoriaMap = window.AlthoriaMap || {
         ctx.fillText('👑', cx2+1, cy2+1);
         ctx.fillStyle = '#72c882';
         ctx.fillText('👑', cx2, cy2);
+
+        // Selection highlight pulse
+        if (selectedRegionId === rId) {
+          ctx.strokeStyle = 'rgba(255,255,120,0.9)';
+          ctx.lineWidth   = 3;
+          ctx.setLineDash([7,4]);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
+        // Garrison indicator badge
+        const _gs = (typeof Game !== 'undefined' && Game.state) ? Game.state : null;
+        const _garr = _gs ? ((_gs._garrisons || {})[rId] || 0) : 0;
+        if (_garr > 0) {
+          const label = '🛡 ' + (_garr >= 1000 ? Math.floor(_garr/1000) + 'k' : _garr);
+          ctx.font = 'bold 9px JetBrains Mono,monospace';
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          const tw = ctx.measureText(label).width;
+          ctx.fillStyle = 'rgba(0,0,0,0.75)';
+          ctx.fillRect(cx2 - tw/2 - 3, cy2 + 10, tw + 6, 14);
+          ctx.fillStyle = '#a0e0b0';
+          ctx.fillText(label, cx2, cy2 + 17);
+        }
       });
     }
   },
@@ -942,7 +967,6 @@ window.AlthoriaMap = window.AlthoriaMap || {
   // Flujo: mousedown en zona del jugador → drag → mouseup en zona válida
 
   _onMouseDown(e) {
-    // Drag-and-drop de tropas eliminado — solo pan
     this._dragMoved = false;
     this._onPanStart(e);
   },
@@ -954,6 +978,73 @@ window.AlthoriaMap = window.AlthoriaMap || {
 
   _onMouseUp(e) {
     this._onPanEnd();
+    // Only act if it was a click (not a pan drag)
+    if (!this._dragMoved) {
+      this._onMapClick(e);
+    }
+  },
+
+  _onMapClick(e) {
+    const gameState = (typeof Game !== 'undefined' && Game.state) ? Game.state : null;
+    if (!gameState) return;
+
+    const [mx, my] = this._screenToMapPct(e.clientX, e.clientY);
+    const region = ALTHORIA_REGIONS.find(r => this._pointInPolygon(mx, my, r.polygon));
+    if (!region) { this._troopSel = null; this.render(); return; }
+
+    const playerZones = (this.nationZones || {})['player'] || [];
+    const isPlayerRegion = playerZones.includes(region.id);
+    const garrison = (gameState._garrisons || {})[region.id] || 0;
+
+    if (!isPlayerRegion) {
+      // Click on non-player region — clear selection
+      this._troopSel = null;
+      this.render();
+      return;
+    }
+
+    if (!this._troopSel) {
+      // FIRST CLICK: select origin region
+      // Calculate available troops (army pool + garrison already there)
+      const totalArmy = gameState.army || 0;
+      const moveAmount = Math.floor(totalArmy * 0.5);
+      if (moveAmount < 1 && garrison < 1) {
+        Systems.Log.add(gameState, '⚠️ No hay tropas disponibles para mover.', 'warn');
+        return;
+      }
+      this._troopSel = { regionId: region.id, amount: moveAmount };
+      Systems.Log.add(gameState, '📍 Origen: ' + region.name + ' · ' + moveAmount.toLocaleString() + ' tropas listas. Ahora haz clic en la región destino.', 'info');
+      this.render(); // re-render to show highlight
+    } else {
+      // SECOND CLICK: move to destination
+      const src = this._troopSel;
+      this._troopSel = null;
+
+      if (src.regionId === region.id) {
+        // Cancel
+        this.render();
+        return;
+      }
+
+      // Execute troop movement
+      const amount = src.amount;
+      if (amount < 1) { this.render(); return; }
+
+      gameState.army = Math.max(0, (gameState.army || 0) - amount);
+      gameState._garrisons = gameState._garrisons || {};
+      // Remove from source garrison if it had one
+      if (gameState._garrisons[src.regionId]) {
+        const returning = Math.min(gameState._garrisons[src.regionId], amount);
+        gameState._garrisons[src.regionId] = Math.max(0, gameState._garrisons[src.regionId] - returning);
+        if (gameState._garrisons[src.regionId] === 0) delete gameState._garrisons[src.regionId];
+      }
+      gameState._garrisons[region.id] = (gameState._garrisons[region.id] || 0) + amount;
+
+      const srcReg = ALTHORIA_REGIONS.find(r => r.id === src.regionId);
+      Systems.Log.add(gameState, '⚔️ ' + amount.toLocaleString() + ' tropas: ' + (srcReg ? srcReg.name : src.regionId) + ' → ' + region.name + '.', 'good');
+      if (typeof UI !== 'undefined') UI.fullRender(gameState);
+      this.render();
+    }
   },
 
 
@@ -1087,7 +1178,8 @@ window.AlthoriaMap = window.AlthoriaMap || {
     const warHere = this.warZones.some(wz => wz.regionId === region.id);
 
     // Garrison in this region
-    const garrison = 0;  // tactical garrisons removed
+    const gameStateH = (typeof Game !== "undefined" && Game.state) ? Game.state : null;
+    const garrison = gameStateH ? ((gameStateH._garrisons || {})[region.id] || 0) : 0;
 
     // Trade routes passing through this region
     const hasRoute = (this.tradeRouteLines || []).some(rt =>
