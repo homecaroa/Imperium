@@ -1261,8 +1261,106 @@ function shareGame(platform) {
   }
 }
 
+
+// ══════════════════════════════════════════════════════════
+// MUSIC PLAYER — Cantigas de Santa María
+// ══════════════════════════════════════════════════════════
+var MusicPlayer = {
+  _audio:   null,
+  _muted:   false,
+  _volume:  0.35,  // 0–1
+  _started: false,
+
+  init() {
+    this._audio = document.getElementById('game-music');
+    if (!this._audio) return;
+
+    this._audio.volume = this._volume;
+    this._audio.loop   = true;
+
+    // Restore saved prefs
+    try {
+      var saved = localStorage.getItem('imperium_music');
+      if (saved) {
+        var prefs = JSON.parse(saved);
+        this._muted  = prefs.muted  ?? false;
+        this._volume = prefs.volume ?? 0.35;
+        this._audio.volume = this._muted ? 0 : this._volume;
+        var vol = document.getElementById('music-volume');
+        if (vol) vol.value = Math.round(this._volume * 100);
+        this._updateBtn();
+      }
+    } catch(e) {}
+  },
+
+  // Start on first user interaction (browser autoplay policy)
+  start() {
+    if (this._started || !this._audio || this._muted) return;
+    this._audio.play().then(() => {
+      this._started = true;
+    }).catch(() => {
+      // Autoplay blocked — will start on next interaction
+    });
+  },
+
+  toggleMute() {
+    this._muted = !this._muted;
+    if (!this._audio) return;
+
+    if (this._muted) {
+      this._audio.pause();
+    } else {
+      this._audio.volume = this._volume;
+      this._audio.play().catch(() => {});
+      this._started = true;
+    }
+    this._updateBtn();
+    this._save();
+  },
+
+  setVolume(val) {
+    this._volume = parseInt(val) / 100;
+    if (!this._audio) return;
+    this._audio.volume = this._muted ? 0 : this._volume;
+    if (this._volume > 0 && this._muted) {
+      // Un-mute when user moves volume
+      this._muted = false;
+      this._audio.play().catch(() => {});
+      this._started = true;
+      this._updateBtn();
+    }
+    this._save();
+  },
+
+  _updateBtn() {
+    var btn = document.getElementById('music-mute-btn');
+    if (!btn) return;
+    if (this._muted || this._volume === 0) {
+      btn.textContent = '🔇';
+      btn.style.opacity = '0.45';
+    } else if (this._volume < 0.35) {
+      btn.textContent = '🔉';
+      btn.style.opacity = '1';
+    } else {
+      btn.textContent = '🎵';
+      btn.style.opacity = '1';
+    }
+  },
+
+  _save() {
+    try {
+      localStorage.setItem('imperium_music', JSON.stringify({
+        muted: this._muted, volume: this._volume
+      }));
+    } catch(e) {}
+  },
+};
+
 document.addEventListener('DOMContentLoaded', () => {
   buildCodex();
   Auth.init();
   SaveSystem.renderLoginSaves();
+  MusicPlayer.init();
+  // Start music on first user interaction (browser autoplay policy)
+  document.addEventListener('click', () => MusicPlayer.start(), { once: true });
 });
