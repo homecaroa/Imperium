@@ -990,10 +990,6 @@ window.UI = window.UI || {
     }
 
 
-    // Garrison hint — movement is done directly on the Althoria map
-    html += '<div style="margin-top:8px;padding:6px 8px;background:var(--bg3);border:1px solid var(--border2);font-family:var(--font-mono);font-size:9px;color:var(--text3);">'
-      + '🗺️ Mueve tropas haciendo clic en tus regiones del Mapa de Althoria.'
-      + '</div>';
     html += '</div>'; // main wrapper
 
     container.innerHTML = html;
