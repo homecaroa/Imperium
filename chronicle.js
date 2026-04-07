@@ -162,38 +162,46 @@ var ChronicleSystem = {
 
   // ── MOSTRAR MODAL ────────────────────────────────────────
   show(state, prev) {
-    // No mostrar en turno 1
     if (!state || (state.turn || 1) <= 1) return;
 
-    const text  = this.generateChronicle(state, prev);
-    const modal = document.getElementById('chronicle-modal');
-    if (!modal) return;
+    const text = this.generateChronicle(state, prev);
 
-    // Rebuild inner HTML fresh each time — avoids stale DOM state
-    modal.innerHTML = '<div class="chronicle-box">' +
-      '<div class="chronicle-header">' +
-        '<div class="chronicle-ornament">✦ ─────── ✦</div>' +
-        '<div class="chronicle-title">📜 Crónica del Reino</div>' +
-        '<div class="chronicle-subtitle">Año ' + (state.year||1) + ' · Turno ' + (state.turn||1) + '</div>' +
-        '<div class="chronicle-ornament">✦ ─────── ✦</div>' +
-      '</div>' +
-      '<div class="chronicle-scroll">' +
-        '<p class="chronicle-text">' + text.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</p>' +
-      '</div>' +
-      '<div class="chronicle-footer">' +
-        '<button class="chronicle-btn" onclick="ChronicleSystem.close()">' +
-          '<span>⚔</span> Continuar el reinado' +
-        '</button>' +
-        '<div class="chronicle-esc">o pulsa ESC</div>' +
-      '</div>' +
-    '</div>';
+    // Get or create the modal element
+    var modal = document.getElementById('chronicle-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'chronicle-modal';
+      document.body.appendChild(modal);
+    }
 
-    modal.classList.add('open');
-    modal.style.display = 'flex';
-    modal.style.opacity = '1';
-    modal.style.pointerEvents = 'all';
+    // Build full modal HTML
+    modal.innerHTML =
+      '<div style="position:fixed;inset:0;background:rgba(4,3,2,0.92);display:flex;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(3px)" id="chr-backdrop">' +
+        '<div style="background:linear-gradient(180deg,#1c1508,#0c0a04);border:1px solid #6a4a18;border-top:3px solid #c89020;border-bottom:3px solid #c89020;width:min(680px,92vw);max-height:80vh;display:flex;flex-direction:column;box-shadow:0 0 80px rgba(0,0,0,0.95)">' +
+          '<div style="padding:20px 28px 12px;text-align:center;border-bottom:1px solid rgba(200,152,42,0.2)">' +
+            '<div style="font-family:Cinzel,Georgia,serif;font-size:9px;color:rgba(200,152,42,0.4);letter-spacing:4px;margin-bottom:6px">✦ ─────── ✦</div>' +
+            '<div style="font-family:Cinzel,Georgia,serif;font-size:18px;font-weight:700;color:#c89020;letter-spacing:3px;text-transform:uppercase;text-shadow:0 0 20px rgba(200,152,42,0.4)">📜 Crónica del Reino</div>' +
+            '<div style="font-family:monospace;font-size:10px;color:#666;letter-spacing:2px;margin-top:4px">Año ' + (state.year||1) + ' · Turno ' + (state.turn||1) + '</div>' +
+            '<div style="font-family:Cinzel,Georgia,serif;font-size:9px;color:rgba(200,152,42,0.4);letter-spacing:4px;margin-top:6px">✦ ─────── ✦</div>' +
+          '</div>' +
+          '<div style="padding:24px 32px;overflow-y:auto;flex:1">' +
+            '<p style="font-family:Georgia,serif;font-size:17px;line-height:1.85;color:#d8c490;text-align:justify;margin:0">' +
+              text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') +
+            '</p>' +
+          '</div>' +
+          '<div style="padding:14px 28px 20px;text-align:center;border-top:1px solid rgba(200,152,42,0.15)">' +
+            '<button onclick="ChronicleSystem.close()" style="font-family:Cinzel,Georgia,serif;font-size:12px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:#0a0800;background:linear-gradient(180deg,#c89020,#a06810);border:none;padding:11px 32px;cursor:pointer;box-shadow:0 3px 14px rgba(200,152,42,0.4)">⚔ Continuar el reinado</button>' +
+            '<div style="font-family:monospace;font-size:9px;color:#444;margin-top:8px">o pulsa ESC</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
 
-    modal.onclick = (e) => { if (e.target === modal) this.close(); };
+    // Show with inline styles — no CSS dependency
+    modal.style.cssText = 'display:block;position:fixed;inset:0;z-index:9999;';
+
+    // Click backdrop to close
+    const backdrop = document.getElementById('chr-backdrop');
+    if (backdrop) backdrop.onclick = (e) => { if (e.target === backdrop) this.close(); };
   },
 
   close() {
