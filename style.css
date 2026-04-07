@@ -2701,3 +2701,69 @@ body {
 .bg-cell-midline {
   border-right: 2px solid rgba(200,152,42,0.3) !important;
 }
+
+
+/* ═══════════════════════════════════════════════════════
+   MUSIC PLAYER — top bar controls
+   ═══════════════════════════════════════════════════════ */
+.music-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px 0 4px;
+  border-right: 1px solid var(--border2);
+  margin-right: 4px;
+}
+
+.music-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+  line-height: 1;
+  transition: opacity 0.15s, transform 0.12s;
+  color: var(--text2);
+}
+.music-btn:hover { transform: scale(1.15); opacity: 1 !important; }
+
+/* Volume slider — medieval gold style */
+.music-vol {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 72px;
+  height: 3px;
+  background: var(--border2);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.music-vol:hover { background: var(--border3); }
+
+.music-vol::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--gold2);
+  cursor: pointer;
+  box-shadow: 0 0 4px rgba(200,152,42,0.5);
+  transition: transform 0.12s;
+}
+.music-vol::-webkit-slider-thumb:hover { transform: scale(1.3); }
+
+.music-vol::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--gold2);
+  border: none;
+  cursor: pointer;
+}
+.music-vol::-webkit-slider-runnable-track {
+  background: linear-gradient(90deg, var(--gold) calc(var(--val,35) * 1%), var(--border2) calc(var(--val,35) * 1%));
+  border-radius: 2px;
+  height: 3px;
+}
