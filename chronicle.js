@@ -205,19 +205,10 @@ var ChronicleSystem = {
   },
 
   close() {
-    const modal = document.getElementById('chronicle-modal');
+    var modal = document.getElementById('chronicle-modal');
     if (modal) {
-      modal.classList.remove('open');
-      modal.style.opacity = '0';
-      modal.style.pointerEvents = 'none';
-      // Delay display:none until transition finishes
-      setTimeout(() => {
-        if (!modal.classList.contains('open')) {
-          modal.style.display = 'none';
-          // Reset so next show() starts fresh
-          modal.style.display = '';
-        }
-      }, 400);
+      modal.innerHTML = '';
+      modal.style.cssText = 'display:none';
     }
   },
 
