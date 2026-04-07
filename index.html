@@ -168,6 +168,20 @@
       <div id="xp-bar-slot"></div>
       <div id="blitz-countdown" style="display:none"></div>
       <div class="tb-sep"></div>
+      <!-- ── MÚSICA ──────────────────────────────── -->
+      <div class="music-ctrl" id="music-ctrl">
+        <button class="music-btn tb-tip" id="music-mute-btn"
+          data-tip="🎵 Música medieval&#10;Cantigas de Santa María"
+          onclick="MusicPlayer.toggleMute()">🎵</button>
+        <input type="range" id="music-volume" class="music-vol"
+          min="0" max="100" value="35"
+          oninput="MusicPlayer.setVolume(this.value)"
+          title="Volumen">
+      </div>
+      <audio id="game-music" loop preload="auto">
+        <source src="audio/Authentic_medieval_music_Cantigas_de_Santa_Maria.mp3" type="audio/mpeg">
+      </audio>
+
       <div class="tb-actions">
         <button id="btn-endturn" onclick="Game.endTurn()">⏭ Turno</button>
         <button id="btn-althoria" onclick="AlthoriaMap.toggle(Game.state)" class="tb-tip" data-tip="🗺️ Abrir mapa de Althoria">🗺️</button>
