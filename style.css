@@ -2521,7 +2521,7 @@ body {
 .bg-header {
   display: flex; align-items: center; gap: 16px;
   padding: 10px 20px;
-  background: linear-gradient(180deg, #1a1408 0%, #100c06 100%);
+  background: rgba(6,4,2,0.92);
   border-bottom: 2px solid var(--gold);
   flex-shrink: 0;
 }
@@ -2551,7 +2551,7 @@ body {
 .bg-left, .bg-right {
   width: 180px; flex-shrink: 0;
   padding: 12px 10px;
-  background: #080604;
+  background: rgba(6,4,2,0.90);
   border-right: 1px solid var(--border2);
   overflow-y: auto;
   display: flex; flex-direction: column; gap: 8px;
@@ -2644,7 +2644,7 @@ body {
 .bg-footer {
   display: flex; gap: 12px; align-items: center;
   padding: 10px 20px;
-  background: #0a0804;
+  background: rgba(6,4,2,0.92);
   border-top: 1px solid var(--border2);
   flex-shrink: 0;
 }
@@ -2686,8 +2686,8 @@ body {
   display: flex !important;
   position: fixed;
   inset: 0;
-  z-index: 800;
-  background: rgba(0,0,0,0.95);
+  z-index: 8500;
+  background: transparent;   /* Althoria map shows behind */
   align-items: stretch;
   justify-content: stretch;
 }
@@ -2767,3 +2767,16 @@ body {
   border-radius: 2px;
   height: 3px;
 }
+
+/* ── Battle grid additions ───────────────────────────── */
+.bg-cell-selected {
+  outline: 3px solid #ffe060 !important;
+  outline-offset: -3px;
+  background: rgba(255,224,96,0.18) !important;
+}
+.bg-cell-player { background: rgba(100,220,130,0.22); border: 1px solid #72c882; }
+.bg-cell-ai     { background: rgba(220,60,60,0.22);   border: 1px solid #e05050; }
+.player-count   { color: #a0f0b0 !important; font-weight: bold; }
+.ai-count       { color: #f09090 !important; font-weight: bold; }
+.bg-cell-range  { font-size: 8px; position: absolute; top: 1px; right: 2px; opacity: 0.7; }
+.bg-cell        { position: relative; }
