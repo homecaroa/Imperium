@@ -181,7 +181,7 @@ window.AlthoriaMap = window.AlthoriaMap || {
   _dragMoved:    false,
   _panJustEnded: false,
   _drag:         { active: false },
-  _troopSel:     null,   // { regionId, amount } — región origen seleccionada
+
   _panning:      false,
   zoom:          1.0,
   panX:          0,
@@ -264,6 +264,7 @@ window.AlthoriaMap = window.AlthoriaMap || {
     this._panStartPY = 0;
     this._dragMoved  = false;   // must be false, not undefined
     this._drag       = { active: false };
+    this._troopDrag  = null;
   },
 
   _loadImage() {
@@ -527,6 +528,24 @@ window.AlthoriaMap = window.AlthoriaMap || {
     // drag ghost removed
     ctx.restore();  // Restaurar transform de zoom/pan
     this.animFrame++;
+
+    // ── Drag ghost de tropas ─────────────────────────────
+    if (this._troopDrag && this._troopDrag.active && this._dragMoved) {
+      const td=this._troopDrag;
+      const rect=this.canvas.getBoundingClientRect();
+      const gx=(td.curX-rect.left)*(this.canvas.width/rect.width);
+      const gy=(td.curY-rect.top)*(this.canvas.height/rect.height);
+      const col=td.targetRegion?'#72c882':'#ff6060';
+      ctx.save();
+      ctx.beginPath();ctx.arc(gx,gy,24,0,Math.PI*2);
+      ctx.fillStyle='rgba(0,0,0,0.75)';ctx.fill();
+      ctx.strokeStyle=col;ctx.lineWidth=2.5;ctx.stroke();
+      ctx.font='14px serif';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillStyle='#fff';ctx.fillText('⚔️',gx,gy-5);
+      ctx.font='bold 9px monospace';
+      ctx.fillStyle=col;ctx.fillText(td.count.toLocaleString(),gx,gy+9);
+      ctx.restore();
+    }
   },
 
   // ── CAPA: HALOS DE INFLUENCIA ─────────────────────────────
@@ -591,7 +610,6 @@ window.AlthoriaMap = window.AlthoriaMap || {
     // Pass 2: PLAYER territories — full opacity, stronger fill, glow border
     const playerZones = this.nationZones['player'] || [];
     const pcol = this.NATION_COLORS['player'];
-    const selectedRegionId = this._troopSel ? this._troopSel.regionId : null;
     if (pcol && playerZones.length) {
       const pulse = 0.7 + 0.3 * Math.sin(this.animFrame * 0.06);
 
@@ -636,19 +654,6 @@ window.AlthoriaMap = window.AlthoriaMap || {
           ctx.setLineDash([]);
         }
 
-        // Garrison indicator badge
-        const _gs = (typeof Game !== 'undefined' && Game.state) ? Game.state : null;
-        const _garr = _gs ? ((_gs._garrisons || {})[rId] || 0) : 0;
-        if (_garr > 0) {
-          const label = '🛡 ' + (_garr >= 1000 ? Math.floor(_garr/1000) + 'k' : _garr);
-          ctx.font = 'bold 9px JetBrains Mono,monospace';
-          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-          const tw = ctx.measureText(label).width;
-          ctx.fillStyle = 'rgba(0,0,0,0.75)';
-          ctx.fillRect(cx2 - tw/2 - 3, cy2 + 10, tw + 6, 14);
-          ctx.fillStyle = '#a0e0b0';
-          ctx.fillText(label, cx2, cy2 + 17);
-        }
       });
     }
   },
@@ -968,84 +973,70 @@ window.AlthoriaMap = window.AlthoriaMap || {
 
   _onMouseDown(e) {
     this._dragMoved = false;
+    const [mx, my] = this._screenToMapPct(e.clientX, e.clientY);
+    const region   = ALTHORIA_REGIONS.find(r => this._pointInPolygon(mx, my, r.polygon));
+    const gs       = (typeof Game !== 'undefined' && Game.state) ? Game.state : null;
+
+    if (region && gs) {
+      const playerZones = (this.nationZones || {})['player'] || [];
+      if (playerZones.includes(region.id) && gs.army > 0) {
+        // Start troop drag from this player region
+        const dragCount = Math.max(1, Math.floor(gs.army * 0.50));
+        this._troopDrag = { active:true, fromRegion:region.id, count:dragCount,
+          fromName:region.name, curX:e.clientX, curY:e.clientY, targetRegion:null };
+        this.canvas.style.cursor = 'grabbing';
+        return; // don't start pan
+      }
+    }
+
+    this._troopDrag = null;
     this._onPanStart(e);
   },
 
   _onMouseMove(e) {
+    if (this._troopDrag && this._troopDrag.active) {
+      this._dragMoved = true;
+      this._troopDrag.curX = e.clientX;
+      this._troopDrag.curY = e.clientY;
+      // Find target region under cursor
+      const [mx, my] = this._screenToMapPct(e.clientX, e.clientY);
+      const region   = ALTHORIA_REGIONS.find(r => this._pointInPolygon(mx, my, r.polygon));
+      const playerZones = (this.nationZones || {})['player'] || [];
+      this._troopDrag.targetRegion = (region && region.id !== this._troopDrag.fromRegion && playerZones.includes(region.id))
+        ? region.id : null;
+      this.canvas.style.cursor = this._troopDrag.targetRegion ? 'copy' : 'no-drop';
+      this.render(); // re-render to show drag ghost
+      return;
+    }
     this._onPan(e);
     this._onHover(e);
   },
 
   _onMouseUp(e) {
-    this._onPanEnd();
-    // Only act if it was a click (not a pan drag)
-    if (!this._dragMoved) {
-      this._onMapClick(e);
-    }
-  },
+    if (this._troopDrag && this._troopDrag.active) {
+      const drag = this._troopDrag;
+      this._troopDrag = null;
+      this.canvas.style.cursor = 'crosshair';
 
-  _onMapClick(e) {
-    const gameState = (typeof Game !== 'undefined' && Game.state) ? Game.state : null;
-    if (!gameState) return;
-
-    const [mx, my] = this._screenToMapPct(e.clientX, e.clientY);
-    const region = ALTHORIA_REGIONS.find(r => this._pointInPolygon(mx, my, r.polygon));
-    if (!region) { this._troopSel = null; this.render(); return; }
-
-    const playerZones = (this.nationZones || {})['player'] || [];
-    const isPlayerRegion = playerZones.includes(region.id);
-    const garrison = (gameState._garrisons || {})[region.id] || 0;
-
-    if (!isPlayerRegion) {
-      // Click on non-player region — clear selection
-      this._troopSel = null;
+      if (drag.targetRegion && this._dragMoved) {
+        // Execute move: take 50% from army → assign to target garrison
+        const gs = (typeof Game !== 'undefined' && Game.state) ? Game.state : null;
+        if (gs && drag.count > 0) {
+          gs.army = Math.max(0, gs.army - drag.count);
+          gs._garrisons = gs._garrisons || {};
+          gs._garrisons[drag.targetRegion] = (gs._garrisons[drag.targetRegion] || 0) + drag.count;
+          const tgt = ALTHORIA_REGIONS.find(r => r.id === drag.targetRegion);
+          if (typeof Systems !== 'undefined')
+            Systems.Log.add(gs, '⚔️ ' + drag.count.toLocaleString() + ' tropas desde ' + drag.fromName + ' → ' + (tgt ? tgt.name : drag.targetRegion), 'good');
+          if (typeof UI !== 'undefined') UI.fullRender(gs);
+        }
+      }
       this.render();
       return;
     }
-
-    if (!this._troopSel) {
-      // FIRST CLICK: select origin region
-      // Calculate available troops (army pool + garrison already there)
-      const totalArmy = gameState.army || 0;
-      const moveAmount = Math.floor(totalArmy * 0.5);
-      if (moveAmount < 1 && garrison < 1) {
-        Systems.Log.add(gameState, '⚠️ No hay tropas disponibles para mover.', 'warn');
-        return;
-      }
-      this._troopSel = { regionId: region.id, amount: moveAmount };
-      Systems.Log.add(gameState, '📍 Origen: ' + region.name + ' · ' + moveAmount.toLocaleString() + ' tropas listas. Ahora haz clic en la región destino.', 'info');
-      this.render(); // re-render to show highlight
-    } else {
-      // SECOND CLICK: move to destination
-      const src = this._troopSel;
-      this._troopSel = null;
-
-      if (src.regionId === region.id) {
-        // Cancel
-        this.render();
-        return;
-      }
-
-      // Execute troop movement
-      const amount = src.amount;
-      if (amount < 1) { this.render(); return; }
-
-      gameState.army = Math.max(0, (gameState.army || 0) - amount);
-      gameState._garrisons = gameState._garrisons || {};
-      // Remove from source garrison if it had one
-      if (gameState._garrisons[src.regionId]) {
-        const returning = Math.min(gameState._garrisons[src.regionId], amount);
-        gameState._garrisons[src.regionId] = Math.max(0, gameState._garrisons[src.regionId] - returning);
-        if (gameState._garrisons[src.regionId] === 0) delete gameState._garrisons[src.regionId];
-      }
-      gameState._garrisons[region.id] = (gameState._garrisons[region.id] || 0) + amount;
-
-      const srcReg = ALTHORIA_REGIONS.find(r => r.id === src.regionId);
-      Systems.Log.add(gameState, '⚔️ ' + amount.toLocaleString() + ' tropas: ' + (srcReg ? srcReg.name : src.regionId) + ' → ' + region.name + '.', 'good');
-      if (typeof UI !== 'undefined') UI.fullRender(gameState);
-      this.render();
-    }
+    this._onPanEnd();
   },
+
 
 
 
@@ -1178,8 +1169,7 @@ window.AlthoriaMap = window.AlthoriaMap || {
     const warHere = this.warZones.some(wz => wz.regionId === region.id);
 
     // Garrison in this region
-    const gameStateH = (typeof Game !== "undefined" && Game.state) ? Game.state : null;
-    const garrison = gameStateH ? ((gameStateH._garrisons || {})[region.id] || 0) : 0;
+    const garrison = 0;
 
     // Trade routes passing through this region
     const hasRoute = (this.tradeRouteLines || []).some(rt =>
@@ -1235,7 +1225,23 @@ window.AlthoriaMap = window.AlthoriaMap || {
         '<div class="alth-tip-title">' + region.resourceIcon + ' ' + region.name + '</div>'
         + '<div class="alth-tip-geo">' + geoLabel + '</div>'
         + '<div class="alth-tip-owner">' + ownerLabel + warBadge + '</div>'
-        // garrison tooltip removed
+        + (function() {
+          // Show army units by type for player regions
+          var gs = (typeof Game !== 'undefined' && Game.state) ? Game.state : null;
+          var isPlayer = (typeof AlthoriaMap !== 'undefined') &&
+            (AlthoriaMap.nationZones || {})['player'] &&
+            AlthoriaMap.nationZones['player'].includes(region.id);
+          if (!gs || !isPlayer) return '';
+          var units = (gs.armyUnits || []).filter(function(u){ return u.count > 0; });
+          if (!units.length) return '';
+          var s = '<div style="margin-top:5px;padding-top:5px;border-top:1px solid rgba(200,152,42,0.25)">'
+            + '<div style="font-family:var(--font-title);font-size:9px;color:var(--gold2);letter-spacing:1px;margin-bottom:3px">EJÉRCITO TOTAL: ' + gs.army.toLocaleString() + '</div>';
+          units.forEach(function(u) {
+            var def = (typeof MILITARY_UNITS !== 'undefined' && MILITARY_UNITS[u.typeId]) || {icon:'⚔',name:u.typeId};
+            s += '<div class="alth-tip-row">' + (def.icon||'⚔') + ' ' + (def.name||u.typeId) + ': <b>' + u.count.toLocaleString() + '</b></div>';
+          });
+          return s + '</div>';
+        })()
         + (hasRoute ? '<div class="alth-tip-row">🐪 Ruta comercial activa</div>' : '')
         + '<div class="alth-tip-res">'
         + resEntries.map(([k,v]) => '<span>' + this._resIcon(k) + ' <b>' + v + '</b>/t</span>').join('')
