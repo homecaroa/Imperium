@@ -301,6 +301,15 @@ window.Game = window.Game || {
     const state = this.state;
     if (!state) return;
 
+    // ── Si hay crónica pendiente, mostrarla ANTES de procesar el turno ──
+    if (state._chroniclePending) {
+      state._chroniclePending = false;
+      if (typeof ChronicleSystem !== 'undefined') {
+        ChronicleSystem.show(state, state._chronicleSnapshot || null);
+      }
+      return; // Bloquear — el jugador debe cerrar la crónica primero
+    }
+
     // ── Snapshot del estado ANTES del turno para la crónica ──
     const _prevSnapshot = {
       morale:     state.morale,
@@ -480,8 +489,19 @@ window.Game = window.Game || {
     // 19. Render
     UI.fullRender(state);
     // 20. Crónica del turno
-    if (typeof ChronicleSystem !== 'undefined') {
-      setTimeout(() => ChronicleSystem.show(state, _prevSnapshot), 200);
+    // Crónica: marcar pendiente — se mostrará al intentar pasar el siguiente turno
+    if (state.turn > 2) {
+      state._chroniclePending   = true;
+      state._chronicleSnapshot  = _prevSnapshot;
+      // Update endTurn button to signal chronicle is waiting
+      const _chrBtn = document.getElementById('btn-endturn');
+      if (_chrBtn) {
+        _chrBtn.textContent = '📜 Ver Crónica';
+        _chrBtn.style.background = 'linear-gradient(180deg,#8a6020,#5a3a10)';
+        setTimeout(() => {
+          if (_chrBtn) { _chrBtn.textContent = '⏭ Turno'; _chrBtn.style.background = ''; }
+        }, 8000);
+      }
     }
     // Sync Althoria (war zones, spies, trade routes)
     if (typeof AlthoriaMap !== 'undefined') {
@@ -816,71 +836,7 @@ window.Game = window.Game || {
   // MILITAR
   // ══════════════════════════════════════════════
 
-  // ── DESPLEGAR TROPAS EN REGIÓN ────────────────────────────
-  deployToRegion(btnOrSelId, numId) {
-    const state = this.state;
-    if (!state) return;
-    // Support both (button el with dataset) and (selId, numId strings)
-    let regionId, amount;
-    if (typeof btnOrSelId === 'string') {
-      const sel = document.getElementById(btnOrSelId);
-      const inp = document.getElementById(numId || 'troops-deploy-num');
-      if (!sel || !inp) return;
-      regionId = sel.value;
-      amount   = parseInt(inp.value) || 0;
-    } else if (btnOrSelId && btnOrSelId.dataset) {
-      // Called from data-attribute button
-      const selId = btnOrSelId.dataset.sel || 'garrison-region-sel';
-      const numId2 = btnOrSelId.dataset.num || 'garrison-amount';
-      const sel = document.getElementById(selId);
-      const inp = document.getElementById(numId2);
-      if (!sel || !inp) return;
-      regionId = sel.value;
-      amount   = parseInt(inp.value) || 0;
-    } else {
-      // Fallback: try default IDs
-      const sel = document.getElementById('garrison-region-sel') || document.getElementById('troops-region-sel');
-      const inp = document.getElementById('garrison-amount') || document.getElementById('troops-deploy-num');
-      if (!sel || !inp) return;
-      regionId = sel.value;
-      amount   = parseInt(inp.value) || 0;
-    }
-    const maxMove  = Math.floor((state.army || 0) * 0.5);
 
-    if (!regionId) { Systems.Log.add(state,'⚠️ Selecciona una región de destino.','warn'); UI.renderMilitary(state); return; }
-    if (amount <= 0) { Systems.Log.add(state,'⚠️ Indica cuántos soldados desplegar.','warn'); UI.renderMilitary(state); return; }
-    if (amount > maxMove) { Systems.Log.add(state,'⚠️ Máximo 50% del ejército ('+maxMove+').','warn'); UI.renderMilitary(state); return; }
-    if (amount > state.army) { Systems.Log.add(state,'⚠️ No tienes suficientes soldados.','warn'); UI.renderMilitary(state); return; }
-
-    const playerZones = (typeof AlthoriaMap !== 'undefined') ? (AlthoriaMap.nationZones||{})['player']||[] : [];
-    if (playerZones.length > 0 && !playerZones.includes(regionId)) {
-      Systems.Log.add(state,'⚠️ Solo puedes desplegar en tus propias regiones.','warn'); UI.renderMilitary(state); return;
-    }
-
-    state.army -= amount;
-    state._garrisons = state._garrisons || {};
-    state._garrisons[regionId] = (state._garrisons[regionId] || 0) + amount;
-    const region = typeof ALTHORIA_REGIONS !== 'undefined' ? ALTHORIA_REGIONS.find(r=>r.id===regionId) : null;
-    Systems.Log.add(state,'🗺️ '+amount.toLocaleString()+' tropas desplegadas en '+(region?region.name:regionId)+'.','good');
-    UI.fullRender(state);
-  },
-
-  recallGarrison(regionIdOrBtn) {
-    const state = this.state;
-    if (!state) return;
-    // Support both string regionId and button element with data-rid
-    const regionId = (typeof regionIdOrBtn === 'string')
-      ? regionIdOrBtn
-      : (regionIdOrBtn && regionIdOrBtn.dataset && regionIdOrBtn.dataset.rid) || '';
-    if (!regionId) return;
-    const garrison = (state._garrisons||{})[regionId] || 0;
-    if (!garrison) return;
-    state.army += garrison;
-    delete state._garrisons[regionId];
-    const region = typeof ALTHORIA_REGIONS !== 'undefined' ? ALTHORIA_REGIONS.find(r=>r.id===regionId) : null;
-    Systems.Log.add(state,'↩ '+garrison.toLocaleString()+' tropas retiradas de '+(region?region.name:regionId)+'.','info');
-    UI.fullRender(state);
-  },
 
   recruitUnit(typeId, count) {
     // Check resources BEFORE spending AP
@@ -1278,6 +1234,21 @@ var MusicPlayer = {
     this._audio.volume = this._volume;
     this._audio.loop   = true;
 
+    // Attempt immediate autoplay (multiple strategies)
+    var self = this;
+    // Strategy 1: direct call after short delay
+    setTimeout(function() { self.start(); }, 300);
+    // Strategy 2: on any page interaction
+    var _unlock = function() {
+      self.start();
+      document.removeEventListener('click',   _unlock);
+      document.removeEventListener('keydown', _unlock);
+      document.removeEventListener('touchstart', _unlock);
+    };
+    document.addEventListener('click',      _unlock);
+    document.addEventListener('keydown',    _unlock);
+    document.addEventListener('touchstart', _unlock);
+
     // Restore saved prefs
     try {
       var saved = localStorage.getItem('imperium_music');
@@ -1293,13 +1264,23 @@ var MusicPlayer = {
     } catch(e) {}
   },
 
-  // Start on first user interaction (browser autoplay policy)
+  // Attempt autoplay immediately; fallback to first-click
   start() {
     if (this._started || !this._audio || this._muted) return;
-    this._audio.play().then(() => {
-      this._started = true;
-    }).catch(() => {
-      // Autoplay blocked — will start on next interaction
+    var self = this;
+    this._audio.play().then(function() {
+      self._started = true;
+    }).catch(function() {
+      // Browser blocked autoplay — wait for first interaction
+      var resume = function() {
+        if (!self._started && !self._muted) {
+          self._audio.play().then(function(){ self._started = true; }).catch(function(){});
+        }
+        document.removeEventListener('click', resume);
+        document.removeEventListener('keydown', resume);
+      };
+      document.addEventListener('click', resume);
+      document.addEventListener('keydown', resume);
     });
   },
 
@@ -1362,5 +1343,5 @@ document.addEventListener('DOMContentLoaded', () => {
   SaveSystem.renderLoginSaves();
   MusicPlayer.init();
   // Start music on first user interaction (browser autoplay policy)
-  document.addEventListener('click', () => MusicPlayer.start(), { once: true });
+  MusicPlayer.start(); // attempt immediate autoplay
 });
