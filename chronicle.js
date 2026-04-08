@@ -210,6 +210,10 @@ var ChronicleSystem = {
       modal.innerHTML = '';
       modal.style.cssText = 'display:none';
     }
+    // Clear pending flag so endTurn proceeds normally
+    if (typeof Game !== 'undefined' && Game.state) {
+      Game.state._chroniclePending = false;
+    }
   },
 
   // ── ESC KEY ──────────────────────────────────────────────
