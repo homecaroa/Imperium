@@ -1020,16 +1020,25 @@ window.AlthoriaMap = window.AlthoriaMap || {
       this.canvas.style.cursor = 'crosshair';
 
       if (drag.targetRegion && this._dragMoved) {
-        // Execute move: take 50% from army → assign to target garrison
         const gs = (typeof Game !== 'undefined' && Game.state) ? Game.state : null;
         if (gs && drag.count > 0) {
-          gs.army = Math.max(0, gs.army - drag.count);
-          gs._garrisons = gs._garrisons || {};
-          gs._garrisons[drag.targetRegion] = (gs._garrisons[drag.targetRegion] || 0) + drag.count;
+          // Tropas se redistribuyen — army total no cambia, solo se marca el movimiento
+          // (la economía real de tropas es el army total, no garrisons individuales)
+          gs._troopMovements = gs._troopMovements || [];
           const tgt = ALTHORIA_REGIONS.find(r => r.id === drag.targetRegion);
+          gs._troopMovements.push({
+            from: drag.fromRegion, to: drag.targetRegion,
+            fromName: drag.fromName, toName: tgt ? tgt.name : drag.targetRegion,
+            count: drag.count, turn: gs.turn
+          });
+          // Keep max 10 movements
+          if (gs._troopMovements.length > 10) gs._troopMovements.shift();
+
           if (typeof Systems !== 'undefined')
-            Systems.Log.add(gs, '⚔️ ' + drag.count.toLocaleString() + ' tropas desde ' + drag.fromName + ' → ' + (tgt ? tgt.name : drag.targetRegion), 'good');
-          if (typeof UI !== 'undefined') UI.fullRender(gs);
+            Systems.Log.add(gs, '⚔️ ' + drag.count.toLocaleString() + ' tropas: ' + drag.fromName + ' → ' + (tgt ? tgt.name : drag.targetRegion), 'good');
+
+          // Show visual confirmation toast on the canvas
+          this._showMovementToast(drag.count, drag.fromName, tgt ? tgt.name : drag.targetRegion);
         }
       }
       this.render();
@@ -1252,6 +1261,31 @@ window.AlthoriaMap = window.AlthoriaMap || {
         + resEntries.map(([k,v]) => '<span>' + this._resIcon(k) + ' <b>' + v + '</b>/t</span>').join('')
         + '</div>';
     }
+  },
+
+  _showMovementToast(count, fromName, toName) {
+    const wrap = document.getElementById('althoria-canvas-wrap');
+    if (!wrap) return;
+    let toast = document.getElementById('alth-move-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'alth-move-toast';
+      toast.style.cssText = [
+        'position:absolute','bottom:12px','left:50%','transform:translateX(-50%)',
+        'background:rgba(0,0,0,0.85)','border:1px solid #72c882','color:#a0f0b0',
+        'font-family:monospace','font-size:12px','padding:8px 16px',
+        'border-radius:3px','pointer-events:none','z-index:100',
+        'white-space:nowrap','opacity:0','transition:opacity 0.2s'
+      ].join(';');
+      wrap.style.position = 'relative';
+      wrap.appendChild(toast);
+    }
+    toast.textContent = '⚔️ ' + count.toLocaleString() + ' tropas: ' + fromName + ' → ' + toName;
+    toast.style.opacity = '1';
+    clearTimeout(this._toastTimer);
+    this._toastTimer = setTimeout(function() {
+      if (toast) toast.style.opacity = '0';
+    }, 2500);
   },
 
   _clearHover() {

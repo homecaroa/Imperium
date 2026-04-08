@@ -65,18 +65,19 @@ var BattleSystem = {
       _initialPlacement: true,  // first turn always has placement
     };
 
-    // Open Althoria map as background context
-    if (typeof AlthoriaMap !== 'undefined' && Game && Game.state) {
-      AlthoriaMap.isOpen = true;
-      var ap = document.getElementById('althoria-panel');
-      if (ap) { ap.classList.add('open'); ap.style.right='0'; ap.style.display='flex'; ap.style.zIndex='7000'; }
-    }
     var modal = document.getElementById('modal-battle');
     if (modal) {
+      // Remove hidden class AND override any !important CSS
       modal.classList.remove('hidden');
-      modal.style.display    = 'flex';
-      modal.style.background = 'transparent';
-      modal.style.zIndex     = '8500';
+      modal.setAttribute('style',
+        'display:flex !important;' +
+        'position:fixed !important;' +
+        'inset:0 !important;' +
+        'z-index:9000 !important;' +
+        'background:rgba(6,4,2,0.97) !important;' +
+        'align-items:stretch !important;' +
+        'justify-content:stretch !important;'
+      );
     }
     this._renderAll();
   },
@@ -101,7 +102,7 @@ var BattleSystem = {
       '</div>' +
       '<div class="bg-body">' +
         '<div class="bg-left">'  + this._renderTray('player') + '</div>' +
-        '<div class="bg-center" style="background:rgba(0,0,0,0.55);backdrop-filter:blur(1px)">' + this._renderGrid() + '</div>' +
+        '<div class="bg-center">' + this._renderGrid() + '</div>' +
         '<div class="bg-right">'  + this._renderTray('ai') + this._renderLog() + '</div>' +
       '</div>' +
       '<div class="bg-footer">' + this._renderFooter() + '</div>';
@@ -478,7 +479,11 @@ var BattleSystem = {
         return Object.assign({}, u, { count: Math.max(0, Math.floor(u.count * ratio)) });
       }).filter(function(u){ return u.count > 0; });
     }
-    if (typeof Systems !== 'undefined') b.attacker.army = Systems.Military.totalSoldiers(b.attacker);
+    // Recalculate total army from surviving units
+    // Add surviving soldiers back to the main army pool
+    var survivingTotal = playerLeft;
+    b.attacker.army = Math.max(0, (b.attacker.army || 0) + survivingTotal);
+    if (typeof Systems !== 'undefined') b.attacker.army = Math.max(b.attacker.army, Systems.Military.totalSoldiers(b.attacker));
 
     if (playerWon) {
       b.log.push('🏆 ¡VICTORIA! El enemigo abandona el campo.');
@@ -492,7 +497,8 @@ var BattleSystem = {
         b.attacker.morale = Math.min(100, (b.attacker.morale || 50) + 15);
         b.attacker._warsWon = (b.attacker._warsWon || 0) + 1;
         b.defender.army = Math.max(50, Math.floor((b.defender.army || 200) * 0.5));
-        b.defender.atWar = false;
+        b.defender.atWar    = false;
+        b.defender._war     = null;
         b.defender.relation = Math.max(-100, (b.defender.relation || 0) - 20);
         if (typeof Systems !== 'undefined') Systems.Log.add(b.attacker, '⚔️ Victoria · +' + gold + '💰 · Bajas propias: ' + casualties.toLocaleString(), 'good');
       }
@@ -505,6 +511,7 @@ var BattleSystem = {
         b.attacker.stability = Math.max(0, (b.attacker.stability || 50) - 10);
         if (b.attacker.territories > 1) b.attacker.territories--;
         b.defender.atWar = false;
+        b.defender._war  = null;
         if (typeof Systems !== 'undefined') Systems.Log.add(b.attacker, '💀 Derrota · Bajas: ' + casualties.toLocaleString(), 'crisis');
       }
     }
@@ -516,8 +523,7 @@ var BattleSystem = {
   retreat() {
     if (!this.activeBattle) return;
     var b = this.activeBattle;
-    b.defender.atWar = false;
-    if (b.defender._war) b.defender._war = null;
+    // closeBattle handles troop restoration and _war clearing
     if (typeof Systems !== 'undefined') Systems.Log.add(b.attacker, '🏃 Retirada de ' + b.defender.name, 'warn');
     this.closeBattle();
   },
@@ -529,11 +535,25 @@ var BattleSystem = {
   },
 
   closeBattle() {
+    // Restore any committed troops that didn't die in battle
+    if (this.activeBattle) {
+      var b = this.activeBattle;
+      // If battle ended in result, troops already processed by _endBattle
+      // If force-closed (retreat), restore committed troops to army pool
+      if (b.phase !== 'result' && b.attacker) {
+        var surviving = Object.values(b.grid)
+          .filter(function(c) { return c.side === 'player'; })
+          .reduce(function(s,c) { return s + c.count; }, 0);
+        if (surviving > 0) {
+          b.attacker.army = (b.attacker.army || 0) + surviving;
+        }
+        // Clear war state so WarSystem stops processing
+        if (b.defender) { b.defender.atWar = false; b.defender._war = null; }
+      }
+    }
     this.activeBattle = null; this._drag = null;
     var modal = document.getElementById('modal-battle');
-    if (modal) { modal.classList.add('hidden'); modal.style.display = ''; modal.style.background = ''; modal.style.zIndex = ''; }
-    // Close Althoria panel (was opened for battle background)
-    if (typeof AlthoriaMap !== 'undefined') AlthoriaMap.close();
+    if (modal) { modal.classList.add('hidden'); modal.removeAttribute('style'); }
     if (typeof Game !== 'undefined' && Game.state && typeof UI !== 'undefined') UI.fullRender(Game.state);
   },
 

@@ -6,7 +6,7 @@
   <meta http-equiv="Expires" content="0">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>⚔ IMPERIUM — Civilización, Poder y Consecuencias</title>
+<title>⚔ IMPERIUM -- Civilizacion, Poder y Consecuencias</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Cinzel:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
@@ -26,12 +26,12 @@
         <div class="login-crest-animated">⚔</div>
         <h1 class="login-title">IMPERIUM</h1>
         <div class="login-divider"><span></span><span class="login-div-icon">✦</span><span></span></div>
-        <p class="login-sub">Civilización &nbsp;·&nbsp; Poder &nbsp;·&nbsp; Consecuencias</p>
+        <p class="login-sub">Civilizacion &nbsp;&middot;&nbsp; Poder &nbsp;&middot;&nbsp; Consecuencias</p>
       </div>
       <div class="login-box">
         <div class="login-field">
           <label>NOMBRE DEL GOBERNANTE</label>
-          <input type="text" id="login-name" placeholder="Escribe tu nombre…" maxlength="24" autocomplete="off"
+          <input type="text" id="login-name" placeholder="Escribe tu nombre..." maxlength="24" autocomplete="off"
                  onkeydown="if(event.key==='Enter')Auth.login()">
         </div>
         <div class="login-btn-row">
@@ -47,12 +47,12 @@
       </div>
     </div>
     <div class="login-footer-bar">
-      <span>⚜ Estrategia sistémica profunda</span>
-      <span class="lf-sep">·</span>
-      <span>🗺️ Mapas procedurales únicos</span>
-      <span class="lf-sep">·</span>
+      <span>⚜ Estrategia sistemica profunda</span>
+      <span class="lf-sep">&middot;</span>
+      <span>🗺️ Mapas procedurales unicos</span>
+      <span class="lf-sep">&middot;</span>
       <span>🤖 IA con personalidad adaptativa</span>
-      <span class="lf-sep">·</span>
+      <span class="lf-sep">&middot;</span>
       <span>💾 3 partidas guardadas por jugador</span>
     </div>
   </div>
@@ -68,12 +68,12 @@
       <div class="title-block">
         <div class="title-eyebrow">
           <span class="eyebrow-line"></span>
-          <span>ANNO DOMINI · ESTRATEGIA MEDIEVAL SISTÉMICA</span>
+          <span>ANNO DOMINI &middot; ESTRATEGIA MEDIEVAL SISTEMICA</span>
           <span class="eyebrow-line"></span>
         </div>
         <h1 class="game-title start-title-anim">IMPERIUM</h1>
-        <div class="title-ornament">⸻ ✦ ⸻</div>
-        <div class="title-subtitle">Civilización &nbsp;·&nbsp; Poder &nbsp;·&nbsp; Consecuencias</div>
+        <div class="title-ornament">--- ✦ ---</div>
+        <div class="title-subtitle">Civilizacion &nbsp;&middot;&nbsp; Poder &nbsp;&middot;&nbsp; Consecuencias</div>
         <div id="welcome-name" class="welcome-name"></div>
       </div>
       <div class="start-menu">
@@ -91,8 +91,8 @@
         </button>
       </div>
       <div class="start-stats-row">
-        <div class="start-stat"><span class="ss-icon">🗺️</span><span>Mapas únicos<br>por semilla</span></div>
-        <div class="start-stat"><span class="ss-icon">⚖️</span><span>Política<br>sistémica</span></div>
+        <div class="start-stat"><span class="ss-icon">🗺️</span><span>Mapas unicos<br>por semilla</span></div>
+        <div class="start-stat"><span class="ss-icon">⚖️</span><span>Politica<br>sistemica</span></div>
         <div class="start-stat"><span class="ss-icon">🤖</span><span>IA con<br>personalidad</span></div>
         <div class="start-stat"><span class="ss-icon">⚔️</span><span>4 naciones<br>en conflicto</span></div>
       </div>
@@ -119,11 +119,11 @@
   </div>
 
   <!-- -------------------------------- -->
-  <!-- -  SELECCIÓN DE CIVILIZACIÓN  - -->
+  <!-- -  SELECCION DE CIVILIZACION  - -->
   <!-- -------------------------------- -->
   <div id="screen-civselect" class="screen">
     <div class="screen-header">
-      <h2>⚜ Elige tu Civilización ⚜</h2>
+      <h2>⚜ Elige tu Civilizacion ⚜</h2>
       <p>Cada pueblo tiene sus virtudes, sus maldiciones y su destino</p>
     </div>
     <div class="civ-grid" id="civ-grid"></div>
@@ -138,40 +138,40 @@
     <div id="top-bar">
       <!-- Recursos -->
       <div class="res-group">
-        <div class="resource-block tb-tip" data-tip="🌾 Alimentos&#10;Si llega a 0 tres turnos → hambruna.&#10;Prod: población ÷ 12 × clima."><span class="res-icon">🌾</span><span class="res-val" id="val-food">0</span><span class="res-delta" id="dlt-food">+0</span></div>
-        <div class="resource-block tb-tip" data-tip="💰 Oro&#10;Financia ejército y diplomacia.&#10;Prod: pob ÷ 20 + comercio − upkeep."><span class="res-icon">💰</span><span class="res-val" id="val-gold">0</span><span class="res-delta" id="dlt-gold">+0</span></div>
-        <div class="resource-block tb-tip" data-tip="🌲 Madera&#10;Construcción y unidades de rango.&#10;Prod: pob ÷ 30."><span class="res-icon">🌲</span><span class="res-val" id="val-wood">0</span><span class="res-delta" id="dlt-wood">+0</span></div>
-        <div class="resource-block tb-tip" data-tip="🏔️ Piedra&#10;Murallas y construcción pesada.&#10;Prod: pob ÷ 40."><span class="res-icon">🏔️</span><span class="res-val" id="val-stone">0</span><span class="res-delta" id="dlt-stone">+0</span></div>
-        <div class="resource-block tb-tip" data-tip="⚙️ Hierro&#10;Armamento y unidades de élite.&#10;Prod: pob ÷ 50."><span class="res-icon">⚙️</span><span class="res-val" id="val-iron">0</span><span class="res-delta" id="dlt-iron">+0</span></div>
+        <div class="resource-block tb-tip" data-tip="🌾 Alimentos&#10;Si llega a 0 tres turnos → hambruna.&#10;Prod: poblacion ÷ 12 × clima."><span class="res-icon">🌾</span><span class="res-val" id="val-food">0</span><span class="res-delta" id="dlt-food">+0</span></div>
+        <div class="resource-block tb-tip" data-tip="💰 Oro&#10;Financia ejercito y diplomacia.&#10;Prod: pob ÷ 20 + comercio − upkeep."><span class="res-icon">💰</span><span class="res-val" id="val-gold">0</span><span class="res-delta" id="dlt-gold">+0</span></div>
+        <div class="resource-block tb-tip" data-tip="🌲 Madera&#10;Construccion y unidades de rango.&#10;Prod: pob ÷ 30."><span class="res-icon">🌲</span><span class="res-val" id="val-wood">0</span><span class="res-delta" id="dlt-wood">+0</span></div>
+        <div class="resource-block tb-tip" data-tip="🏔️ Piedra&#10;Murallas y construccion pesada.&#10;Prod: pob ÷ 40."><span class="res-icon">🏔️</span><span class="res-val" id="val-stone">0</span><span class="res-delta" id="dlt-stone">+0</span></div>
+        <div class="resource-block tb-tip" data-tip="⚙️ Hierro&#10;Armamento y unidades de elite.&#10;Prod: pob ÷ 50."><span class="res-icon">⚙️</span><span class="res-val" id="val-iron">0</span><span class="res-delta" id="dlt-iron">+0</span></div>
       </div>
       <!-- Separador -->
       <div class="tb-sep"></div>
       <!-- Stats compactos -->
       <div class="stat-pills">
-        <div class="stat-pill tb-tip" data-tip="👥 Población&#10;Determina producción de todos los recursos."><span>👥</span><span id="val-pop">0</span></div>
+        <div class="stat-pill tb-tip" data-tip="👥 Poblacion&#10;Determina produccion de todos los recursos."><span>👥</span><span id="val-pop">0</span></div>
         <div class="stat-pill stability tb-tip" id="pill-stab" data-tip="⚖️ Estabilidad&#10;Llega a 0 dos turnos → colapso."><span>⚖️</span><span id="val-stab">0</span></div>
-        <div class="stat-pill morale tb-tip" id="pill-moral" data-tip="❤️ Moral&#10;Afecta fuerza de combate. ≤10 + estab baja → revolución."><span>❤️</span><span id="val-moral">0</span></div>
-        <div class="stat-pill military tb-tip" data-tip="⚔️ Ejército&#10;Coste: 0.5 oro/soldado/turno."><span>⚔️</span><span id="val-army">0</span></div>
+        <div class="stat-pill morale tb-tip" id="pill-moral" data-tip="❤️ Moral&#10;Afecta fuerza de combate. ≤10 + estab baja → revolucion."><span>❤️</span><span id="val-moral">0</span></div>
+        <div class="stat-pill military tb-tip" data-tip="⚔️ Ejercito&#10;Coste: 0.5 oro/soldado/turno."><span>⚔️</span><span id="val-army">0</span></div>
       </div>
       <!-- Separador -->
       <div class="tb-sep"></div>
-      <!-- Año / Estación -->
+      <!-- Ano / Estacion -->
       <div class="turn-block">
-        <div class="turn-season tb-tip" id="turn-season" data-tip="🌤️ Estación&#10;4 estaciones × 4 turnos = 1 año.">🌱</div>
-        <div class="turn-num tb-tip" data-tip="📅 Año y Turno&#10;Las victorias se miden en años.">Año <span id="val-year">1</span> T<span id="val-turn">1</span></div>
+        <div class="turn-season tb-tip" id="turn-season" data-tip="🌤️ Estacion&#10;4 estaciones × 4 turnos = 1 ano.">🌱</div>
+        <div class="turn-num tb-tip" data-tip="📅 Ano y Turno&#10;Las victorias se miden en anos.">Ano <span id="val-year">1</span> T<span id="val-turn">1</span></div>
       </div>
       <!-- Separador -->
       <div class="tb-sep"></div>
       <!-- Acciones -->
       <!-- AP + XP bar -->
-      <div id="ap-display" class="ap-display tb-tip" data-tip="⚡ Puntos de Acción&#10;Cada turno tienes 3 AP para gastar.&#10;Las acciones cuestan AP distintos.">⚡⚡⚡</div>
+      <div id="ap-display" class="ap-display tb-tip" data-tip="⚡ Puntos de Accion&#10;Cada turno tienes 3 AP para gastar.&#10;Las acciones cuestan AP distintos.">⚡⚡⚡</div>
       <div id="xp-bar-slot"></div>
       <div id="blitz-countdown" style="display:none"></div>
       <div class="tb-sep"></div>
-      <!-- -- MÚSICA -------------------------------- -->
+      <!-- -- MUSICA -------------------------------- -->
       <div class="music-ctrl" id="music-ctrl">
         <button class="music-btn tb-tip" id="music-mute-btn"
-          data-tip="🎵 Música medieval&#10;Cantigas de Santa María"
+          data-tip="🎵 Musica medieval&#10;Cantigas de Santa Maria"
           onclick="MusicPlayer.toggleMute()">🎵</button>
         <input type="range" id="music-volume" class="music-vol"
           min="0" max="100" value="35"
@@ -179,19 +179,27 @@
           title="Volumen">
       </div>
       <audio id="game-music" loop preload="auto">
-        <source src="audio/Authentic_medieval_music_Cantigas_de_Santa_Maria.mp3" type="audio/mpeg">
+        <source id="game-music-src" src="audio/Authentic_medieval_music_Cantigas_de_Santa_Maria.mp3" type="audio/mpeg">
       </audio>
+      <script>
+        // Fix audio path for GitHub Pages subdirectory
+        (function() {
+          var base = window.IMAGE_BASE || (window.location.href.split('?')[0].replace(/[^/]*$/, ''));
+          var src = document.getElementById('game-music-src');
+          if (src) src.src = base + 'audio/Authentic_medieval_music_Cantigas_de_Santa_Maria.mp3';
+        })();
+      </script>
 
       <div class="tb-actions">
         <button id="btn-endturn" onclick="Game.endTurn()">⏭ Turno</button>
         <button id="btn-althoria" onclick="AlthoriaMap.toggle(Game.state)" class="tb-tip" data-tip="🗺️ Abrir mapa de Althoria">🗺️</button>
-        <button class="btn-save tb-tip" data-tip="💾 Guardar partida rápida" onclick="SaveSystem.quickSave()">💾</button>
+        <button class="btn-save tb-tip" data-tip="💾 Guardar partida rapida" onclick="SaveSystem.quickSave()">💾</button>
         <button class="btn-save btn-load tb-tip" data-tip="📂 Cargar partida guardada" onclick="SaveSystem.showLoadMenu()">📂</button>
-        <button class="btn-save tb-tip" data-tip="⚡ Modo Blitz: 20 turnos, economía acelerada, IA agresiva desde T1" onclick="Game.startBlitzMode()" style="background:rgba(200,120,20,0.2);border-color:#c87810;color:#f0a040">⚡ Blitz</button>
+        <button class="btn-save tb-tip" data-tip="⚡ Modo Blitz: 20 turnos, economia acelerada, IA agresiva desde T1" onclick="Game.startBlitzMode()" style="background:rgba(200,120,20,0.2);border-color:#c87810;color:#f0a040">⚡ Blitz</button>
       </div>
     
       <div id="region-select-banner" style="display:none;background:rgba(200,60,60,0.9);color:#fff;padding:6px 14px;font-family:monospace;font-size:11px;text-align:center;letter-spacing:1px;cursor:pointer" onclick="RegionSelector.deactivate()">
-        🎯 MODO SELECCIÓN DE REGIÓN — Haz click en el mapa de Althoria para seleccionar. [Cancelar]
+        🎯 MODO SELECCION DE REGION -- Haz click en el mapa de Althoria para seleccionar. [Cancelar]
       </div>
     </div>
 
@@ -212,7 +220,7 @@
           <div id="trade-map-overlay" class="trade-map-overlay"></div>
         </div>
 
-        <!-- TROPAS — panel izquierdo, no tapa el mapa -->
+        <!-- TROPAS -- panel izquierdo, no tapa el mapa -->
         <div id="mtab-troops" class="mtab-content">
           <div id="troops-sidebar-panel" style="padding:4px;overflow-y:auto;flex:1"></div>
         </div>
@@ -229,7 +237,7 @@
         </div>
       </div>
 
-      <!-- --- PANEL DERECHO: MENÚ PRINCIPAL (~75%) --- -->
+      <!-- --- PANEL DERECHO: MENU PRINCIPAL (~75%) --- -->
       <div id="right-panel">
         <!-- Guerras activas (multi-turno) -->
         <div id="active-wars-panel" style="display:none"></div>
@@ -245,17 +253,17 @@
           </div>
         </div>
 
-        <!-- TABS DE GESTIÓN -->
+        <!-- TABS DE GESTION -->
         <div class="panel-tabs">
-          <button class="ptab active tb-tip" data-tip="🏛️ Política&#10;Facciones, leyes y gobierno." onclick="switchRightTab('politics')">🏛️</button>
-          <button class="ptab tb-tip" data-tip="⚔️ Ejército&#10;Reclutar, formación y combate." onclick="switchRightTab('military')">⚔️</button>
+          <button class="ptab active tb-tip" data-tip="🏛️ Politica&#10;Facciones, leyes y gobierno." onclick="switchRightTab('politics')">🏛️</button>
+          <button class="ptab tb-tip" data-tip="⚔️ Ejercito&#10;Reclutar, formacion y combate." onclick="switchRightTab('military')">⚔️</button>
           <button class="ptab tb-tip" data-tip="🎯 Atacar&#10;Selecciona territorio enemigo para invadir." onclick="Game.selectAttackTarget()">🎯</button>
           <button class="ptab tb-tip" data-tip="🤝 Diplomacia&#10;Alianzas, mensajes y relaciones." onclick="switchRightTab('diplomacy')">🤝</button>
-          <button class="ptab tb-tip" data-tip="💰 Economía y Construcción&#10;Ingresos, impuestos, infraestructura." onclick="switchRightTab('economy')">💰</button>
-          <button class="ptab tb-tip" data-tip="🌤️ Clima&#10;Estaciones y eventos climáticos." onclick="switchRightTab('climate')">🌤️</button>
-          <button class="ptab tb-tip" data-tip="🕵️ Espías&#10;Misiones de inteligencia y sabotaje." onclick="switchRightTab('spies')">🕵️</button>
+          <button class="ptab tb-tip" data-tip="💰 Economia y Construccion&#10;Ingresos, impuestos, infraestructura." onclick="switchRightTab('economy')">💰</button>
+          <button class="ptab tb-tip" data-tip="🌤️ Clima&#10;Estaciones y eventos climaticos." onclick="switchRightTab('climate')">🌤️</button>
+          <button class="ptab tb-tip" data-tip="🕵️ Espias&#10;Misiones de inteligencia y sabotaje." onclick="switchRightTab('spies')">🕵️</button>
           <button class="ptab tb-tip" data-tip="⚓ Comercio&#10;Rutas activas e ingresos por turno." onclick="switchRightTab('trade')">⚓</button>
-          <button class="ptab tb-tip" data-tip="🔓 Desbloqueos&#10;Árbol de progresión y nuevas acciones." onclick="switchRightTab('unlocks')">🔓</button>
+          <button class="ptab tb-tip" data-tip="🔓 Desbloqueos&#10;Arbol de progresion y nuevas acciones." onclick="switchRightTab('unlocks')">🔓</button>
         </div>
 
         <div id="rtab-politics"  class="rtab-content active"><div id="politics-panel"></div></div>
@@ -287,7 +295,7 @@
   <div id="modal-battle" class="modal-overlay hidden">
     <div class="battle-grid-box" id="battle-modal-inner">
       <!-- dynamically rendered by BattleSystem._renderAll() -->
-      <div style="padding:40px;text-align:center;color:var(--text3)">Cargando batalla…</div>
+      <div style="padding:40px;text-align:center;color:var(--text3)">Cargando batalla...</div>
     </div>
     <div id="bg-error" class="bg-error-toast" style="opacity:0"></div>
   </div>
@@ -315,14 +323,14 @@
   </div>
 
 <!-- ------------------------- -->
-<!-- -  CRÓNICA DEL TURNO    - -->
+<!-- -  CRONICA DEL TURNO    - -->
 <!-- ------------------------- -->
 <div id="chronicle-modal" class="chronicle-overlay" aria-hidden="true" role="dialog" aria-labelledby="chronicle-turn">
   <div class="chronicle-box">
     <div class="chronicle-header">
       <div class="chronicle-ornament">✦ ------- ✦</div>
-      <div class="chronicle-title">📜 Crónica del Reino</div>
-      <div id="chronicle-turn" class="chronicle-subtitle">Año 1 · Turno 1</div>
+      <div class="chronicle-title">📜 Cronica del Reino</div>
+      <div id="chronicle-turn" class="chronicle-subtitle">Ano 1 &middot; Turno 1</div>
       <div class="chronicle-ornament">✦ ------- ✦</div>
     </div>
     <div class="chronicle-scroll">

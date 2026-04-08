@@ -301,15 +301,6 @@ window.Game = window.Game || {
     const state = this.state;
     if (!state) return;
 
-    // -- Si hay crónica pendiente, mostrarla ANTES de procesar el turno --
-    if (state._chroniclePending) {
-      state._chroniclePending = false;
-      if (typeof ChronicleSystem !== 'undefined') {
-        ChronicleSystem.show(state, state._chronicleSnapshot || null);
-      }
-      return; // Bloquear — el jugador debe cerrar la crónica primero
-    }
-
     // -- Snapshot del estado ANTES del turno para la crónica --
     const _prevSnapshot = {
       morale:     state.morale,
@@ -491,19 +482,13 @@ window.Game = window.Game || {
     // 19. Render
     UI.fullRender(state);
     // 20. Crónica del turno
-    // Crónica: marcar pendiente — se mostrará al intentar pasar el siguiente turno
-    if (state.turn > 2) {
-      state._chroniclePending   = true;
-      state._chronicleSnapshot  = _prevSnapshot;
-      // Update endTurn button to signal chronicle is waiting
-      const _chrBtn = document.getElementById('btn-endturn');
-      if (_chrBtn) {
-        _chrBtn.textContent = '📜 Ver Crónica';
-        _chrBtn.style.background = 'linear-gradient(180deg,#8a6020,#5a3a10)';
-        setTimeout(() => {
-          if (_chrBtn) { _chrBtn.textContent = '⏭ Turno'; _chrBtn.style.background = ''; }
-        }, 8000);
-      }
+    // Crónica: mostrar automáticamente después del render
+    if (state.turn > 2 && typeof ChronicleSystem !== 'undefined') {
+      const _snap = _prevSnapshot;
+      const _st   = state;
+      setTimeout(function() {
+        ChronicleSystem.show(_st, _snap);
+      }, 600);
     }
     // Sync Althoria (war zones, spies, trade routes)
     if (typeof AlthoriaMap !== 'undefined') {
@@ -1250,8 +1235,7 @@ var MusicPlayer = {
 
   init() {
     this._audio = document.getElementById('game-music');
-    if (!this._audio) return;
-    this._audio.loop = true;
+    if (!this._audio) { console.warn('[Music] No audio element found'); return; }
 
     // Restore saved prefs
     try {
@@ -1263,24 +1247,57 @@ var MusicPlayer = {
       }
     } catch(e) {}
 
+    this._audio.loop   = true;
     this._audio.volume = this._muted ? 0 : this._volume;
     var vol = document.getElementById('music-volume');
     if (vol) vol.value = Math.round(this._volume * 100);
     this._updateBtn();
 
-    // Register first-gesture listeners for EVERY possible interaction
+    // Log audio loading status
     var self = this;
-    var events = ['click','mousedown','keydown','keyup','touchstart','touchend','pointerdown'];
-    events.forEach(function(ev) {
-      document.addEventListener(ev, function _h() {
+    this._audio.addEventListener('canplaythrough', function() {
+      console.log('[Music] Audio ready to play');
+    });
+    this._audio.addEventListener('error', function(e) {
+      console.warn('[Music] Audio load error — check audio/ folder in repo', e);
+      var btn = document.getElementById('music-mute-btn');
+      if (btn) { btn.textContent = '🔇'; btn.title = 'Audio no disponible'; btn.style.opacity='0.3'; }
+    });
+
+    // The music button click is the most reliable trigger
+    var btn = document.getElementById('music-mute-btn');
+    if (btn) {
+      var origClick = btn.onclick;
+      btn.onclick = function() {
+        self.toggleMute();
+        // Also attempt play on explicit button click
         if (!self._started && !self._muted && self._audio) {
-          self._audio.volume = self._volume;
-          self._audio.play()
-            .then(function() { self._started = true; })
-            .catch(function() {});
+          self._audio.play().then(function(){ self._started=true; }).catch(function(){});
         }
-        document.removeEventListener(ev, _h);
-      }, { passive: true });
+      };
+    }
+
+    // Register gesture listeners — any interaction starts music
+    var started = false;
+    var _tryPlay = function() {
+      if (started || self._muted || !self._audio) return;
+      self._audio.volume = self._volume;
+      self._audio.play().then(function() {
+        self._started = true;
+        started = true;
+        console.log('[Music] Started');
+      }).catch(function(err) {
+        // Browser still blocking — will retry on next interaction
+        console.log('[Music] Autoplay blocked, waiting for gesture');
+      });
+    };
+
+    // Attach to every user event type
+    ['click','mousedown','touchstart','keydown','pointerdown'].forEach(function(ev) {
+      document.addEventListener(ev, function _handler() {
+        _tryPlay();
+        if (started) document.removeEventListener(ev, _handler);
+      }, { passive:true, capture:false });
     });
   },
 

@@ -164,57 +164,111 @@ var ChronicleSystem = {
   show(state, prev) {
     if (!state || (state.turn || 1) <= 1) return;
 
-    const text = this.generateChronicle(state, prev);
+    var text = this.generateChronicle(state, prev);
 
-    // Get or create the modal element
-    var modal = document.getElementById('chronicle-modal');
-    if (!modal) {
-      modal = document.createElement('div');
-      modal.id = 'chronicle-modal';
-      document.body.appendChild(modal);
-    }
+    // Remove any existing modal
+    var existing = document.getElementById('chr-overlay');
+    if (existing) existing.parentNode && existing.parentNode.removeChild(existing);
 
-    // Build full modal HTML
-    modal.innerHTML =
-      '<div style="position:fixed;inset:0;background:rgba(4,3,2,0.92);display:flex;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(3px)" id="chr-backdrop">' +
-        '<div style="background:linear-gradient(180deg,#1c1508,#0c0a04);border:1px solid #6a4a18;border-top:3px solid #c89020;border-bottom:3px solid #c89020;width:min(680px,92vw);max-height:80vh;display:flex;flex-direction:column;box-shadow:0 0 80px rgba(0,0,0,0.95)">' +
-          '<div style="padding:20px 28px 12px;text-align:center;border-bottom:1px solid rgba(200,152,42,0.2)">' +
-            '<div style="font-family:Cinzel,Georgia,serif;font-size:9px;color:rgba(200,152,42,0.4);letter-spacing:4px;margin-bottom:6px">✦ ------- ✦</div>' +
-            '<div style="font-family:Cinzel,Georgia,serif;font-size:18px;font-weight:700;color:#c89020;letter-spacing:3px;text-transform:uppercase;text-shadow:0 0 20px rgba(200,152,42,0.4)">📜 Crónica del Reino</div>' +
-            '<div style="font-family:monospace;font-size:10px;color:#666;letter-spacing:2px;margin-top:4px">Año ' + (state.year||1) + ' · Turno ' + (state.turn||1) + '</div>' +
-            '<div style="font-family:Cinzel,Georgia,serif;font-size:9px;color:rgba(200,152,42,0.4);letter-spacing:4px;margin-top:6px">✦ ------- ✦</div>' +
-          '</div>' +
-          '<div style="padding:24px 32px;overflow-y:auto;flex:1">' +
-            '<p style="font-family:Georgia,serif;font-size:17px;line-height:1.85;color:#d8c490;text-align:justify;margin:0">' +
-              text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') +
-            '</p>' +
-          '</div>' +
-          '<div style="padding:14px 28px 20px;text-align:center;border-top:1px solid rgba(200,152,42,0.15)">' +
-            '<button onclick="ChronicleSystem.close()" style="font-family:Cinzel,Georgia,serif;font-size:12px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:#0a0800;background:linear-gradient(180deg,#c89020,#a06810);border:none;padding:11px 32px;cursor:pointer;box-shadow:0 3px 14px rgba(200,152,42,0.4)">⚔ Continuar el reinado</button>' +
-            '<div style="font-family:monospace;font-size:9px;color:#444;margin-top:8px">o pulsa ESC</div>' +
-          '</div>' +
-        '</div>' +
-      '</div>';
+    // Build overlay div with maximum z-index — nothing can cover this
+    var overlay = document.createElement('div');
+    overlay.id = 'chr-overlay';
+    overlay.style.cssText = [
+      'position:fixed',
+      'top:0','left:0','right:0','bottom:0',
+      'z-index:2147483647',
+      'background:rgba(4,3,2,0.93)',
+      'display:flex',
+      'align-items:center',
+      'justify-content:center',
+      'font-family:Georgia,serif',
+      'backdrop-filter:blur(4px)',
+      '-webkit-backdrop-filter:blur(4px)'
+    ].join(';');
 
-    // Show with inline styles — no CSS dependency
-    modal.style.cssText = 'display:block;position:fixed;inset:0;z-index:9999;';
+    var box = document.createElement('div');
+    box.style.cssText = [
+      'background:linear-gradient(180deg,#1c1508,#0c0a04)',
+      'border:1px solid #6a4a18',
+      'border-top:3px solid #c89020',
+      'border-bottom:3px solid #c89020',
+      'width:min(680px,92vw)',
+      'max-height:82vh',
+      'display:flex',
+      'flex-direction:column',
+      'box-shadow:0 0 80px rgba(0,0,0,0.95)',
+      'overflow:hidden'
+    ].join(';');
 
-    // Click backdrop to close
-    const backdrop = document.getElementById('chr-backdrop');
-    if (backdrop) backdrop.onclick = (e) => { if (e.target === backdrop) this.close(); };
+    // Header
+    var header = document.createElement('div');
+    header.style.cssText = 'padding:20px 28px 12px;text-align:center;border-bottom:1px solid rgba(200,152,42,0.2)';
+    header.innerHTML =
+      '<div style="font-family:Cinzel,Georgia,serif;font-size:9px;color:rgba(200,152,42,0.4);letter-spacing:4px;margin-bottom:6px">--- * ---</div>' +
+      '<div style="font-family:Cinzel,Georgia,serif;font-size:18px;font-weight:700;color:#c89020;letter-spacing:3px;text-shadow:0 0 20px rgba(200,152,42,0.4)">Cronica del Reino</div>' +
+      '<div style="font-family:monospace;font-size:10px;color:#666;letter-spacing:2px;margin-top:4px">Ano ' + (state.year||1) + ' - Turno ' + (state.turn||1) + '</div>' +
+      '<div style="font-family:Cinzel,Georgia,serif;font-size:9px;color:rgba(200,152,42,0.4);letter-spacing:4px;margin-top:6px">--- * ---</div>';
+
+    // Body
+    var body = document.createElement('div');
+    body.style.cssText = 'padding:24px 32px;overflow-y:auto;flex:1;';
+    var p = document.createElement('p');
+    p.style.cssText = 'font-size:17px;line-height:1.85;color:#d8c490;text-align:justify;margin:0';
+    p.textContent = text;
+    body.appendChild(p);
+
+    // Footer
+    var footer = document.createElement('div');
+    footer.style.cssText = 'padding:14px 28px 20px;text-align:center;border-top:1px solid rgba(200,152,42,0.15)';
+    var btn = document.createElement('button');
+    btn.style.cssText = [
+      'font-family:Cinzel,Georgia,serif',
+      'font-size:12px',
+      'font-weight:700',
+      'letter-spacing:2.5px',
+      'text-transform:uppercase',
+      'color:#0a0800',
+      'background:linear-gradient(180deg,#c89020,#a06810)',
+      'border:none',
+      'padding:11px 32px',
+      'cursor:pointer',
+      'box-shadow:0 3px 14px rgba(200,152,42,0.4)'
+    ].join(';');
+    btn.textContent = 'Continuar el reinado';
+    btn.onclick = function() { ChronicleSystem.close(); };
+    var hint = document.createElement('div');
+    hint.style.cssText = 'font-family:monospace;font-size:9px;color:#444;margin-top:8px';
+    hint.textContent = 'o pulsa ESC';
+    footer.appendChild(btn);
+    footer.appendChild(hint);
+
+    box.appendChild(header);
+    box.appendChild(body);
+    box.appendChild(footer);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+
+    // ESC key closes
+    var _escHandler = function(e) {
+      if (e.key === 'Escape') { ChronicleSystem.close(); document.removeEventListener('keydown', _escHandler); }
+    };
+    document.addEventListener('keydown', _escHandler);
+    // Click outside box closes
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) ChronicleSystem.close(); });
   },
 
   close() {
-    var modal = document.getElementById('chronicle-modal');
-    if (modal) {
-      modal.innerHTML = '';
-      modal.style.cssText = 'display:none';
-    }
+    var el = document.getElementById('chr-overlay');
+    if (el && el.parentNode) el.parentNode.removeChild(el);
     // Clear pending flag so endTurn proceeds normally
-    if (typeof Game !== 'undefined' && Game.state) {
-      Game.state._chroniclePending = false;
-    }
+    try {
+      if (typeof Game !== 'undefined' && Game.state) {
+        Game.state._chroniclePending = false;
+      }
+    } catch(e) {}
   },
+
+
 
   // -- ESC KEY ----------------------------------------------
   initKeyListener() {
