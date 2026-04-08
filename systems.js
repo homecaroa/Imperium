@@ -86,7 +86,7 @@ window.Systems = window.Systems || {
     },
 
     applyRates(state, rates) {
-      // ── Antes de aplicar: detectar ruina económica ─────────────
+      // -- Antes de aplicar: detectar ruina económica -------------
       const goldBefore = state.resources.gold || 0;
 
       state.resources.food  = Math.max(0, state.resources.food  + rates.food);
@@ -99,7 +99,7 @@ window.Systems = window.Systems || {
       const newGold = goldBefore + rates.gold;
       state.resources.gold = Math.max(0, newGold);
 
-      // ── Ruina económica: consecutivos turnos sin poder pagar ───
+      // -- Ruina económica: consecutivos turnos sin poder pagar ---
       if (newGold < 0) {
         // El upkeep no pudo cubrirse — acumular contador de déficit
         state._deficitTurns = (state._deficitTurns || 0) + 1;
@@ -225,7 +225,7 @@ window.Systems = window.Systems || {
         Systems.Log.add(state, `${s.icon} ${s.name}: ${s.flavorTexts[Math.floor(Math.random() * s.flavorTexts.length)]}`, 'info');
       }
 
-      // ── GESTIONAR EVENTO EXTREMO ACTIVO ──
+      // -- GESTIONAR EVENTO EXTREMO ACTIVO --
       if (state.climate.activeExtreme) {
         state.climate.extremeDuration--;
 
@@ -253,7 +253,7 @@ window.Systems = window.Systems || {
       } else {
         state.climate.current = newSeason;
 
-        // ── GENERAR NUEVO EVENTO EXTREMO ──
+        // -- GENERAR NUEVO EVENTO EXTREMO --
         const season = SEASONS[newSeason];
         if (Math.random() < season.extremeChance) {
           const candidates = season.extremeEvents;
@@ -520,7 +520,7 @@ window.Systems = window.Systems || {
       return Math.floor(totalStrength * moraleMod * corruptMod * seasonArmyM);
     },
 
-    // ── MOTOR DE BATALLA ──
+    // -- MOTOR DE BATALLA --
     // Calcula probabilidad de victoria con análisis detallado
     analyzeBattle(attackerState, targetNation, spyIntel) {
       const attackerStr = this.calculateEffectiveStrength(attackerState);

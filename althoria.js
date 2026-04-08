@@ -12,7 +12,7 @@
 // 7. Relación: independiente del grid de celdas (solo visual/narrativo)
 // ============================================================
 
-// ── DEFINICIÓN DE REGIONES DE ALTHORIA ──────────────────────
+// -- DEFINICIÓN DE REGIONES DE ALTHORIA ----------------------
 // Cada región tiene: nombre, polígono (% de imagen), tipo geográfico
 // Los polígonos son arrays de [x%, y%] sobre la imagen 855×1115px
 var ALTHORIA_REGIONS = [
@@ -172,7 +172,7 @@ var GEO_AFFINITY = {
   swamp:         ['aztec','chinese']
 };
 
-// ── SISTEMA PRINCIPAL DE ALTHORIA ───────────────────────────
+// -- SISTEMA PRINCIPAL DE ALTHORIA ---------------------------
 window.AlthoriaMap = window.AlthoriaMap || {
 
   // Estado
@@ -208,7 +208,7 @@ window.AlthoriaMap = window.AlthoriaMap || {
     ai_3:   { fill: 'rgba(200,160,40,0.30)',  border: '#d0a030', halo: 'rgba(200,160,40,0.10)',  icon: '🌲' }
   },
 
-  // ── INIT ──────────────────────────────────────────────────
+  // -- INIT --------------------------------------------------
   init() {
     this._buildPanel();
     this._loadImage();
@@ -314,7 +314,7 @@ window.AlthoriaMap = window.AlthoriaMap || {
     this.canvas.style.height = cH + 'px';
   },
 
-  // ── ASIGNACIÓN DE ZONAS — CLUSTERING GEOGRÁFICO ──────────
+  // -- ASIGNACIÓN DE ZONAS — CLUSTERING GEOGRÁFICO ----------
   // Las naciones reciben zonas contiguas en el mapa de Althoria.
   // Estrategia: cada nación "crece" desde un punto de origen
   // expandiéndose hacia regiones geográficamente cercanas.
@@ -331,7 +331,7 @@ window.AlthoriaMap = window.AlthoriaMap || {
     this.nationZones = {};
     all.forEach(n => { this.nationZones[n.id] = []; });
 
-    // ── PASO 1: Elegir región de origen para cada nación ──
+    // -- PASO 1: Elegir región de origen para cada nación --
     // Dividir el mapa en 4 cuadrantes y asignar uno a cada nación
     const regions    = [...ALTHORIA_REGIONS];
     const totalR     = regions.length;
@@ -365,7 +365,7 @@ window.AlthoriaMap = window.AlthoriaMap || {
       assigned.add(origin.id);
     });
 
-    // ── PASO 2: Expandir cada nación a regiones cercanas ──
+    // -- PASO 2: Expandir cada nación a regiones cercanas --
     // Distancia euclidiana entre centros de regiones
     const dist = (a, b) => { var dx=a.center[0]-b.center[0], dy=a.center[1]-b.center[1]; return Math.sqrt(dx*dx+dy*dy); };
 
@@ -393,7 +393,7 @@ window.AlthoriaMap = window.AlthoriaMap || {
       });
     }
 
-    // ── PASO 3: Repartir sobrantes al vecino más cercano ──
+    // -- PASO 3: Repartir sobrantes al vecino más cercano --
     regions.filter(r => !assigned.has(r.id)).forEach(r => {
       let bestNat = null, bestDist = Infinity;
       all.forEach(nation => {
@@ -438,7 +438,7 @@ window.AlthoriaMap = window.AlthoriaMap || {
     });
   },
 
-  // ── ACTUALIZAR ZONAS DE GUERRA ────────────────────────────
+  // -- ACTUALIZAR ZONAS DE GUERRA ----------------------------
   updateWar(gameState) {
     this.warZones = [];
     if (!gameState || !gameState.diplomacy) return;
@@ -461,7 +461,7 @@ window.AlthoriaMap = window.AlthoriaMap || {
     });
   },
 
-  // ── RENDER PRINCIPAL ──────────────────────────────────────
+  // -- RENDER PRINCIPAL --------------------------------------
   render() {
     if (!this.ctx) return;
     const ctx = this.ctx;
@@ -529,7 +529,7 @@ window.AlthoriaMap = window.AlthoriaMap || {
     ctx.restore();  // Restaurar transform de zoom/pan
     this.animFrame++;
 
-    // ── Drag ghost de tropas ─────────────────────────────
+    // -- Drag ghost de tropas -----------------------------
     if (this._troopDrag && this._troopDrag.active && this._dragMoved) {
       const td=this._troopDrag;
       const rect=this.canvas.getBoundingClientRect();
@@ -548,7 +548,7 @@ window.AlthoriaMap = window.AlthoriaMap || {
     }
   },
 
-  // ── CAPA: HALOS DE INFLUENCIA ─────────────────────────────
+  // -- CAPA: HALOS DE INFLUENCIA -----------------------------
   _renderInfluenceHalos(ctx, W, H) {
     Object.entries(this.nationZones).forEach(([natId, zones]) => {
       const col = this.NATION_COLORS[natId];
@@ -571,7 +571,7 @@ window.AlthoriaMap = window.AlthoriaMap || {
     });
   },
 
-  // ── CAPA: OVERLAYS DE TERRITORIO ─────────────────────────
+  // -- CAPA: OVERLAYS DE TERRITORIO -------------------------
   _renderTerritoryOverlays(ctx, W, H) {
     // Pass 1: AI territories — dimmed so player stands out
     Object.entries(this.nationZones).forEach(([natId, zones]) => {
@@ -658,7 +658,7 @@ window.AlthoriaMap = window.AlthoriaMap || {
     }
   },
 
-  // ── CAPA: FRONTERAS PUNTEADAS ─────────────────────────────
+  // -- CAPA: FRONTERAS PUNTEADAS -----------------------------
   _renderExpansionBorders(ctx, W, H) {
     // Dibuja fronteras punteadas alrededor de zonas neutras adyacentes
     Object.entries(this.nationZones).forEach(([natId, zones]) => {
@@ -686,7 +686,7 @@ window.AlthoriaMap = window.AlthoriaMap || {
     ctx.setLineDash([]);
   },
 
-  // ── CAPA: ZONAS DE GUERRA ─────────────────────────────────
+  // -- CAPA: ZONAS DE GUERRA ---------------------------------
   _renderWarZones(ctx, W, H) {
     if (!this.warZones.length) return;
     const pulse = Math.sin(this.animFrame * 0.15) * 0.5 + 0.5; // 0→1→0
@@ -711,7 +711,7 @@ window.AlthoriaMap = window.AlthoriaMap || {
     });
   },
 
-  // ── CAPA: ICONOS DE RECURSOS ──────────────────────────────
+  // -- CAPA: ICONOS DE RECURSOS ------------------------------
   _renderResourceIcons(ctx, W, H) {
     // Mostrar iconos de recursos en las zonas controladas
     Object.entries(this.nationZones).forEach(([natId, zones]) => {
@@ -746,7 +746,7 @@ window.AlthoriaMap = window.AlthoriaMap || {
     });
   },
 
-  // ── CAPA: ICONOS DE CAPITAL (más grandes y visibles) ────────
+  // -- CAPA: ICONOS DE CAPITAL (más grandes y visibles) --------
   _renderCapitalIcons(ctx, W, H) {
     Object.entries(this.nationZones).forEach(([natId, zones]) => {
       if (!zones.length) return;
@@ -824,7 +824,7 @@ window.AlthoriaMap = window.AlthoriaMap || {
     });
   },
 
-  // ── CAPA: PUNTOS DE INFLUENCIA/ESPIONAJE ──────────────────
+  // -- CAPA: PUNTOS DE INFLUENCIA/ESPIONAJE ------------------
   _renderInfluencePoints(ctx, W, H) {
     const pulse = Math.sin(this.animFrame * 0.10) * 0.5 + 0.5;
 
@@ -854,7 +854,7 @@ window.AlthoriaMap = window.AlthoriaMap || {
     });
   },
 
-  // ── CAPA: RUTAS COMERCIALES ──────────────────────────────
+  // -- CAPA: RUTAS COMERCIALES ------------------------------
   _renderTradeRoutes(ctx, W, H) {
     if (!this.tradeRouteLines || !this.tradeRouteLines.length) return;
     const pulse = 0.5 + 0.5 * Math.sin(this.animFrame * 0.05);
@@ -902,7 +902,7 @@ window.AlthoriaMap = window.AlthoriaMap || {
   },
 
 
-  // ── CAPA: ICONOS DE GUERRA ────────────────────────────────
+  // -- CAPA: ICONOS DE GUERRA --------------------------------
   _renderWarIcons(ctx, W, H) {
     if (!this.warZones.length) return;
     const pulse = Math.sin(this.animFrame * 0.15) * 0.5 + 0.5;
@@ -946,7 +946,7 @@ window.AlthoriaMap = window.AlthoriaMap || {
     });
   },
 
-  // ── LEYENDA ───────────────────────────────────────────────
+  // -- LEYENDA -----------------------------------------------
   _buildLegend(state) {
     const row = document.getElementById('althoria-legend-row');
     if (!row || !state) return;
@@ -967,8 +967,8 @@ window.AlthoriaMap = window.AlthoriaMap || {
     }).join('');
   },
 
-  // ── HOVER SOBRE EL MAPA ───────────────────────────────────
-  // ── DRAG & DROP DE UNIDADES ─────────────────────────────────
+  // -- HOVER SOBRE EL MAPA -----------------------------------
+  // -- DRAG & DROP DE UNIDADES ---------------------------------
   // Flujo: mousedown en zona del jugador → drag → mouseup en zona válida
 
   _onMouseDown(e) {
@@ -1044,7 +1044,7 @@ window.AlthoriaMap = window.AlthoriaMap || {
 
 
 
-  // ── RENDER DRAG GHOST ───────────────────────────────────────
+  // -- RENDER DRAG GHOST ---------------------------------------
 
 
     _onWheel(e) {
@@ -1274,7 +1274,7 @@ window.AlthoriaMap = window.AlthoriaMap || {
     return { food:'🌾', gold:'💰', wood:'🌲', stone:'🏔️', iron:'⚙️' }[res] || '';
   },
 
-  // ── ABRIR / CERRAR PANEL ──────────────────────────────────
+  // -- ABRIR / CERRAR PANEL ----------------------------------
   open(gameState) {
     this.isOpen = true;
     const panel = document.getElementById('althoria-panel');
@@ -1347,14 +1347,14 @@ window.AlthoriaMap = window.AlthoriaMap || {
     return () => { s=(s*1664525+1013904223)&0xffffffff; return (s>>>0)/0xffffffff; };
   },
 
-  // ── RESIZE ────────────────────────────────────────────────
+  // -- RESIZE ------------------------------------------------
   onResize() {
     if (!this.isOpen) return;
     this._sizeCanvas();
     this.render();
   },
 
-  // ── SYNC RUTAS COMERCIALES ───────────────────────────────
+  // -- SYNC RUTAS COMERCIALES -------------------------------
   _syncTradeRoutes(state) {
     const routes = state.activeTradeRoutes || [];
     this.tradeRouteLines = [];
@@ -1375,7 +1375,7 @@ window.AlthoriaMap = window.AlthoriaMap || {
     });
   },
 
-  // ── SYNC COMPLETO (llamado desde game.endTurn) ───────────
+  // -- SYNC COMPLETO (llamado desde game.endTurn) -----------
   sync(state) {
     if (!state) return;
     this.assignZones(state);
@@ -1385,7 +1385,7 @@ window.AlthoriaMap = window.AlthoriaMap || {
     if (this.isOpen) this.render();
   },
 
-  // ── CERRAR PANEL ─────────────────────────────────────────
+  // -- CERRAR PANEL -----------------------------------------
   close() {
     this.isOpen = false;
     const panel = document.getElementById('althoria-panel');
@@ -1398,7 +1398,7 @@ window.AlthoriaMap = window.AlthoriaMap || {
     }
   },
 
-  // ── TOGGLE PANEL ALTHORIA ────────────────────────────────
+  // -- TOGGLE PANEL ALTHORIA --------------------------------
   toggle(state) {
     if (this.isOpen) {
       this.close();

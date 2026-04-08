@@ -4,10 +4,10 @@
 // Cada arco tiene fases; completar una fase desbloquea la siguiente
 // ============================================================
 
-// ── POOL DE ARCOS NARRATIVOS ─────────────────────────────
+// -- POOL DE ARCOS NARRATIVOS -----------------------------
 var STORY_ARCS = [
 
-  // ── ARC 1: LA CONSPIRACIÓN INTERIOR ──────────────────────
+  // -- ARC 1: LA CONSPIRACIÓN INTERIOR ----------------------
   {
     id:          'conspiracy',
     name:        'La Conspiración de las Sombras',
@@ -43,7 +43,7 @@ var STORY_ARCS = [
     ]
   },
 
-  // ── ARC 2: LA SEQUÍA ─────────────────────────────────────
+  // -- ARC 2: LA SEQUÍA -------------------------------------
   {
     id:          'great_drought',
     name:        'La Gran Sequía',
@@ -79,7 +79,7 @@ var STORY_ARCS = [
     ]
   },
 
-  // ── ARC 3: EL PROFETA ────────────────────────────────────
+  // -- ARC 3: EL PROFETA ------------------------------------
   {
     id:          'prophet',
     name:        'El Profeta del Fin',
@@ -115,7 +115,7 @@ var STORY_ARCS = [
     ]
   },
 
-  // ── ARC 4: LA GUERRA CIVIL LATENTE ───────────────────────
+  // -- ARC 4: LA GUERRA CIVIL LATENTE -----------------------
   {
     id:          'civil_war',
     name:        'El Fuego Bajo las Brasas',
@@ -151,7 +151,7 @@ var STORY_ARCS = [
     ]
   },
 
-  // ── ARC 5: EL DESCUBRIMIENTO ─────────────────────────────
+  // -- ARC 5: EL DESCUBRIMIENTO -----------------------------
   {
     id:          'discovery',
     name:        'Las Minas del Oriente',
@@ -188,7 +188,7 @@ var STORY_ARCS = [
   }
 ];
 
-// ── EVENTOS ENCADENADOS SIMPLES ─────────────────────────
+// -- EVENTOS ENCADENADOS SIMPLES -------------------------
 // (Eventos individuales que se disparan tras decisiones específicas)
 var CHAINED_EVENTS = {
 
@@ -253,7 +253,7 @@ var CHAINED_EVENTS = {
   }
 };
 
-// ── GESTOR DE ARCOS ──────────────────────────────────────
+// -- GESTOR DE ARCOS --------------------------------------
 window.ArcManager = window.ArcManager || {
 
   // Inicializar sistema de arcos
@@ -413,15 +413,15 @@ window.ArcManager = window.ArcManager || {
   }
 };
 
-// ════════════════════════════════════════════════════════════════
+// ----------------------------------------------------------------
 // EXPANSIÓN DE ARCS.JS — Nuevos sistemas añadidos:
 // • FACTION_ARCS: misiones por facción (pueblo, ejército, nobleza)
 // • CIV_ARCS: historia única para cada civilización
 // • GLOBAL_ARC: arco narrativo de 4 actos para toda la partida
 // • ArcSystem: motor de arcos que extiende ArcManager
-// ════════════════════════════════════════════════════════════════
+// ----------------------------------------------------------------
 
-// ── ARCOS DE FACCIÓN ─────────────────────────────────────────
+// -- ARCOS DE FACCIÓN -----------------------------------------
 var FACTION_ARCS = {
   pueblo: {
     name:'El Grito del Pueblo', icon:'👥',
@@ -527,7 +527,7 @@ var FACTION_ARCS = {
   }
 };
 
-// ── ARCOS DE CIVILIZACIÓN ────────────────────────────────────
+// -- ARCOS DE CIVILIZACIÓN ------------------------------------
 var CIV_ARCS = {
   roman:{
     events:[
@@ -604,7 +604,7 @@ var CIV_ARCS = {
   }
 };
 
-// ── MOTOR DE ARCOS EXTENDIDO ────────────────────────────────
+// -- MOTOR DE ARCOS EXTENDIDO --------------------------------
 // Complementa a ArcManager con los nuevos tipos de arcos
 window.ArcSystem = window.ArcSystem || {
 

@@ -4,12 +4,12 @@
 // Chained events: cada decisión desbloquea eventos futuros distintos
 // ============================================================
 
-// ── STORY ARCS ───────────────────────────────────────────────
+// -- STORY ARCS -----------------------------------------------
 // Formato: { id, civId (null=global), title, phases:[] }
 // Cada phase: { id, title, condition, eventId (evento que dispara esta fase) }
 var STORY_ARCS = [
 
-  // ── ARCO GLOBAL: La Sombra de la Plaga ──────────────────
+  // -- ARCO GLOBAL: La Sombra de la Plaga ------------------
   {
     id: 'plague_arc',
     civId: null,   // global — afecta a todas
@@ -50,7 +50,7 @@ var STORY_ARCS = [
     ]
   },
 
-  // ── ARCO GLOBAL: La Gran Sequía ─────────────────────────
+  // -- ARCO GLOBAL: La Gran Sequía -------------------------
   {
     id: 'drought_arc',
     civId: null,
@@ -84,7 +84,7 @@ var STORY_ARCS = [
     ]
   },
 
-  // ── ARCO DE CIV: República Aurea — La Crisis del Senado ─
+  // -- ARCO DE CIV: República Aurea — La Crisis del Senado -
   {
     id: 'roman_senate_arc',
     civId: 'roman',
@@ -118,7 +118,7 @@ var STORY_ARCS = [
     ]
   },
 
-  // ── ARCO DE CIV: Horda de las Estepas — El Gran Khan ────
+  // -- ARCO DE CIV: Horda de las Estepas — El Gran Khan ----
   {
     id: 'mongol_khan_arc',
     civId: 'mongol',
@@ -152,7 +152,7 @@ var STORY_ARCS = [
     ]
   },
 
-  // ── ARCO GLOBAL: El Imperio en Llamas ───────────────────
+  // -- ARCO GLOBAL: El Imperio en Llamas -------------------
   {
     id: 'war_arc',
     civId: null,
@@ -188,10 +188,10 @@ var STORY_ARCS = [
   }
 ];
 
-// ── EVENTOS DE ARC (conectados a los arcos anteriores) ────
+// -- EVENTOS DE ARC (conectados a los arcos anteriores) ----
 var ARC_EVENTS = {
 
-  // ── PLAGA ──────────────────────────────────────────────
+  // -- PLAGA ----------------------------------------------
   arc_plague_rumours: {
     id:'arc_plague_rumours', category:'PLAGA',  priority:'critical', icon:'🦠',
     title:'Rumores de Pestilencia',
@@ -270,7 +270,7 @@ var ARC_EVENTS = {
     ]
   },
 
-  // ── SEQUÍA ────────────────────────────────────────────
+  // -- SEQUÍA --------------------------------------------
   arc_drought_signs: {
     id:'arc_drought_signs', category:'SEQUÍA', priority:'normal', icon:'☀️',
     title:'Señales de la Sequía',
@@ -329,7 +329,7 @@ var ARC_EVENTS = {
     ]
   },
 
-  // ── SENADO ROMANO ────────────────────────────────────
+  // -- SENADO ROMANO ------------------------------------
   arc_senate_tensions: {
     id:'arc_senate_tensions', category:'POLÍTICA', priority:'critical', icon:'🏛️',
     title:'Tensiones en el Senado',
@@ -389,7 +389,7 @@ var ARC_EVENTS = {
     ]
   },
 
-  // ── GUERRA CONTINENTAL ────────────────────────────────
+  // -- GUERRA CONTINENTAL --------------------------------
   arc_war_rumors: {
     id:'arc_war_rumors', category:'GUERRA', priority:'critical', icon:'⚔️',
     title:'Vientos de Guerra',
@@ -449,7 +449,7 @@ var ARC_EVENTS = {
   }
 };
 
-// ── SISTEMA GESTOR DE ARCOS ───────────────────────────────
+// -- SISTEMA GESTOR DE ARCOS -------------------------------
 window.StoryArcSystem = window.StoryArcSystem || {
 
   // Inicializar para la partida

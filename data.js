@@ -123,12 +123,12 @@ var SPY_MISSIONS = {
 // RUTAS COMERCIALES
 // ============================================================
 var TRADE_ROUTES = {
-  // ── RUTAS TERRESTRES ──────────────────────────────────────
+  // -- RUTAS TERRESTRES --------------------------------------
   basico:           {name:'Acuerdo Básico',        icon:'🤝',type:'land',  cost:{gold:50},          requires:{relation:15},              income:{gold:20},                duration:'permanent',relationBonus:+1, description:'Intercambio básico de bienes por tierra.'},
   ruta_seda:        {name:'Ruta de la Seda',       icon:'🐪',type:'land',  cost:{gold:150,wood:50}, requires:{relation:30},              income:{gold:45,morale:+3},      duration:'permanent',relationBonus:+2, description:'Caravanas de lujo. Mejora la moral del pueblo.'},
   comercio_hierro:  {name:'Comercio de Armas',     icon:'⚔️', type:'land', cost:{gold:100,iron:30}, requires:{relation:20},              income:{gold:35,iron:10},        duration:'permanent',relationBonus:+1, description:'Venta y compra de armas y metales.'},
   intercambio_grano:{name:'Intercambio de Grano',  icon:'🌾',type:'land',  cost:{gold:80},          requires:{relation:10},              income:{food:60,gold:-10},       duration:'permanent',relationBonus:+2, description:'Vital en sequías y hambrunas.'},
-  // ── RUTAS MARÍTIMAS — más oro, requieren costa ────────────
+  // -- RUTAS MARÍTIMAS — más oro, requieren costa ------------
   ruta_maritima:    {name:'Ruta Marítima Básica',  icon:'⚓',type:'sea',   cost:{gold:120,wood:80}, requires:{relation:25,coastal:true},  income:{gold:55,morale:+2},      duration:'permanent',relationBonus:+2, description:'Barcos mercantes. +30% oro vs rutas terrestres.'},
   flota_mercante:   {name:'Flota Mercante',         icon:'🚢',type:'sea',   cost:{gold:250,wood:150},requires:{relation:40,coastal:true},  income:{gold:90,food:30,morale:+5},duration:'permanent',relationBonus:+3,description:'Flota completa. Gran volumen de comercio.'},
   alianza_economica:{name:'Alianza Económica',      icon:'💎',type:'land',  cost:{gold:300},         requires:{relation:60,alliance:true}, income:{gold:80,morale:+5,stability:+3},duration:'permanent',relationBonus:+3,description:'Solo con aliados firmes.'}

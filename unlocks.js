@@ -14,9 +14,9 @@
 
 var UNLOCK_TREE = {
 
-  // ═══════════════════════════════════════════════════════
+  // -------------------------------------------------------
   // POLÍTICA Y GOBIERNO
-  // ═══════════════════════════════════════════════════════
+  // -------------------------------------------------------
   politica_basica: {
     id: 'politica_basica',
     name: 'Política Básica',
@@ -84,9 +84,9 @@ var UNLOCK_TREE = {
     hint: 'Necesitas 500 oro y 12 turnos.'
   },
 
-  // ═══════════════════════════════════════════════════════
+  // -------------------------------------------------------
   // MILITAR
-  // ═══════════════════════════════════════════════════════
+  // -------------------------------------------------------
   recluta_levas: {
     id: 'recluta_levas',
     name: 'Levas',
@@ -165,9 +165,9 @@ var UNLOCK_TREE = {
     hint: 'Necesitas 3 regiones, Moral ≥ 60 y 20 turnos.'
   },
 
-  // ═══════════════════════════════════════════════════════
+  // -------------------------------------------------------
   // DIPLOMACIA
-  // ═══════════════════════════════════════════════════════
+  // -------------------------------------------------------
   diplomacia_basica: {
     id: 'diplomacia_basica',
     name: 'Diplomacia',
@@ -224,9 +224,9 @@ var UNLOCK_TREE = {
     hint: 'Necesitas al menos 3 regiones para poder ceder una.'
   },
 
-  // ═══════════════════════════════════════════════════════
+  // -------------------------------------------------------
   // ESPIONAJE
-  // ═══════════════════════════════════════════════════════
+  // -------------------------------------------------------
   espias_basico: {
     id: 'espias_basico',
     name: 'Red de Espionaje',
@@ -272,9 +272,9 @@ var UNLOCK_TREE = {
     hint: 'Necesitas 3 espías y 3 regiones.'
   },
 
-  // ═══════════════════════════════════════════════════════
+  // -------------------------------------------------------
   // COMERCIO
-  // ═══════════════════════════════════════════════════════
+  // -------------------------------------------------------
   comercio_basico: {
     id: 'comercio_basico',
     name: 'Comercio Básico',
@@ -320,9 +320,9 @@ var UNLOCK_TREE = {
     hint: 'Necesitas una alianza formal y 20 turnos.'
   },
 
-  // ═══════════════════════════════════════════════════════
+  // -------------------------------------------------------
   // ECONOMÍA / CONSTRUCCIÓN
-  // ═══════════════════════════════════════════════════════
+  // -------------------------------------------------------
   prestamos: {
     id: 'prestamos',
     name: 'Sistema de Préstamos',
@@ -369,7 +369,7 @@ var UNLOCK_TREE = {
   }
 };
 
-// ── SISTEMA DE DESBLOQUEOS ─────────────────────────────────
+// -- SISTEMA DE DESBLOQUEOS ---------------------------------
 window.UnlockSystem = window.UnlockSystem || {
 
   // Calcular todos los desbloqueos activos para el estado actual
@@ -488,7 +488,7 @@ window.UnlockSystem = window.UnlockSystem || {
 
 var UnlockSystem = window.UnlockSystem;
 
-// ── TOAST DE DESBLOQUEO ────────────────────────────────────
+// -- TOAST DE DESBLOQUEO ------------------------------------
 function showUnlockToast(unlocks) {
   if (!unlocks || !unlocks.length) return;
   var existing = document.getElementById('unlock-toast');

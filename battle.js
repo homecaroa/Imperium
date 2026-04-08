@@ -9,7 +9,7 @@ var BattleSystem = {
   activeBattle: null,
   _drag:        null,
 
-  // ── TERRENO ───────────────────────────────────────────────
+  // -- TERRENO -----------------------------------------------
   _buildTerrain(seed) {
     var rng = function() { seed = (seed * 1664525 + 1013904223) & 0x7fffffff; return (seed >>> 0) / 0x7fffffff; };
     var t = [];
@@ -37,7 +37,7 @@ var BattleSystem = {
     });
   },
 
-  // ── INICIAR BATALLA ───────────────────────────────────────
+  // -- INICIAR BATALLA ---------------------------------------
   initBattle(attackerState, targetNation, opts) {
     opts = opts || {};
     var seed = ((attackerState.mapSeed || 42) ^ 0xBEEF) >>> 0;
@@ -81,7 +81,7 @@ var BattleSystem = {
     this._renderAll();
   },
 
-  // ── RENDER COMPLETO ───────────────────────────────────────
+  // -- RENDER COMPLETO ---------------------------------------
   _renderAll() {
     var b = this.activeBattle;
     if (!b) return;
@@ -149,7 +149,7 @@ var BattleSystem = {
     });
   },
 
-  // ── GRID 10×10 ───────────────────────────────────────────
+  // -- GRID 10×10 -------------------------------------------
   _renderGrid() {
     var b = this.activeBattle;
     var html = '<div class="bg-grid" id="battle-grid">';
@@ -217,7 +217,7 @@ var BattleSystem = {
     return '<div style="color:var(--text3);font-family:var(--font-mono);font-size:11px">⚔️ Calculando…</div>';
   },
 
-  // ── DRAG & DROP (solo en placement) ──────────────────────
+  // -- DRAG & DROP (solo en placement) ----------------------
   _attachListeners() {
     var b = this.activeBattle;
 
@@ -307,7 +307,7 @@ var BattleSystem = {
     return { ok:true };
   },
 
-  // ── IA ────────────────────────────────────────────────────
+  // -- IA ----------------------------------------------------
   aiPlacement() {
     var b = this.activeBattle;
     Object.keys(b.grid).forEach(function(k) { if (b.grid[k].side === 'ai') delete b.grid[k]; });
@@ -346,7 +346,7 @@ var BattleSystem = {
     });
   },
 
-  // ── FLUJO DE BATALLA ─────────────────────────────────────
+  // -- FLUJO DE BATALLA -------------------------------------
   confirmPlacement() {
     var b = this.activeBattle;
     if (!this._allPlaced()) return;
@@ -378,7 +378,7 @@ var BattleSystem = {
     setTimeout(function() { self.resolveBattleTurn(); }, 400);
   },
 
-  // ── RESOLVER TURNO ────────────────────────────────────────
+  // -- RESOLVER TURNO ----------------------------------------
   resolveBattleTurn() {
     var b = this.activeBattle;
     if (!b || b.phase !== 'fighting') return;
@@ -412,7 +412,7 @@ var BattleSystem = {
     this._renderAll();
   },
 
-  // ── CALCULAR DAÑO — alta mortalidad + alcance arqueros ────
+  // -- CALCULAR DAÑO — alta mortalidad + alcance arqueros ----
   _calcDamage(attackers, defenders) {
     var total = 0;
     attackers.forEach(function(ae) {
@@ -465,7 +465,7 @@ var BattleSystem = {
     });
   },
 
-  // ── FIN DE BATALLA ───────────────────────────────────────
+  // -- FIN DE BATALLA ---------------------------------------
   _endBattle(playerWon) {
     var b = this.activeBattle;
     b.phase = 'result';

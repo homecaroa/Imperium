@@ -6,7 +6,7 @@
 
 var ChronicleSystem = {
 
-  // ── GENERAR CRÓNICA ──────────────────────────────────────
+  // -- GENERAR CRÓNICA --------------------------------------
   generateChronicle(state, prev) {
     if (!state) return '';
     const lines = [];
@@ -15,7 +15,7 @@ var ChronicleSystem = {
     const turn = s.turn || 1;
     const year = s.year || 1;
 
-    // ── APERTURA: año y turno ─────────────────────────────
+    // -- APERTURA: año y turno -----------------------------
     const openings = [
       `En el año ${year} del reino, los cronistas toman la pluma para dar cuenta de los sucesos acaecidos.`,
       `Corren tiempos de ${s.morale > 70 ? 'gloria' : s.morale > 40 ? 'incertidumbre' : 'sombra'} en ${s.civName || 'el reino'}, al comenzar el turno ${turn}.`,
@@ -24,7 +24,7 @@ var ChronicleSystem = {
     ];
     lines.push(openings[turn % openings.length]);
 
-    // ── MORAL ─────────────────────────────────────────────
+    // -- MORAL ---------------------------------------------
     const moraleDelta = (s.morale || 50) - (p.morale || s.morale || 50);
     if (s.morale >= 80) {
       lines.push('El fervor es alto entre la tropa y el pueblo llano. Los bardos entonan canciones de victoria y los niños corren por las plazas.');
@@ -41,7 +41,7 @@ var ChronicleSystem = {
       lines.push(`Un soplo de esperanza ha revitalizado al pueblo: la moral ha crecido ${Math.round(moraleDelta)} grados desde la última luna.`);
     }
 
-    // ── ESTABILIDAD ───────────────────────────────────────
+    // -- ESTABILIDAD ---------------------------------------
     const stabDelta = (s.stability || 50) - (p.stability || s.stability || 50);
     if (s.stability < 25) {
       lines.push('Las bases del orden tambalean. Los nobles conspiran en salones cerrados y el hambre siembra el germen de la revuelta.');
@@ -51,7 +51,7 @@ var ChronicleSystem = {
       lines.push('El orden reina con mano segura. Las leyes se cumplen y los jueces dictan sentencia sin temor a represalia.');
     }
 
-    // ── GUERRAS ───────────────────────────────────────────
+    // -- GUERRAS -------------------------------------------
     const wars = (s.diplomacy || []).filter(n => n.atWar);
     if (wars.length > 0) {
       const wn = wars.map(n => n.name).join(' y ');
@@ -75,7 +75,7 @@ var ChronicleSystem = {
       }
     }
 
-    // ── ECONOMÍA ──────────────────────────────────────────
+    // -- ECONOMÍA ------------------------------------------
     const gold     = Math.floor(s.resources?.gold || 0);
     const goldRate = Math.floor(s.rates?.gold || 0);
     const prevGold = Math.floor(p.resources?.gold || gold);
@@ -93,7 +93,7 @@ var ChronicleSystem = {
       lines.push(`Por segunda luna consecutiva el ejército no ha cobrado su soldada completa. La deserción crece y los veteranos miran hacia otras banderas.`);
     }
 
-    // ── FACCIONES ─────────────────────────────────────────
+    // -- FACCIONES -----------------------------------------
     const factions = s.factions || [];
     const angry = factions.filter(f => f.satisfaction < 25);
     const loyal = factions.filter(f => f.satisfaction > 75);
@@ -107,7 +107,7 @@ var ChronicleSystem = {
       lines.push(`${loyalName} permanece fiel al trono, agradecida por las políticas adoptadas en el último periodo.`);
     }
 
-    // ── DIPLOMACIA — alianzas y relaciones ────────────────
+    // -- DIPLOMACIA — alianzas y relaciones ----------------
     const allies = (s.diplomacy || []).filter(n => n.allied);
     const enemies = (s.diplomacy || []).filter(n => (n.relation || 0) < -50 && !n.atWar);
     const pendingAlliance = (s.diplomacy || []).filter(n => n._alliancePending);
@@ -122,7 +122,7 @@ var ChronicleSystem = {
       lines.push(`Aguarda respuesta de ${pendingAlliance[0].name} sobre el tratado propuesto. La corte contiene el aliento esperando el veredicto.`);
     }
 
-    // ── CIUDADES ──────────────────────────────────────────
+    // -- CIUDADES ------------------------------------------
     const cities = (s._cities || []).filter(c => c.owner === 'player');
     if (cities.length > 1) {
       const lowLoyalty = cities.filter(c => c.loyalty < 40);
@@ -134,13 +134,13 @@ var ChronicleSystem = {
       lines.push(`El historial de victorias de ${s.civName || 'el reino'} —${s._warsWon} en total— ha labrado una reputación que los pueblos vecinos no ignoran.`);
     }
 
-    // ── OBJETIVOS OCULTOS ────────────────────────────────
+    // -- OBJETIVOS OCULTOS --------------------------------
     const completed = (s._hiddenObjectives || []).filter(o => o.completed && o.revealed);
     if (completed.length > 0) {
       lines.push(`Los escribas anotan en letras de oro: "${completed[completed.length-1].label}" — un logro que pasará a los anales del reino.`);
     }
 
-    // ── REPUTACIÓN ───────────────────────────────────────
+    // -- REPUTACIÓN ---------------------------------------
     const rep = s._reputation || 50;
     if (rep < 0) {
       lines.push('El nombre del gobernante genera temor más que respeto en las cortes extranjeras. La infamia tiene sus usos, pero también sus costes.');
@@ -148,7 +148,7 @@ var ChronicleSystem = {
       lines.push('La reputación del reino brilla con luz propia. Los embajadores extranjeros llegan con regalos y los poetas componen loas al gobierno.');
     }
 
-    // ── CIERRE ───────────────────────────────────────────
+    // -- CIERRE -------------------------------------------
     const closings = [
       'Así comienza un nuevo capítulo en la historia de este pueblo. Lo que sigue depende de las manos que sostienen el cetro.',
       'El destino aguarda, indiferente a los planes de los hombres. Que la sabiduría guíe las decisiones del turno que comienza.',
@@ -160,7 +160,7 @@ var ChronicleSystem = {
     return lines.join(' ');
   },
 
-  // ── MOSTRAR MODAL ────────────────────────────────────────
+  // -- MOSTRAR MODAL ----------------------------------------
   show(state, prev) {
     if (!state || (state.turn || 1) <= 1) return;
 
@@ -179,10 +179,10 @@ var ChronicleSystem = {
       '<div style="position:fixed;inset:0;background:rgba(4,3,2,0.92);display:flex;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(3px)" id="chr-backdrop">' +
         '<div style="background:linear-gradient(180deg,#1c1508,#0c0a04);border:1px solid #6a4a18;border-top:3px solid #c89020;border-bottom:3px solid #c89020;width:min(680px,92vw);max-height:80vh;display:flex;flex-direction:column;box-shadow:0 0 80px rgba(0,0,0,0.95)">' +
           '<div style="padding:20px 28px 12px;text-align:center;border-bottom:1px solid rgba(200,152,42,0.2)">' +
-            '<div style="font-family:Cinzel,Georgia,serif;font-size:9px;color:rgba(200,152,42,0.4);letter-spacing:4px;margin-bottom:6px">✦ ─────── ✦</div>' +
+            '<div style="font-family:Cinzel,Georgia,serif;font-size:9px;color:rgba(200,152,42,0.4);letter-spacing:4px;margin-bottom:6px">✦ ------- ✦</div>' +
             '<div style="font-family:Cinzel,Georgia,serif;font-size:18px;font-weight:700;color:#c89020;letter-spacing:3px;text-transform:uppercase;text-shadow:0 0 20px rgba(200,152,42,0.4)">📜 Crónica del Reino</div>' +
             '<div style="font-family:monospace;font-size:10px;color:#666;letter-spacing:2px;margin-top:4px">Año ' + (state.year||1) + ' · Turno ' + (state.turn||1) + '</div>' +
-            '<div style="font-family:Cinzel,Georgia,serif;font-size:9px;color:rgba(200,152,42,0.4);letter-spacing:4px;margin-top:6px">✦ ─────── ✦</div>' +
+            '<div style="font-family:Cinzel,Georgia,serif;font-size:9px;color:rgba(200,152,42,0.4);letter-spacing:4px;margin-top:6px">✦ ------- ✦</div>' +
           '</div>' +
           '<div style="padding:24px 32px;overflow-y:auto;flex:1">' +
             '<p style="font-family:Georgia,serif;font-size:17px;line-height:1.85;color:#d8c490;text-align:justify;margin:0">' +
@@ -216,7 +216,7 @@ var ChronicleSystem = {
     }
   },
 
-  // ── ESC KEY ──────────────────────────────────────────────
+  // -- ESC KEY ----------------------------------------------
   initKeyListener() {
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') this.close();

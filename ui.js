@@ -6,9 +6,9 @@
 
 window.UI = window.UI || {
 
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   // TOP BAR
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   updateTopBar(state) {
     // Visual feedback
     if (typeof VisualFeedback !== 'undefined') VisualFeedback.apply(state);
@@ -77,14 +77,14 @@ window.UI = window.UI || {
     }
   },
 
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   // MAPA — delega en MapRenderer
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   renderMap(state) { /* MapRenderer removed — using AlthoriaMap instead */ },
 
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   // HOVER INFO — aparece en columna derecha
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   updateHoverInfo(cell) {
     const container = document.getElementById('hover-content');
     if (!container) return;
@@ -119,14 +119,14 @@ window.UI = window.UI || {
     `;
   },
 
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   // FACCIONES
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   renderFactions(state) {
     const container = document.getElementById('factions-list');
     if (!container) return;
 
-    // ── Fixed stat bars at top of sidebar ──────────────
+    // -- Fixed stat bars at top of sidebar --------------
     const stability  = Math.max(0, Math.min(100, Math.floor(state.stability  || 0)));
     const morale     = Math.max(0, Math.min(100, Math.floor(state.morale     || 0)));
     const corruption = Math.max(0, Math.min(100, Math.floor(state.economy?.corruption || 0)));
@@ -191,9 +191,9 @@ window.UI = window.UI || {
     });
   },
 
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   // PANEL DE GUERRAS ACTIVAS
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   renderWarPanel(state) {
     const container = document.getElementById('active-wars-panel');
     if (!container) return;
@@ -203,9 +203,9 @@ window.UI = window.UI || {
     container.style.display = html ? 'block' : 'none';
   },
 
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   // RESUMEN FINAL DE GUERRA
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   renderWarSummary(state) {
     const container = document.getElementById('war-summary-panel');
     if (!container) return;
@@ -232,9 +232,9 @@ window.UI = window.UI || {
       </div>`).join('');
   },
 
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   // RUTAS COMERCIALES EN MAPA LATERAL
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   renderTradeOverlay(state) {
     const el = document.getElementById('trade-map-overlay');
     if (!el) return;
@@ -255,10 +255,10 @@ window.UI = window.UI || {
         }).join('');
   },
 
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   // EJÉRCITO
-  // ══════════════════════════════════════════════
-  // ── FORMACIÓN VISUAL — renderiza filas de iconos escaladas por cantidad ──
+  // ----------------------------------------------
+  // -- FORMACIÓN VISUAL — renderiza filas de iconos escaladas por cantidad --
   _renderFormation(units, legendaryUnit) {
     if (!units || !units.length) return '<div class="formation-empty">Sin unidades desplegadas</div>';
 
@@ -388,9 +388,9 @@ window.UI = window.UI || {
 `;
   },
 
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   // POLÍTICA
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   renderPolitics(state) {
     const container = document.getElementById('politics-panel');
     if (!container) return;
@@ -446,9 +446,9 @@ window.UI = window.UI || {
       </div>`;
   },
 
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   // DIPLOMACIA — Usa DiplomacySystem para tarjetas expandidas
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   renderDiplomacy(state) {
     const container = document.getElementById('diplomacy-panel');
     if (!container || !state.diplomacy) return;
@@ -493,9 +493,9 @@ window.UI = window.UI || {
       + '</div>';
   },
 
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   // ECONOMÍA
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   renderEconomy(state) {
     const container = document.getElementById('economy-panel');
     if (!container) return;
@@ -552,9 +552,9 @@ window.UI = window.UI || {
       +'</div>';
   },
 
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   // CLIMA
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   renderClimate(state) {
     const container = document.getElementById('climate-panel');
     if (!container) return;
@@ -600,9 +600,9 @@ window.UI = window.UI || {
       </div>`;
   },
 
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   // ESPÍAS
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   renderSpies(state) {
     const container = document.getElementById('spies-panel');
     if (!container) return;
@@ -645,9 +645,9 @@ window.UI = window.UI || {
       </div>`;
   },
 
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   // COMERCIO
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   renderTrade(state) {
     const container = document.getElementById('trade-panel');
     if (!container) return;
@@ -698,9 +698,9 @@ window.UI = window.UI || {
       </div>`;
   },
 
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   // GASTO PÚBLICO (nuevo)
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   renderSpending(state) {
     const container = document.getElementById('spending-panel');
     if (!container) return;
@@ -731,9 +731,9 @@ window.UI = window.UI || {
       </div>`;
   },
 
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   // COLA DE EVENTOS (agenda compacta)
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   renderEventQueue(state) {
     const container = document.getElementById('event-queue');
     const countEl   = document.getElementById('event-count');
@@ -780,9 +780,9 @@ window.UI = window.UI || {
       </div>`).join('');
   },
 
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   // EVENTO ACTIVO
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   renderActiveEvent(state) {
     const container = document.getElementById('active-event');
     if (!container) return;
@@ -836,9 +836,9 @@ window.UI = window.UI || {
       </div>`;
   },
 
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   // LOG
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   renderLog(state) {
     const container = document.getElementById('game-log');
     if (!container || !state.log) return;
@@ -849,10 +849,10 @@ window.UI = window.UI || {
       </div>`).join('');
   },
 
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   // FULL RENDER
-  // ══════════════════════════════════════════════
-  // ── ÁRBOL DE DESBLOQUEOS (renderiza en pestaña spending por ahora) ──
+  // ----------------------------------------------
+  // -- ÁRBOL DE DESBLOQUEOS (renderiza en pestaña spending por ahora) --
   renderUnlocks(state) {
     if (typeof UnlockSystem === 'undefined') return;
     var container = document.getElementById('unlocks-panel');
@@ -955,7 +955,7 @@ window.UI = window.UI || {
     const garrisons = state._garrisons || {};
     const maxDeploy = Math.floor(total * 0.5);
 
-    // ── Composición del ejército ──────────────────────────
+    // -- Composición del ejército --------------------------
     let html = '<div style="padding:4px 2px">'
       + '<div style="font-family:var(--font-title);font-size:10px;color:var(--gold);'
       +   'letter-spacing:2px;text-transform:uppercase;padding:6px 8px;'
@@ -1019,9 +1019,9 @@ window.UI = window.UI || {
 
 var UI = window.UI;
 
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 // NAVEGACIÓN
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const el = document.getElementById(id);

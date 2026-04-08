@@ -15,9 +15,9 @@
 <body>
 <div id="app">
 
-  <!-- ╔══════════════════════════════╗ -->
-  <!-- ║  PANTALLA LOGIN              ║ -->
-  <!-- ╚══════════════════════════════╝ -->
+  <!-- -------------------------------- -->
+  <!-- -  PANTALLA LOGIN              - -->
+  <!-- -------------------------------- -->
   <div id="screen-login" class="screen active">
     <canvas id="login-canvas"></canvas>
     <div class="login-overlay"></div>
@@ -57,9 +57,9 @@
     </div>
   </div>
 
-  <!-- ╔══════════════════════════════╗ -->
-  <!-- ║  PANTALLA INICIO             ║ -->
-  <!-- ╚══════════════════════════════╝ -->
+  <!-- -------------------------------- -->
+  <!-- -  PANTALLA INICIO             - -->
+  <!-- -------------------------------- -->
   <div id="screen-start" class="screen">
     <canvas id="start-canvas"></canvas>
     <div class="start-particles" id="start-particles"></div>
@@ -97,7 +97,7 @@
         <div class="start-stat"><span class="ss-icon">⚔️</span><span>4 naciones<br>en conflicto</span></div>
       </div>
 
-      <!-- ── COMPARTIR ─────────────────────────────────────── -->
+      <!-- -- COMPARTIR --------------------------------------- -->
       <div class="share-bar">
         <span class="share-label">⚔ Comparte el reino</span>
         <div class="share-btns">
@@ -118,9 +118,9 @@
     </div>
   </div>
 
-  <!-- ╔══════════════════════════════╗ -->
-  <!-- ║  SELECCIÓN DE CIVILIZACIÓN  ║ -->
-  <!-- ╚══════════════════════════════╝ -->
+  <!-- -------------------------------- -->
+  <!-- -  SELECCIÓN DE CIVILIZACIÓN  - -->
+  <!-- -------------------------------- -->
   <div id="screen-civselect" class="screen">
     <div class="screen-header">
       <h2>⚜ Elige tu Civilización ⚜</h2>
@@ -129,12 +129,12 @@
     <div class="civ-grid" id="civ-grid"></div>
   </div>
 
-  <!-- ╔══════════════════════════════════════════════════════╗ -->
-  <!-- ║  PANTALLA PRINCIPAL DE JUEGO                         ║ -->
-  <!-- ╚══════════════════════════════════════════════════════╝ -->
+  <!-- -------------------------------------------------------- -->
+  <!-- -  PANTALLA PRINCIPAL DE JUEGO                         - -->
+  <!-- -------------------------------------------------------- -->
   <div id="screen-game" class="screen">
 
-    <!-- ═══ TOP BAR COMPACTO ═══ -->
+    <!-- --- TOP BAR COMPACTO --- -->
     <div id="top-bar">
       <!-- Recursos -->
       <div class="res-group">
@@ -168,7 +168,7 @@
       <div id="xp-bar-slot"></div>
       <div id="blitz-countdown" style="display:none"></div>
       <div class="tb-sep"></div>
-      <!-- ── MÚSICA ──────────────────────────────── -->
+      <!-- -- MÚSICA -------------------------------- -->
       <div class="music-ctrl" id="music-ctrl">
         <button class="music-btn tb-tip" id="music-mute-btn"
           data-tip="🎵 Música medieval&#10;Cantigas de Santa María"
@@ -195,7 +195,7 @@
       </div>
     </div>
 
-    <!-- ═══ CUERPO PRINCIPAL: columna izquierda + panel derecho principal ═══ -->
+    <!-- --- CUERPO PRINCIPAL: columna izquierda + panel derecho principal --- -->
     <div id="main-body">
 
       <!-- COLUMNA IZQUIERDA: Facciones + Agenda (compacta, ~25%) -->
@@ -229,7 +229,7 @@
         </div>
       </div>
 
-      <!-- ═══ PANEL DERECHO: MENÚ PRINCIPAL (~75%) ═══ -->
+      <!-- --- PANEL DERECHO: MENÚ PRINCIPAL (~75%) --- -->
       <div id="right-panel">
         <!-- Guerras activas (multi-turno) -->
         <div id="active-wars-panel" style="display:none"></div>
@@ -270,9 +270,9 @@
     </div>
   </div>
 
-  <!-- ╔═══════════════╗ -->
-  <!-- ║  CODEX        ║ -->
-  <!-- ╚═══════════════╝ -->
+  <!-- ----------------- -->
+  <!-- -  CODEX        - -->
+  <!-- ----------------- -->
   <div id="screen-codex" class="screen">
     <div class="codex-header">
       <button onclick="showScreen('screen-start')" class="back-btn">⬅ Volver</button>
@@ -281,9 +281,9 @@
     <div class="codex-body" id="codex-body"></div>
   </div>
 
-  <!-- ╔══════════════════════════════╗ -->
-  <!-- ║  MODAL BATALLA EN MAPA       ║ -->
-  <!-- ╚══════════════════════════════╝ -->
+  <!-- -------------------------------- -->
+  <!-- -  MODAL BATALLA EN MAPA       - -->
+  <!-- -------------------------------- -->
   <div id="modal-battle" class="modal-overlay hidden">
     <div class="battle-grid-box" id="battle-modal-inner">
       <!-- dynamically rendered by BattleSystem._renderAll() -->
@@ -292,9 +292,9 @@
     <div id="bg-error" class="bg-error-toast" style="opacity:0"></div>
   </div>
 
-  <!-- ╔══════════════════════════════╗ -->
-  <!-- ║  MODAL GUARDAR/CARGAR        ║ -->
-  <!-- ╚══════════════════════════════╝ -->
+  <!-- -------------------------------- -->
+  <!-- -  MODAL GUARDAR/CARGAR        - -->
+  <!-- -------------------------------- -->
   <div id="modal-save" class="modal-overlay hidden">
     <div class="modal-box save-box">
       <h2>💾 Guardar Partida</h2>
@@ -303,9 +303,9 @@
     </div>
   </div>
 
-  <!-- ╔══════════════════════════════╗ -->
-  <!-- ║  MODAL VICTORIA / DERROTA    ║ -->
-  <!-- ╚══════════════════════════════╝ -->
+  <!-- -------------------------------- -->
+  <!-- -  MODAL VICTORIA / DERROTA    - -->
+  <!-- -------------------------------- -->
   <div id="modal-overlay" class="modal-overlay hidden">
     <div class="modal-box">
       <div id="modal-title"></div>
@@ -314,16 +314,16 @@
     </div>
   </div>
 
-<!-- ╔═══════════════════════╗ -->
-<!-- ║  CRÓNICA DEL TURNO    ║ -->
-<!-- ╚═══════════════════════╝ -->
+<!-- ------------------------- -->
+<!-- -  CRÓNICA DEL TURNO    - -->
+<!-- ------------------------- -->
 <div id="chronicle-modal" class="chronicle-overlay" aria-hidden="true" role="dialog" aria-labelledby="chronicle-turn">
   <div class="chronicle-box">
     <div class="chronicle-header">
-      <div class="chronicle-ornament">✦ ─────── ✦</div>
+      <div class="chronicle-ornament">✦ ------- ✦</div>
       <div class="chronicle-title">📜 Crónica del Reino</div>
       <div id="chronicle-turn" class="chronicle-subtitle">Año 1 · Turno 1</div>
-      <div class="chronicle-ornament">✦ ─────── ✦</div>
+      <div class="chronicle-ornament">✦ ------- ✦</div>
     </div>
     <div class="chronicle-scroll">
       <p id="chronicle-body" class="chronicle-text"></p>

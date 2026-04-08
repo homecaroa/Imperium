@@ -7,7 +7,7 @@
 // • Panel de nación ampliado con relación, ejército, gobernador
 // ============================================================
 
-// ── GOBERNADORES / PERSONAJES POR NACIÓN ──────────────────
+// -- GOBERNADORES / PERSONAJES POR NACIÓN ------------------
 var NATION_CHARACTERS = {
   // id del pool → personaje embajador
   'ai_1': [
@@ -40,7 +40,7 @@ var NATION_CHARACTERS = {
   ]
 };
 
-// ── MENSAJES POR PERSONALIDAD Y SITUACIÓN ─────────────────
+// -- MENSAJES POR PERSONALIDAD Y SITUACIÓN -----------------
 var DIPLOMACY_MESSAGES = {
   agresiva: {
     turn_start: [
@@ -142,7 +142,7 @@ var DIPLOMACY_MESSAGES = {
   }
 };
 
-// ── SISTEMA DE MENSAJERÍA ─────────────────────────────────
+// -- SISTEMA DE MENSAJERÍA ---------------------------------
 window.DiplomacySystem = window.DiplomacySystem || {
 
   // Inicializar personaje de cada nación
@@ -320,7 +320,7 @@ window.DiplomacySystem = window.DiplomacySystem || {
     if (typeof AlthoriaMap !== 'undefined') AlthoriaMap.sync(state);
   },
 
-  // ── CEDER TERRITORIO ──────────────────────────────────────
+  // -- CEDER TERRITORIO --------------------------------------
   // Jugador cede una región de Althoria a una nación
   cedeTerritoryTo(state, nation, regionId) {
     if (!state || !nation) return { ok:false, msg:'Estado inválido' };
@@ -365,7 +365,7 @@ window.DiplomacySystem = window.DiplomacySystem || {
     }
   },
 
-  // ── RENDER PANEL DE NACIÓN AMPLIADO ──────────────────────
+  // -- RENDER PANEL DE NACIÓN AMPLIADO ----------------------
   renderNationCard(nation, state, natIdx) {
     const natId     = 'ai_' + (natIdx+1);
     const char      = nation.character || { name:'Embajador', role:'Enviado', portrait:'📜', trait:'diplomática' };
@@ -423,7 +423,7 @@ window.DiplomacySystem = window.DiplomacySystem || {
         </div>
       </div>
 
-      <!-- Relación con barra ──────────── -->
+      <!-- Relación con barra ------------ -->
       <div class="dnc-section">
         <div class="dnc-row">
           <span>Relación</span>
@@ -434,24 +434,24 @@ window.DiplomacySystem = window.DiplomacySystem || {
         </div>
       </div>
 
-      <!-- Ejército + Regiones ───────────── -->
+      <!-- Ejército + Regiones ------------- -->
       <div class="dnc-section">
         <div class="dnc-row">⚔️ Ejército: ${armyInfo}</div>
         <div class="dnc-row">🗺️ Regiones: <b style="color:var(--gold2)">${natZones}</b> zonas de Althoria</div>
       </div>
 
-      <!-- Rutas comerciales ─────────────── -->
+      <!-- Rutas comerciales --------------- -->
       <div class="dnc-section">
         <div class="dnc-label">📦 Comercio activo</div>
         <div class="diplo-routes-row">${routesHtml}</div>
       </div>
 
-      <!-- Análisis de batalla ──────────── -->
+      <!-- Análisis de batalla ------------ -->
       <div class="dnc-section">
         ${this._renderBattleAnalysis(state, nation)}
       </div>
 
-      <!-- Acciones diplomáticas ────────── -->
+      <!-- Acciones diplomáticas ---------- -->
       <div class="dnc-actions">
         <button class="diplo-btn" onclick="AI.playerDiplomaticAction(Game.state,'${nation.id}','gift');UI.fullRender(Game.state)" title="Cuesta 100💰. Mejora relación +15.">🎁 Regalo</button>
         <button class="diplo-btn" onclick="AI.playerDiplomaticAction(Game.state,'${nation.id}','propose_alliance');UI.fullRender(Game.state)" title="Propone alianza si rel>30">🤝 Alianza</button>
@@ -464,7 +464,7 @@ window.DiplomacySystem = window.DiplomacySystem || {
       </div>
 
 
-      <!-- Mensajes sin leer ──────────── -->
+      <!-- Mensajes sin leer ------------ -->
       ${inbox.length ? `
       <div class="dnc-inbox">
         <div class="dnc-label">✉️ Mensajes (${inbox.length})</div>
@@ -481,7 +481,7 @@ window.DiplomacySystem = window.DiplomacySystem || {
           </div>`).join('')}
       </div>` : ''}
 
-      <!-- Historial breve ──────────── -->
+      <!-- Historial breve ------------ -->
       ${histHtml ? `<div class="dnc-history">${histHtml}</div>` : ''}
     </div>`;
   },
@@ -498,7 +498,7 @@ window.DiplomacySystem = window.DiplomacySystem || {
     <div style="font-family:var(--font-mono);font-size:9px;color:var(--text3);margin-top:2px">${analysis.recommendation}</div>`;
   },
 
-  // ── RENDER INBOX GENERAL (panel de mensajes) ──────────────
+  // -- RENDER INBOX GENERAL (panel de mensajes) --------------
   renderInbox(state) {
     const inbox = (state.diplomacyInbox||[]).filter(m=>!m.read).slice(-8).reverse();
     if (!inbox.length) return '<div class="diplo-no-msgs">Sin mensajes pendientes de otras naciones</div>';

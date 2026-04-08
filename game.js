@@ -8,9 +8,9 @@ window.Game = window.Game || {
 
   state: null,
 
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   // INICIO
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   startBlitzMode() {
     this._blitzMode = true;
     this.startNewGame();
@@ -70,9 +70,9 @@ window.Game = window.Game || {
     this.generateTurnEvents();
   },
 
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   // HOVER DEL MAPA → columna derecha
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   _attachMapHover() {
     const canvas = MapRenderer.canvas;
     if (!canvas) return;
@@ -105,9 +105,9 @@ window.Game = window.Game || {
     `;
   },
 
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   // ESTADO INICIAL
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   initState(civ) {
     const mapSeed    = Math.floor(Math.random() * 9999999);
     const mapData    = MapGenerator.generate(mapSeed);
@@ -191,14 +191,14 @@ window.Game = window.Game || {
     });
   },
 
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   // FIN DE TURNO — BLOQUEO si hay evento crítico sin resolver
-  // ══════════════════════════════════════════════
-  // ── RESOLVER PETICIONES DIPLOMÁTICAS PENDIENTES ─────────────
+  // ----------------------------------------------
+  // -- RESOLVER PETICIONES DIPLOMÁTICAS PENDIENTES -------------
   _processPendingDiplomacy(state) {
     (state.diplomacy || []).forEach(nation => {
 
-      // ── ALIANZA PENDIENTE ─────────────────────────────────────
+      // -- ALIANZA PENDIENTE -------------------------------------
       if (nation._alliancePending && state.turn > nation._alliancePendingTurn) {
         nation._alliancePending = false;
         const accepts = nation.relation > 30 && Math.random() < 0.7 + (nation.relation / 300);
@@ -244,7 +244,7 @@ window.Game = window.Game || {
         }
       }
 
-      // ── TRIBUTO PENDIENTE ─────────────────────────────────────
+      // -- TRIBUTO PENDIENTE -------------------------------------
       if (nation._tributePending && state.turn > nation._tributePendingTurn) {
         nation._tributePending = false;
         const playerStr   = Systems.Military.calculateEffectiveStrength(state);
@@ -301,7 +301,7 @@ window.Game = window.Game || {
     const state = this.state;
     if (!state) return;
 
-    // ── Si hay crónica pendiente, mostrarla ANTES de procesar el turno ──
+    // -- Si hay crónica pendiente, mostrarla ANTES de procesar el turno --
     if (state._chroniclePending) {
       state._chroniclePending = false;
       if (typeof ChronicleSystem !== 'undefined') {
@@ -310,7 +310,7 @@ window.Game = window.Game || {
       return; // Bloquear — el jugador debe cerrar la crónica primero
     }
 
-    // ── Snapshot del estado ANTES del turno para la crónica ──
+    // -- Snapshot del estado ANTES del turno para la crónica --
     const _prevSnapshot = {
       morale:     state.morale,
       stability:  state.stability,
@@ -320,16 +320,16 @@ window.Game = window.Game || {
       _warsWon:   state._warsWon || 0,
     };
 
-    // ── Puntos de Acción: resetear al inicio del siguiente turno ──
+    // -- Puntos de Acción: resetear al inicio del siguiente turno --
     ActionPoints.reset(state);
 
-    // ── Resolver peticiones diplomáticas del turno anterior ──
+    // -- Resolver peticiones diplomáticas del turno anterior --
     this._processPendingDiplomacy(state);
 
     // ⚠️ BLOQUEO: No se puede pasar turno si hay eventos sin decidir
     const pending = state.currentEvents || [];
     if (pending.length > 0) {
-      // ── Auto-resolver eventos bloqueados demasiado tiempo ───────
+      // -- Auto-resolver eventos bloqueados demasiado tiempo -------
       // Si un evento lleva más de 3 turnos pendiente, se auto-resuelve
       // con la opción menos dañina (índice 0 = primera opción)
       const autoResolvedNow = [];
@@ -462,7 +462,7 @@ window.Game = window.Game || {
     if (typeof DiplomacySystem !== "undefined") {
       DiplomacySystem.generateTurnMessages(state);
     }
-    // ── Limpiar inbox: máximo 20 mensajes, purgar los más viejos ──
+    // -- Limpiar inbox: máximo 20 mensajes, purgar los más viejos --
     if (state.diplomacyInbox && state.diplomacyInbox.length > 20) {
       // Marcar como leídos los más viejos y conservar solo los 20 recientes
       state.diplomacyInbox = state.diplomacyInbox.slice(-20);
@@ -512,9 +512,9 @@ window.Game = window.Game || {
     // UI.renderLog removed — game-log panel removed from HTML
   },
 
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   // GASTO PÚBLICO — aplicar efectos por turno
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   _applyActiveSpending(state) {
     const active = state.activeSpending || [];
     active.forEach(id => {
@@ -584,9 +584,9 @@ window.Game = window.Game || {
     UI.fullRender(state);
   },
 
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   // EVENTOS
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   generateTurnEvents() {
     const state  = this.state;
     let events   = Systems.Events.generateForTurn(state);
@@ -671,9 +671,9 @@ window.Game = window.Game || {
     UI.fullRender(state);
   },
 
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   // GUERRA CON BATALLA EN MAPA
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   toggleMilitaryPanel() {
     // Military is now a right-panel tab — switch to it
     if (typeof switchRightTab === 'function') switchRightTab('military');
@@ -715,9 +715,9 @@ window.Game = window.Game || {
     if (typeof WarSystem !== 'undefined') WarSystem.retreat(this.state, nationId);
   },
 
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   // POLÍTICAS
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   togglePolicy(policyId, category) {
     const state    = this.state;
     const policies = POLICIES[category];
@@ -752,9 +752,9 @@ window.Game = window.Game || {
     UI.fullRender(state);
   },
 
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   // ACCIONES ECONÓMICAS
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   takeLoan() {
     this.state.resources.gold += 200;
     this.state.economy.debt   += 200;
@@ -776,7 +776,7 @@ window.Game = window.Game || {
     UI.fullRender(this.state);
   },
 
-  // ── SISTEMA DE IMPUESTOS EN % — slider % libre con etiquetas ──
+  // -- SISTEMA DE IMPUESTOS EN % — slider % libre con etiquetas --
   setTaxRate(rate) {
     const state = this.state;
     if (!state) return;
@@ -832,9 +832,9 @@ window.Game = window.Game || {
     UI.fullRender(this.state);
   },
 
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   // MILITAR
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
 
 
 
@@ -873,9 +873,9 @@ window.Game = window.Game || {
     UI.fullRender(this.state);
   },
 
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   // ESPÍAS
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   sendSpy(missionId, nationId) {
     if (!ActionPoints.spend(this.state, 1, 'Enviar espía')) return;
     const result = Systems.Spies.sendMission(this.state, missionId, nationId);
@@ -896,9 +896,9 @@ window.Game = window.Game || {
     UI.fullRender(this.state);
   },
 
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   // COMERCIO
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   openTradeRoute(routeId, nationId) {
     // Check if route can open BEFORE spending AP
     const rt = TRADE_ROUTES[routeId];
@@ -936,9 +936,9 @@ window.Game = window.Game || {
     UI.fullRender(this.state);
   },
 
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   // CONDICIONES FINALES
-  // ══════════════════════════════════════════════
+  // ----------------------------------------------
   checkEndConditions() {
     const s = this.state;
     for (const lose of LOSE_CONDITIONS) { if (lose.check(s)) return { type:'defeat',  condition: lose }; }
@@ -956,7 +956,7 @@ window.Game = window.Game || {
     const s = this.state;
     const isVictory = result.type === 'victory';
 
-    // ── Generar mensajes de las naciones rivales ──
+    // -- Generar mensajes de las naciones rivales --
     const nationMessages = this._generateEndMessages(s, isVictory);
 
     if (isVictory) {
@@ -1085,9 +1085,9 @@ window.Game = window.Game || {
   }
 };
 
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 // CODEX
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 function buildCodex() {
   const container = document.getElementById('codex-body');
   if (!container) return;
@@ -1113,10 +1113,10 @@ function buildCodex() {
   `;
 }
 
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 // INIT
-// ══════════════════════════════════════════════
-// ── TOP-BAR TOOLTIP SYSTEM ──────────────────────────────────
+// ----------------------------------------------
+// -- TOP-BAR TOOLTIP SYSTEM ----------------------------------
 (function() {
   const box = document.getElementById('tb-tooltip');
   if (!box) return;
@@ -1155,7 +1155,7 @@ function buildCodex() {
   }
 })();
 
-// ── RESOURCE ERROR TOAST ────────────────────────────────────
+// -- RESOURCE ERROR TOAST ------------------------------------
 function showResourceError(missing) {
   var existing = document.getElementById('resource-toast');
   if (existing) { if(typeof existing.remove=="function") existing.remove(); else if(existing.parentNode) existing.parentNode.removeChild(existing); }
@@ -1172,9 +1172,9 @@ function showResourceError(missing) {
 }
 
 
-// ══════════════════════════════════════════════════════════
+// ----------------------------------------------------------
 // COMPARTIR JUEGO
-// ══════════════════════════════════════════════════════════
+// ----------------------------------------------------------
 function shareGame(platform) {
   var url  = window.location.href.split('?')[0].split('#')[0];
   var text = '⚔ IMPERIUM — Estrategia medieval sistémica. Mapas únicos, IA con personalidad, decisiones que duelen. ¡Reta tu destino!';
@@ -1218,9 +1218,9 @@ function shareGame(platform) {
 }
 
 
-// ══════════════════════════════════════════════════════════
+// ----------------------------------------------------------
 // MUSIC PLAYER — Cantigas de Santa María
-// ══════════════════════════════════════════════════════════
+// ----------------------------------------------------------
 var MusicPlayer = {
   _audio:   null,
   _muted:   false,

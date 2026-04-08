@@ -4,7 +4,7 @@
 // Usa localStorage — persistencia entre sesiones
 // ============================================================
 
-// ── AUTH ────────────────────────────────────────────────────
+// -- AUTH ----------------------------------------------------
 window.Auth = window.Auth || {
   currentUser: null,
 
@@ -58,7 +58,7 @@ window.Auth = window.Auth || {
   }
 };
 
-// ── SAVE SYSTEM ─────────────────────────────────────────────
+// -- SAVE SYSTEM ---------------------------------------------
 window.SaveSystem = window.SaveSystem || {
   MAX_SLOTS: 3,
   KEY_PREFIX: 'imperium_save_',
@@ -149,7 +149,7 @@ window.SaveSystem = window.SaveSystem || {
     return result;
   },
 
-  // ── SERIALIZACIÓN ──
+  // -- SERIALIZACIÓN --
   // El mapData es pesado — lo regeneramos desde la seed
   _serializeState(state) {
     const minimal = { ...state };
@@ -157,7 +157,7 @@ window.SaveSystem = window.SaveSystem || {
     minimal._mapSeed = state.mapSeed;
     minimal.mapData  = null; // demasiado grande — se regenera desde seed
 
-    // ── Campos de deep_systems: serializar explícitamente ──
+    // -- Campos de deep_systems: serializar explícitamente --
     // (ya están en el spread, pero verificamos que existan)
     minimal._reputation         = state._reputation         || 50;
     minimal._cities             = state._cities             || [];
@@ -196,7 +196,7 @@ window.SaveSystem = window.SaveSystem || {
     const civ = CIVILIZATIONS.find(c => c.id === data.civId);
     if (civ) data.civData = civ;
 
-    // ── Garantizar campos de deep_systems con defaults seguros ──
+    // -- Garantizar campos de deep_systems con defaults seguros --
     data._reputation         = data._reputation         ?? 50;
     data._cities             = data._cities             || [];
     data._hiddenObjectives   = data._hiddenObjectives   || [];
@@ -224,7 +224,7 @@ window.SaveSystem = window.SaveSystem || {
     return data;
   },
 
-  // ── MODALES ──
+  // -- MODALES --
   showSaveModal() {
     this.renderSaveModal();
     document.getElementById('modal-save').classList.remove('hidden');

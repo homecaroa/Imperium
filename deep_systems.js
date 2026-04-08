@@ -5,10 +5,10 @@
 // con memoria, ciudades, coste moral, guerra realista.
 // ============================================================
 
-// ══════════════════════════════════════════════════════════
+// ----------------------------------------------------------
 // 1. DECISIONES "DUELE ELEGIR" — TradeOffSystem
 //    Cada acción importante afecta ≥2 variables en tensión
-// ══════════════════════════════════════════════════════════
+// ----------------------------------------------------------
 var TradeOffSystem = {
 
   // Registro de decisiones que bloquean otras
@@ -95,10 +95,10 @@ var TradeOffSystem = {
   }
 };
 
-// ══════════════════════════════════════════════════════════
+// ----------------------------------------------------------
 // 2. ESPIONAJE PROFUNDO — DeepSpySystem
 //    Espías descubren secretos; se pueden usar para chantaje
-// ══════════════════════════════════════════════════════════
+// ----------------------------------------------------------
 var DeepSpySystem = {
 
   // Tipos de secretos descubribles por misión de espionaje
@@ -204,10 +204,10 @@ var DeepSpySystem = {
   }
 };
 
-// ══════════════════════════════════════════════════════════
+// ----------------------------------------------------------
 // 3. DECISIONES IRREVERSIBLES — PermanentChoices
 //    Bloquean opciones futuras para siempre
-// ══════════════════════════════════════════════════════════
+// ----------------------------------------------------------
 var PermanentChoices = {
 
   CHOICES: {
@@ -325,11 +325,11 @@ var PermanentChoices = {
   }
 };
 
-// ══════════════════════════════════════════════════════════
+// ----------------------------------------------------------
 // 4. OBJETIVOS OCULTOS — HiddenObjectives
 //    Cada civilización tiene metas secretas
 //    Revelarlas al completarlas da bonus sorpresa
-// ══════════════════════════════════════════════════════════
+// ----------------------------------------------------------
 var HiddenObjectives = {
 
   // Objetivos por civilización
@@ -453,10 +453,10 @@ var HiddenObjectives = {
   getPending(state)   { return (state._hiddenObjectives || []).filter(o => !o.completed); }
 };
 
-// ══════════════════════════════════════════════════════════
+// ----------------------------------------------------------
 // 5. GUERRA REALISTA — RealisticWarModifiers
 //    Moral cae con duración; coste de tropas escala
-// ══════════════════════════════════════════════════════════
+// ----------------------------------------------------------
 var RealisticWarModifiers = {
 
   // Llamado por WarSystem.processTurn — añade capas de realismo
@@ -466,7 +466,7 @@ var RealisticWarModifiers = {
 
     const dur = w.turn; // turnos de guerra
 
-    // ── Moral degrada con la duración ────────────────────────
+    // -- Moral degrada con la duración ------------------------
     //    T1-2: sin penalti | T3-5: -3/t | T6+: -6/t | T10+: -10/t
     let moraleDrain = 0;
     if (dur >= 10) moraleDrain = 10;
@@ -477,14 +477,14 @@ var RealisticWarModifiers = {
       state.morale = Math.max(0, state.morale - moraleDrain);
     }
 
-    // ── Mantenimiento escala con duración ────────────────────
+    // -- Mantenimiento escala con duración --------------------
     //    Base ya pagada por WarSystem; aquí añadimos escalado adicional
     const extraUpkeep = Math.floor(dur * dur * 3); // cuadrático: 0, 3, 12, 27, 48...
     if (extraUpkeep > 0) {
       state.resources.gold = Math.max(0, state.resources.gold - extraUpkeep);
     }
 
-    // ── Deserción en guerras largas ───────────────────────────
+    // -- Deserción en guerras largas ---------------------------
     if (dur >= 5 && state.morale < 40) {
       const deserters = Math.floor(state.army * 0.03);
       state.army = Math.max(0, state.army - deserters);
@@ -493,7 +493,7 @@ var RealisticWarModifiers = {
       }
     }
 
-    // ── Facciones se tensionan ────────────────────────────────
+    // -- Facciones se tensionan --------------------------------
     if (dur >= 4) {
       const ejercito = (state.factions || []).find(f => f.id === 'ejercito');
       const pueblo   = (state.factions || []).find(f => f.id === 'pueblo');
@@ -501,12 +501,12 @@ var RealisticWarModifiers = {
       if (pueblo)   pueblo.satisfaction   = Math.max(0, pueblo.satisfaction - 3);    // pueblo cansado
     }
 
-    // ── Corrupción en guerras largas ─────────────────────────
+    // -- Corrupción en guerras largas -------------------------
     if (dur >= 7) {
       state.economy.corruption = Math.min(100, (state.economy.corruption || 0) + 2);
     }
 
-    // ── Log narrativo de degradación ────────────────────────
+    // -- Log narrativo de degradación ------------------------
     if (dur === 3) Systems.Log.add(state, '⏳ La guerra se alarga. La moral del pueblo comienza a flaquear.', 'warn');
     if (dur === 6) Systems.Log.add(state, '☠ La guerra consume todo. Los costes se disparan.', 'crisis');
     if (dur === 10) Systems.Log.add(state, '💀 Guerra de desgaste total. Tu nación está al límite.', 'crisis');
@@ -523,11 +523,11 @@ var RealisticWarModifiers = {
   }
 };
 
-// ══════════════════════════════════════════════════════════
+// ----------------------------------------------------------
 // 6. SISTEMA DE CIUDADES — CitySystem
 //    Cada nación tiene 1-3 ciudades; cada ciudad produce
 //    recursos y puede ser tomada en guerra
-// ══════════════════════════════════════════════════════════
+// ----------------------------------------------------------
 var CitySystem = {
 
   // Plantillas de ciudades por civilización
@@ -634,11 +634,11 @@ var CitySystem = {
   getTotalDefense(state) { return (state._cities || []).filter(c=>c.owner==='player').reduce((s,c)=>s+(c.defense||0), 0); }
 };
 
-// ══════════════════════════════════════════════════════════
+// ----------------------------------------------------------
 // 7. COSTE MORAL — MoralCostSystem
 //    Decisiones afectan reputación permanente
 //    (usado en diplomacia y en eventos)
-// ══════════════════════════════════════════════════════════
+// ----------------------------------------------------------
 var MoralCostSystem = {
 
   // Actos con coste moral permanente en reputación
@@ -698,10 +698,10 @@ var MoralCostSystem = {
   }
 };
 
-// ══════════════════════════════════════════════════════════
+// ----------------------------------------------------------
 // 8. LÍDERES CON PERSONALIDAD — LeaderSystem
 //    Rasgos que afectan eventos, diplomacia y decisiones
-// ══════════════════════════════════════════════════════════
+// ----------------------------------------------------------
 var LeaderSystem = {
 
   // Definición de rasgos posibles
@@ -786,10 +786,10 @@ var LeaderSystem = {
   }
 };
 
-// ══════════════════════════════════════════════════════════
+// ----------------------------------------------------------
 // 9. DIPLOMACIA CON MEMORIA — DiplomacyMemory
 //    El historial de acciones afecta relaciones futuras
-// ══════════════════════════════════════════════════════════
+// ----------------------------------------------------------
 var DiplomacyMemory = {
 
   // Registrar acción diplomática
@@ -866,9 +866,9 @@ var DiplomacyMemory = {
   }
 };
 
-// ══════════════════════════════════════════════════════════
+// ----------------------------------------------------------
 // INTEGRACIÓN: hook en endTurn y sistemas existentes
-// ══════════════════════════════════════════════════════════
+// ----------------------------------------------------------
 var DeepSystemsIntegration = {
 
   // Llamar al final de cada turno (desde game.js endTurn)

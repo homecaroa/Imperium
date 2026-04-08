@@ -4,7 +4,7 @@
 // y declaración basada en relación diplomática
 // ============================================================
 
-// ─────────────────────────────────────────────────────────────
+// -------------------------------------------------------------
 // MODELO DE ESTADO DE GUERRA (por nación)
 // nation._war = {
 //   phase:       'preparing'|'active'|'decisive'|'ending',
@@ -18,13 +18,13 @@
 //   canRetreat:  Boolean,
 //   contested:   [regionId],      // regiones en disputa
 // }
-// ─────────────────────────────────────────────────────────────
+// -------------------------------------------------------------
 
 window.WarSystem = window.WarSystem || {
 
   MIN_TURNS: 3,
 
-  // ── Iniciar guerra multi-turno ──────────────────────────────
+  // -- Iniciar guerra multi-turno ------------------------------
   startWar(state, nation, targetRegionId) {
     if (nation._war) return; // Ya en guerra con esta nación
 
@@ -59,7 +59,7 @@ window.WarSystem = window.WarSystem || {
     Progression.awardXP(state, 'first_war');
   },
 
-  // ── Procesar turno de guerra (llamado en endTurn) ──────────
+  // -- Procesar turno de guerra (llamado en endTurn) ----------
   processTurn(state, nation) {
     if (!nation._war || !nation.atWar) return;
     const w = nation._war;
@@ -105,7 +105,7 @@ window.WarSystem = window.WarSystem || {
     this._checkResolution(state, nation);
   },
 
-  // ── Verificar si la guerra termina ─────────────────────────
+  // -- Verificar si la guerra termina -------------------------
   _checkResolution(state, nation) {
     const w = nation._war;
     if (!w) return;
@@ -134,7 +134,7 @@ window.WarSystem = window.WarSystem || {
     }
   },
 
-  // ── Victoria: conquistar territorio ────────────────────────
+  // -- Victoria: conquistar territorio ------------------------
   _resolveVictory(state, nation) {
     const w = nation._war;
 
@@ -152,7 +152,7 @@ window.WarSystem = window.WarSystem || {
     state.morale = Math.min(100, state.morale + 20);
     Progression.awardXP(state, 'battle_won');
 
-    // ── Contadores de victoria para objetivos ocultos ──
+    // -- Contadores de victoria para objetivos ocultos --
     state._warsWon = (state._warsWon || 0) + 1;
     state._winsAgainst = state._winsAgainst || {};
     state._winsAgainst[nation.id] = (state._winsAgainst[nation.id] || 0) + 1;
@@ -164,7 +164,7 @@ window.WarSystem = window.WarSystem || {
     this._endWar(state, nation);
   },
 
-  // ── Derrota ─────────────────────────────────────────────────
+  // -- Derrota -------------------------------------------------
   _resolveLoss(state, nation) {
     const w = nation._war;
     state.stability  = Math.max(0, state.stability - 20);
@@ -177,7 +177,7 @@ window.WarSystem = window.WarSystem || {
     this._endWar(state, nation);
   },
 
-  // ── Paz negociada ───────────────────────────────────────────
+  // -- Paz negociada -------------------------------------------
   _resolvePeace(state, nation) {
     const w = nation._war;
     state.army += Math.floor(w.playerArmy * 0.5);
@@ -212,7 +212,7 @@ window.WarSystem = window.WarSystem || {
     if (typeof AlthoriaMap !== 'undefined') AlthoriaMap.updateWar(state);
   },
 
-  // ── Retirada táctica ────────────────────────────────────────
+  // -- Retirada táctica ----------------------------------------
   retreat(state, nationId) {
     const nation = state.diplomacy.find(n => n.id === nationId);
     if (!nation?._war?.canRetreat) return;
@@ -225,7 +225,7 @@ window.WarSystem = window.WarSystem || {
     this._resolveLoss(state, nation);
   },
 
-  // ── Refuerzo ────────────────────────────────────────────────
+  // -- Refuerzo ------------------------------------------------
   reinforce(state, nationId, troops) {
     const nation = state.diplomacy.find(n => n.id === nationId);
     if (!nation?._war) return;
@@ -249,7 +249,7 @@ window.WarSystem = window.WarSystem || {
     return zones[0] || 'territorio_desconocido';
   },
 
-  // ── UI: Panel de guerra activa ──────────────────────────────
+  // -- UI: Panel de guerra activa ------------------------------
   renderWarPanel(state) {
     const wars = state.diplomacy.filter(n => n.atWar && n._war);
     if (!wars.length) return '';
@@ -278,9 +278,9 @@ window.WarSystem = window.WarSystem || {
   },
 };
 
-// ─────────────────────────────────────────────────────────────
+// -------------------------------------------------------------
 // SISTEMA DE TERRITORIOS — conquista y pérdida
-// ─────────────────────────────────────────────────────────────
+// -------------------------------------------------------------
 window.TerritorySystem = window.TerritorySystem || {
 
   // Conquista un territorio enemigo y lo transfiere al jugador
@@ -378,9 +378,9 @@ window.TerritorySystem = window.TerritorySystem || {
   },
 };
 
-// ─────────────────────────────────────────────────────────────
+// -------------------------------------------------------------
 // DECLARACIÓN DE GUERRA BASADA EN RELACIÓN
-// ─────────────────────────────────────────────────────────────
+// -------------------------------------------------------------
 window.WarDeclaration = window.WarDeclaration || {
 
   // Evaluar si declarar guerra y qué tipo de respuesta
@@ -397,7 +397,7 @@ window.WarDeclaration = window.WarDeclaration || {
     const enemyStr   = (nation.army || 400) * 0.7;
     const powerAdv   = playerStr / Math.max(1, enemyStr);       // >1 = jugador más fuerte
 
-    // ── FÓRMULA DE GUERRA INMEDIATA ──
+    // -- FÓRMULA DE GUERRA INMEDIATA --
     // Guerra inmediata si: relación muy negativa O agresión alta Y jugador débil
     const warScore = Math.max(0,
       (-rel * 0.5)                             // Mal relación → más probable
@@ -473,7 +473,7 @@ window.WarDeclaration = window.WarDeclaration || {
     if (typeof AlthoriaMap !== 'undefined') AlthoriaMap.updateWar(state);
     Systems.Log.add(state, eval_.message, 'crisis');
 
-    // ── Abrir batalla en grid ─────────────────────────────
+    // -- Abrir batalla en grid -----------------------------
     if (typeof BattleSystem !== 'undefined') {
       BattleSystem.initBattle(state, nation, { territory: targetRegionId });
     } else {
@@ -482,9 +482,9 @@ window.WarDeclaration = window.WarDeclaration || {
   },
 };
 
-// ─────────────────────────────────────────────────────────────
+// -------------------------------------------------------------
 // SELECCIÓN DE TERRITORIO EN EL MAPA
-// ─────────────────────────────────────────────────────────────
+// -------------------------------------------------------------
 window.RegionSelector = window.RegionSelector || {
   _active:     false,
   _callback:   null,
