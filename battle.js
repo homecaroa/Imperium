@@ -205,6 +205,7 @@ var BattleSystem = {
       return (ready
         ? '<button class="bg-btn-primary" onclick="BattleSystem.confirmPlacement()">⚔ ¡Al combate!</button>'
         : '<button class="bg-btn-primary" style="opacity:0.4;cursor:not-allowed" disabled>📍 Coloca todas tus unidades</button>') +
+        '<span style="font-family:var(--font-mono);font-size:9px;color:var(--gold2);opacity:0.8">💡 Col. 4 = línea de frente</span>' +
         '<button class="bg-btn" onclick="BattleSystem.retreat()">🏃 Retirada</button>';
     }
     if (b.phase === 'move') {
@@ -314,8 +315,11 @@ var BattleSystem = {
     for (var r = 0; r < 10; r++)
       for (var co = 5; co < 10; co++)
         if (b.terrain[r][co] === 1) candidates.push([r,co]);
-    candidates.sort(function() { return Math.random()-0.5; });
-    candidates.sort(function(a,b2) { return a[1]-b2[1]; });
+    // Sort: col 5 first (frontline, closest to player), center rows preferred
+    candidates.sort(function(a,b2) {
+      if (a[1] !== b2[1]) return a[1] - b2[1]; // lower col first (col5 before col9)
+      return Math.abs(a[0]-4.5) - Math.abs(b2[0]-4.5); // center rows first
+    });
     var placed = 0;
     b.aiUnits.forEach(function(u) {
       if (u.count <= 0 || placed >= candidates.length) return;
@@ -445,7 +449,7 @@ var BattleSystem = {
       // Scale damage — VERY HIGH mortality ×0.18
       total += Math.floor(bestDmg * 0.18);
     });
-    return Math.max(5, Math.floor(total));
+    return total > 0 ? Math.max(5, Math.floor(total)) : 0;
   },
 
   applyCasualties(side, damage, cells) {
