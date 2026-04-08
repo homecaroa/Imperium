@@ -943,7 +943,51 @@ window.UI = window.UI || {
     });
 
     html += '</div>'; // wrap
+    // ── Intercambio Comercial ─────────────────────────
+    const _tradeable = (state.diplomacy||[]).filter(n => !n.atWar && n.relation >= -40);
+    if (_tradeable.length > 0) {
+      html += '<div class="rpanel-section" style="margin-top:10px">';
+      html += '<div class="rpanel-title">🤝 Intercambio Comercial</div>';
+      html += '<select id="trade-nation-sel" style="width:100%;font-family:var(--font-mono);font-size:10px;padding:4px;background:var(--bg4);border:1px solid var(--border2);color:var(--text);margin-bottom:6px">';
+      _tradeable.forEach(n => {
+        html += `<option value="${n.id}">${n.icon} ${n.name} (${n.allied?'Aliado':n.relation>=10?'Amistoso':'Neutral'})</option>`;
+      });
+      html += '</select>';
+      const _res=[['gold','💰','Oro'],['food','🌾','Grano'],['iron','⚔️','Hierro'],['stone','🪨','Piedra'],['wood','🪵','Madera']];
+      html += '<div style="display:grid;grid-template-columns:1fr 14px 1fr;gap:3px 4px;align-items:center">';
+      html += '<div style="font-family:var(--font-mono);font-size:8px;color:var(--gold2);text-align:center;padding:2px 0">OFRECES</div><div></div>';
+      html += '<div style="font-family:var(--font-mono);font-size:8px;color:#e08080;text-align:center;padding:2px 0">PIDES</div>';
+      _res.forEach(([r,icon,label]) => {
+        const have = Math.floor(state.resources[r]||0);
+        html += `<div style="display:flex;align-items:center;gap:2px">${icon}<input id="offer-${r}" type="number" min="0" max="${have}" value="0" style="width:100%;font-family:var(--font-mono);font-size:9px;padding:2px 3px;background:var(--bg4);border:1px solid var(--border2);color:var(--text)" placeholder="${label}"></div>`;
+        html += '<div style="text-align:center;color:var(--text3);font-size:10px">⟷</div>';
+        html += `<div style="display:flex;align-items:center;gap:2px">${icon}<input id="request-${r}" type="number" min="0" value="0" style="width:100%;font-family:var(--font-mono);font-size:9px;padding:2px 3px;background:var(--bg4);border:1px solid var(--border2);color:var(--text)" placeholder="${label}"></div>`;
+      });
+      html += '</div>';
+      html += '<button onclick="UI._submitTrade()" style="width:100%;margin-top:6px;font-family:var(--font-title);font-size:10px;font-weight:700;padding:7px;background:linear-gradient(180deg,var(--gold2),var(--gold));color:#0a0800;border:none;cursor:pointer">🤝 Proponer trato</button>';
+      html += '<div id="trade-exchange-msg" style="text-align:center;font-family:var(--font-mono);font-size:9px;min-height:14px;margin-top:4px;color:var(--text3)"></div>';
+      html += '</div>';
+    }
+
     return html;
+  },
+
+  _submitTrade() {
+    const sel = document.getElementById('trade-nation-sel');
+    if (!sel) return;
+    const nationId = sel.value;
+    const res = ['gold','food','iron','stone','wood'];
+    const offer = {}, request = {};
+    res.forEach(r => {
+      offer[r]   = parseInt((document.getElementById('offer-'+r)||{}).value||'0') || 0;
+      request[r] = parseInt((document.getElementById('request-'+r)||{}).value||'0') || 0;
+    });
+    if (res.every(r => !offer[r] && !request[r])) {
+      const msg = document.getElementById('trade-exchange-msg');
+      if (msg) { msg.textContent = 'Introduce cantidades.'; msg.style.color = '#e05050'; }
+      return;
+    }
+    Game.proposeTradeExchange(nationId, offer, request);
   },
 
   renderTroopsSidebar(state) {

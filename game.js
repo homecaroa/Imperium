@@ -414,10 +414,12 @@ window.Game = window.Game || {
     // 9. IA
     AI.tick(state);
     // 9b. Procesar turnos de guerra multi-turno
+    // Skip if BattleSystem has active battle (battle IS this turn's combat)
+    var _battleActive = (typeof BattleSystem !== 'undefined' && BattleSystem.activeBattle);
     state.diplomacy.forEach(n => {
       if (n.atWar) {
         Systems.Trade.closeRoutesForNation(state, n.id);
-        if (n._war && typeof WarSystem !== 'undefined') {
+        if (n._war && typeof WarSystem !== 'undefined' && !_battleActive) {
           WarSystem.processTurn(state, n);
         }
       }
@@ -524,7 +526,7 @@ window.Game = window.Game || {
       state.resources.gold = Math.max(0, state.resources.gold - sp.costPerTurn);
       // Efectos
       const ef = sp.effects || {};
-      if (ef.morale)             state.morale    = Math.min(100, state.morale + ef.morale);
+      if (ef.morale)             state.morale    = Math.round(Math.min(100, Math.max(0, state.morale + ef.morale)));
       if (ef.stability)          state.stability = Math.min(100, state.stability + ef.stability);
       if (ef.corruption)         state.economy.corruption = Math.max(0, state.economy.corruption + ef.corruption);
       if (ef.trade_income)       state.economy.trade_income += ef.trade_income;
@@ -836,6 +838,25 @@ window.Game = window.Game || {
   // MILITAR
   // ----------------------------------------------
 
+
+
+  proposeTradeExchange(nationId, offer, request) {
+    if (typeof TradeExchange === 'undefined') return;
+    const state = this.state;
+    const result = TradeExchange.propose(state, nationId, offer, request);
+    if (result.ok) {
+      UI.renderResources(state);
+      UI.renderDiplomacy(state);
+    }
+    // Show result message in diplomacy panel
+    const msgEl = document.getElementById('trade-exchange-msg');
+    if (msgEl) {
+      msgEl.textContent = result.msg;
+      msgEl.style.color = result.ok ? '#72c882' : '#e05050';
+      setTimeout(() => { if (msgEl) msgEl.textContent = ''; }, 3000);
+    }
+    return result;
+  },
 
 
   recruitUnit(typeId, count) {
@@ -1224,75 +1245,60 @@ function shareGame(platform) {
 var MusicPlayer = {
   _audio:   null,
   _muted:   false,
-  _volume:  0.35,  // 0–1
+  _volume:  0.35,
   _started: false,
 
   init() {
     this._audio = document.getElementById('game-music');
     if (!this._audio) return;
-
-    this._audio.volume = this._volume;
-    this._audio.loop   = true;
-
-    // Attempt immediate autoplay (multiple strategies)
-    var self = this;
-    // Strategy 1: direct call after short delay
-    setTimeout(function() { self.start(); }, 300);
-    // Strategy 2: on any page interaction
-    var _unlock = function() {
-      self.start();
-      document.removeEventListener('click',   _unlock);
-      document.removeEventListener('keydown', _unlock);
-      document.removeEventListener('touchstart', _unlock);
-    };
-    document.addEventListener('click',      _unlock);
-    document.addEventListener('keydown',    _unlock);
-    document.addEventListener('touchstart', _unlock);
+    this._audio.loop = true;
 
     // Restore saved prefs
     try {
       var saved = localStorage.getItem('imperium_music');
       if (saved) {
-        var prefs = JSON.parse(saved);
-        this._muted  = prefs.muted  ?? false;
-        this._volume = prefs.volume ?? 0.35;
-        this._audio.volume = this._muted ? 0 : this._volume;
-        var vol = document.getElementById('music-volume');
-        if (vol) vol.value = Math.round(this._volume * 100);
-        this._updateBtn();
+        var p = JSON.parse(saved);
+        this._muted  = p.muted  !== undefined ? p.muted  : false;
+        this._volume = p.volume !== undefined ? p.volume : 0.35;
       }
     } catch(e) {}
+
+    this._audio.volume = this._muted ? 0 : this._volume;
+    var vol = document.getElementById('music-volume');
+    if (vol) vol.value = Math.round(this._volume * 100);
+    this._updateBtn();
+
+    // Register first-gesture listeners for EVERY possible interaction
+    var self = this;
+    var events = ['click','mousedown','keydown','keyup','touchstart','touchend','pointerdown'];
+    events.forEach(function(ev) {
+      document.addEventListener(ev, function _h() {
+        if (!self._started && !self._muted && self._audio) {
+          self._audio.volume = self._volume;
+          self._audio.play()
+            .then(function() { self._started = true; })
+            .catch(function() {});
+        }
+        document.removeEventListener(ev, _h);
+      }, { passive: true });
+    });
   },
 
-  // Attempt autoplay immediately; fallback to first-click
   start() {
     if (this._started || !this._audio || this._muted) return;
     var self = this;
-    this._audio.play().then(function() {
-      self._started = true;
-    }).catch(function() {
-      // Browser blocked autoplay — wait for first interaction
-      var resume = function() {
-        if (!self._started && !self._muted) {
-          self._audio.play().then(function(){ self._started = true; }).catch(function(){});
-        }
-        document.removeEventListener('click', resume);
-        document.removeEventListener('keydown', resume);
-      };
-      document.addEventListener('click', resume);
-      document.addEventListener('keydown', resume);
-    });
+    this._audio.volume = this._volume;
+    this._audio.play().then(function() { self._started = true; }).catch(function() {});
   },
 
   toggleMute() {
     this._muted = !this._muted;
     if (!this._audio) return;
-
     if (this._muted) {
       this._audio.pause();
     } else {
       this._audio.volume = this._volume;
-      this._audio.play().catch(() => {});
+      this._audio.play().catch(function() {});
       this._started = true;
     }
     this._updateBtn();
@@ -1304,9 +1310,8 @@ var MusicPlayer = {
     if (!this._audio) return;
     this._audio.volume = this._muted ? 0 : this._volume;
     if (this._volume > 0 && this._muted) {
-      // Un-mute when user moves volume
       this._muted = false;
-      this._audio.play().catch(() => {});
+      this._audio.play().catch(function() {});
       this._started = true;
       this._updateBtn();
     }

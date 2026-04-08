@@ -76,7 +76,7 @@ window.WarSystem = window.WarSystem || {
     state.resources.gold = Math.max(0, state.resources.gold - goldCost);
     state.army           = Math.max(0, state.army - troopLoss);
     w.playerArmy         = Math.max(0, w.playerArmy - troopLoss);
-    state.morale         = Math.max(0, Math.min(100, state.morale - moraleLoss));
+    state.morale         = Math.round(Math.max(0, Math.min(100, state.morale - moraleLoss)));
 
     // 2. CÁLCULO DE MOMENTUM (quién gana terreno)
     const playerPow = w.playerArmy * (state.morale / 100) * (1 + state._fortifiedBonus || 0);

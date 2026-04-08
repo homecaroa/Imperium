@@ -244,7 +244,7 @@ window.AlthoriaMap = window.AlthoriaMap || {
     this.canvas.addEventListener('mousemove',  (e) => this._onHover(e));
     this.canvas.addEventListener('mouseleave', ()  => this._clearHover());
     this.canvas.addEventListener('click',      (e) => this._onClick(e));
-    this.canvas.addEventListener('wheel',      (e) => this._onWheel(e), { passive: false });
+    // wheel zoom disabled
     this.canvas.addEventListener('mousedown',  (e) => this._onMouseDown(e));
     this.canvas.addEventListener('mousemove',  (e) => this._onMouseMove(e));
     this.canvas.addEventListener('mouseup',    (e) => this._onMouseUp(e));
@@ -471,10 +471,10 @@ window.AlthoriaMap = window.AlthoriaMap || {
     // Limpiar
     ctx.clearRect(0, 0, W, H);
 
-    // Aplicar zoom + pan como transform de canvas
-    const z  = this.zoom  || 1;
-    const px = this.panX  || 0;
-    const py = this.panY  || 0;
+    // Zoom/pan disabled — fixed view
+    const z  = 1;
+    const px = 0;
+    const py = 0;
     ctx.save();
     ctx.translate(px, py);
     ctx.scale(z, z);
@@ -610,6 +610,7 @@ window.AlthoriaMap = window.AlthoriaMap || {
     // Pass 2: PLAYER territories — full opacity, stronger fill, glow border
     const playerZones = this.nationZones['player'] || [];
     const pcol = this.NATION_COLORS['player'];
+    const selectedRegionId = null; // troopSel removed — keep for compat
     if (pcol && playerZones.length) {
       const pulse = 0.7 + 0.3 * Math.sin(this.animFrame * 0.06);
 
@@ -1048,7 +1049,8 @@ window.AlthoriaMap = window.AlthoriaMap || {
 
 
     _onWheel(e) {
-    e.preventDefault();
+    e.preventDefault(); // keep default scroll blocked
+    return; // zoom disabled
     const delta = e.deltaY > 0 ? 0.85 : 1.15;
     const newZoom = Math.max(0.8, Math.min(3.5, (this.zoom || 1) * delta));
     // Zoom toward cursor position
@@ -1065,6 +1067,9 @@ window.AlthoriaMap = window.AlthoriaMap || {
   },
 
   _onPanStart(e) {
+    // Pan disabled — map is fixed
+    this._panning = false;
+    return;
     if (e.button !== 0) return;
     this._panning    = true;
     this._dragMoved  = false;

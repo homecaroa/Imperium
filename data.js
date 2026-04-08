@@ -197,6 +197,251 @@ var EVENT_POOL = [
     options:[
       {label:'Ver unidades legendarias',effects:{open_legendary_menu:true},effectText:['Abre el reclutamiento legendario']},
       {label:'Ahora no',               effects:{},                          effectText:['La oportunidad volverá']}]}
+,
+  // ============================================================
+  // NUEVOS EVENTOS — pack 2 (20 eventos)
+  // ============================================================
+  {
+    id: 'locust_swarm', category: 'crisis', priority: 'high',
+    title: 'Plaga de Langostas',
+    description: 'Una nube de langostas devora los campos. Los graneros se vacian en dias.',
+    icon: '🦗', image: 'img/events/evt_famine_revolt.png',
+    condition: (s) => s.resources.food > 200,
+    options: [
+      { label: 'Organizar quemas preventivas', effects: { food: -150, gold: -80, stability: 5 } },
+      { label: 'Importar grano de urgencia',    effects: { food: -300, gold: -200 } },
+      { label: 'Racionar la comida',            effects: { food: -200, morale: -15, stability: -5 } }
+    ]
+  },
+  {
+    id: 'river_flood', category: 'nature', priority: 'medium',
+    title: 'Inundacion del Rio',
+    description: 'Las lluvias torrenciales desbordan el rio principal. Campos y caminos quedan anegados.',
+    icon: '🌊', image: 'img/events/evt_harvest.png',
+    condition: (s) => s.turn > 3,
+    options: [
+      { label: 'Construir diques de emergencia', effects: { gold: -150, wood: -80, stability: 8 } },
+      { label: 'Evacuar y esperar',              effects: { food: -100, morale: -10 } },
+      { label: 'Aprovechar el limo fertil',      effects: { food: 200, stability: 5 } }
+    ]
+  },
+  {
+    id: 'court_intrigue', category: 'politics', priority: 'medium',
+    title: 'Intriga en la Corte',
+    description: 'Rumores de traicion circulan entre los nobles. Alguien busca debilitar tu autoridad.',
+    icon: '🎭', image: 'img/events/evt_betrayal.png',
+    condition: (s) => s.stability > 40,
+    options: [
+      { label: 'Interrogar a los sospechosos', effects: { stability: -10, morale: -5, gold: -50 } },
+      { label: 'Ignorarlo publicamente',        effects: { stability: -15 } },
+      { label: 'Mostrar clemencia real',        effects: { stability: 10, gold: -100, morale: 5 } }
+    ]
+  },
+  {
+    id: 'sacred_relic', category: 'religion', priority: 'low',
+    title: 'Reliquia Sagrada Encontrada',
+    description: 'Unos excavadores han desenterrado una antigua reliquia. El pueblo la considera un presagio divino.',
+    icon: '✨', image: 'img/events/evt_discovery.png',
+    condition: (s) => s.turn > 5,
+    options: [
+      { label: 'Exhibirla en el templo',      effects: { morale: 20, stability: 10 } },
+      { label: 'Venderla a un coleccionista', effects: { gold: 300, morale: -15 } },
+      { label: 'Usarla para inspirar al ejercito', effects: { morale: 15, army_strength: 50 } }
+    ]
+  },
+  {
+    id: 'foreign_princess', category: 'diplomacy', priority: 'medium',
+    title: 'Propuesta de Matrimonio',
+    description: 'Una nacion vecina ofrece matrimonio entre sus nobles y los tuyos para sellar la paz.',
+    icon: '💍', image: 'img/events/evt_diplomatic.png',
+    condition: (s) => (s.diplomacy||[]).some(n => !n.atWar && n.relation > -20),
+    options: [
+      { label: 'Aceptar la alianza matrimonial', effects: { stability: 15, morale: 10, gold: 200 } },
+      { label: 'Rechazar diplomaticamente',      effects: { stability: 5 } },
+      { label: 'Exigir mas dote',               effects: { gold: 400, stability: -10 } }
+    ]
+  },
+  {
+    id: 'tax_revolt_small', category: 'economy', priority: 'medium',
+    title: 'Protesta Fiscal en la Ciudad',
+    description: 'Los comerciantes se niegan a pagar el nuevo impuesto. Amenazan con cerrar sus negocios.',
+    icon: '📢', image: 'img/events/evt_civil_war.png',
+    condition: (s) => s.resources.gold > 500,
+    options: [
+      { label: 'Reducir impuestos temporalmente', effects: { gold: -150, stability: 15, morale: 10 } },
+      { label: 'Aplicar el impuesto a la fuerza',  effects: { gold: 200, stability: -20, morale: -15 } },
+      { label: 'Negociar exenciones parciales',    effects: { gold: -50, stability: 8 } }
+    ]
+  },
+  {
+    id: 'wandering_army', category: 'military', priority: 'high',
+    title: 'Ejercito Mercenario Errante',
+    description: 'Una banda de mercenarios sin empleo ronda tus fronteras. Podrian ser una oportunidad o una amenaza.',
+    icon: '⚔️', image: 'img/events/evt_hero.png',
+    condition: (s) => s.resources.gold > 400,
+    options: [
+      { label: 'Contratarlos (+200 soldados)', effects: { gold: -300, army: 200 } },
+      { label: 'Expulsarlos con diplomacia',   effects: { gold: -50, stability: 5 } },
+      { label: 'Atacarlos preventivamente',    effects: { army: -50, morale: -5, stability: -10 } }
+    ]
+  },
+  {
+    id: 'great_fire', category: 'crisis', priority: 'high',
+    title: 'Gran Incendio',
+    description: 'Un fuego devastador arrasa el barrio del mercado. Las perdidas son enormes.',
+    icon: '🔥', image: 'img/events/evt_civil_war.png',
+    condition: (s) => s.turn > 4,
+    options: [
+      { label: 'Movilizar cadenas de agua',        effects: { gold: -200, wood: -100, stability: 5 } },
+      { label: 'Dejar arder y reconstruir',        effects: { gold: -400, stone: -150, morale: -20, stability: -15 } },
+      { label: 'Usar magia de lluvia (ritual)',    effects: { gold: -100, morale: 10 } }
+    ]
+  },
+  {
+    id: 'scholars_dispute', category: 'culture', priority: 'low',
+    title: 'Disputa entre Academias',
+    description: 'Dos facciones de eruditos se enfrentan por el control de la biblioteca real.',
+    icon: '📚', image: 'img/events/evt_schism.png',
+    condition: (s) => s.turn > 6,
+    options: [
+      { label: 'Financiar a ambas academias', effects: { gold: -150, stability: 10 } },
+      { label: 'Elegir un bando',             effects: { gold: -50, stability: -5, morale: 8 } },
+      { label: 'Cerrar ambas temporalmente',  effects: { stability: -10, morale: -5 } }
+    ]
+  },
+  {
+    id: 'eclipse_omen', category: 'religion', priority: 'low',
+    title: 'Eclipse Solar',
+    description: 'Un eclipse total cubre el sol. El pueblo lo interpreta como presagio de grandes cambios.',
+    icon: '🌑', image: 'img/events/evt_golden_age.png',
+    condition: (s) => s.turn % 8 === 0,
+    options: [
+      { label: 'Proclamarlo como buen augurio', effects: { morale: 20, stability: 10 } },
+      { label: 'Celebrar rituales de proteccion', effects: { gold: -100, morale: 15 } },
+      { label: 'Ignorar supersticiones',          effects: { morale: -10 } }
+    ]
+  },
+  {
+    id: 'trade_dispute', category: 'economy', priority: 'medium',
+    title: 'Disputa Comercial',
+    description: 'Una nacion aliada acusa a tus mercaderes de cobrar aranceles ilegales. Exigen compensacion.',
+    icon: '⚖️', image: 'img/events/evt_diplomatic.png',
+    condition: (s) => (s.activeTradeRoutes||[]).length > 0,
+    options: [
+      { label: 'Pagar la compensacion',        effects: { gold: -200, stability: 5 } },
+      { label: 'Negar y mantener los aranceles', effects: { gold: 0, stability: -10 } },
+      { label: 'Proponer un tratado comercial', effects: { gold: -100, stability: 10, morale: 5 } }
+    ]
+  },
+  {
+    id: 'earthquake', category: 'nature', priority: 'high',
+    title: 'Terremoto',
+    description: 'Un terremoto sacude la region. Murallas y puentes han sufrido danos graves.',
+    icon: '🏚️', image: 'img/events/evt_volcanic.png',
+    condition: (s) => s.turn > 5,
+    options: [
+      { label: 'Reparar las infraestructuras',  effects: { gold: -300, stone: -200, stability: 10 } },
+      { label: 'Priorizar las murallas',        effects: { gold: -200, stone: -150 } },
+      { label: 'Buscar ayuda internacional',    effects: { gold: -100, stability: -5, morale: -10 } }
+    ]
+  },
+  {
+    id: 'royal_birth', category: 'culture', priority: 'low',
+    title: 'Nacimiento Real',
+    description: 'Ha nacido un heredero. El pueblo celebra con festividades que duran dias.',
+    icon: '👶', image: 'img/events/evt_golden_age.png',
+    condition: (s) => s.morale < 80,
+    options: [
+      { label: 'Celebrar con festin publico', effects: { gold: -200, morale: 25, stability: 15 } },
+      { label: 'Celebracion modesta',         effects: { gold: -50, morale: 15 } },
+      { label: 'Anuncio oficial solamente',   effects: { morale: 8 } }
+    ]
+  },
+  {
+    id: 'horse_epidemic', category: 'military', priority: 'medium',
+    title: 'Epidemia en las Caballerizas',
+    description: 'Una enfermedad desconocida mata a los caballos de guerra. La caballeria queda inutilizada.',
+    icon: '🐴', image: 'img/events/evt_plague.png',
+    condition: (s) => (s.armyUnits||[]).some(u => u.typeId === 'caballeria' && u.count > 0),
+    options: [
+      { label: 'Traer veterinarios del extranjero', effects: { gold: -300, army: -30 } },
+      { label: 'Sacrificar los enfermos',           effects: { army: -80, morale: -10 } },
+      { label: 'Cuarentena estricta',               effects: { gold: -100, army: -50, stability: 5 } }
+    ]
+  },
+  {
+    id: 'old_map_found', category: 'exploration', priority: 'low',
+    title: 'Mapa Antiguo Descubierto',
+    description: 'Tus exploradores han encontrado un mapa que revela la ubicacion de un antiguo tesoro.',
+    icon: '🗺️', image: 'img/events/evt_discovery.png',
+    condition: (s) => s.turn > 7,
+    options: [
+      { label: 'Financiar la expedicion',      effects: { gold: -200, morale: 20 } },
+      { label: 'Vender el mapa al mejor postor', effects: { gold: 300 } },
+      { label: 'Guardarlo en los archivos',    effects: { stability: 5 } }
+    ]
+  },
+  {
+    id: 'new_religion', category: 'religion', priority: 'medium',
+    title: 'Secta Religiosa',
+    description: 'Una nueva doctrina religiosa gana adeptos rapido. Las autoridades temen perdida de control.',
+    icon: '🕍', image: 'img/events/evt_schism.png',
+    condition: (s) => s.stability > 30,
+    options: [
+      { label: 'Perseguir a los lideres',        effects: { stability: -15, morale: -10, gold: -50 } },
+      { label: 'Integrarlos en la fe oficial',   effects: { stability: 10, morale: 5 } },
+      { label: 'Tolerarlos con supervision',     effects: { stability: 5 } }
+    ]
+  },
+  {
+    id: 'bandit_king', category: 'military', priority: 'high',
+    title: 'Rey de los Bandidos',
+    description: 'Un lider bandolero proclama su propio reino en las colinas. Sus hombres atacan aldeas y rutas.',
+    icon: '🏴', image: 'img/events/evt_bandits.png',
+    condition: (s) => s.army > 100,
+    options: [
+      { label: 'Enviar un ejercito a eliminarlo', effects: { army: -80, gold: -100, stability: 15, morale: 10 } },
+      { label: 'Sobornarlo para que se rinda',    effects: { gold: -400, stability: 5 } },
+      { label: 'Ignorar la amenaza',             effects: { stability: -15, morale: -10 } }
+    ]
+  },
+  {
+    id: 'iron_vein', category: 'economy', priority: 'low',
+    title: 'Nuevo Yacimiento de Hierro',
+    description: 'Los mineros han descubierto una vena de hierro de alta pureza bajo las montanas.',
+    icon: '⛏️', image: 'img/events/evt_discovery.png',
+    condition: (s) => s.resources.iron < 200,
+    options: [
+      { label: 'Invertir en la mina',           effects: { gold: -200, iron: 300, stone: -50 } },
+      { label: 'Concesion a empresa privada',   effects: { gold: 100, iron: 150 } },
+      { label: 'Explotar al maximo ahora',      effects: { iron: 500, stability: -5 } }
+    ]
+  },
+  {
+    id: 'grain_shortage', category: 'economy', priority: 'high',
+    title: 'Escasez de Grano',
+    description: 'Las reservas de grano caen a niveles peligrosos. El invierno se acerca y el pueblo tiene hambre.',
+    icon: '🌾', image: 'img/events/evt_famine_revolt.png',
+    condition: (s) => s.resources.food < 100,
+    options: [
+      { label: 'Importar grano urgentemente',    effects: { gold: -250, food: 300 } },
+      { label: 'Racionar estrictamente',         effects: { morale: -20, stability: -10, food: 100 } },
+      { label: 'Abrir los graneros reales',      effects: { food: 200, morale: 15, gold: -100 } }
+    ]
+  },
+  {
+    id: 'famous_warrior', category: 'military', priority: 'low',
+    title: 'Guerrero Legendario',
+    description: 'Un guerrero de fama enorme solicita servir bajo tu bandera. Sus hazanas son conocidas en todo el mundo.',
+    icon: '🦸', image: 'img/events/evt_hero.png',
+    condition: (s) => s.army > 200,
+    options: [
+      { label: 'Nombrarlo general',              effects: { morale: 20, army: 100, gold: -100 } },
+      { label: 'Pagarle un sueldo de honor',     effects: { gold: -150, morale: 15 } },
+      { label: 'Rechazarlo con cortesia',        effects: {} }
+    ]
+  },
+
 ];
 
 // Pool completo de 7 naciones — se eligen 3 aleatoriamente cada partida

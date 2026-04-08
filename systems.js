@@ -159,7 +159,7 @@ window.Systems = window.Systems || {
         if (burocracia) burocracia.satisfaction = Math.max(0, burocracia.satisfaction - 1);
       }
       if (moralTaxDelta !== 0)
-        state.morale = Math.max(0, Math.min(100, state.morale + moralTaxDelta));
+        state.morale = Math.max(0, Math.min(100, Math.round(state.morale + moralTaxDelta)));
 
       // Inflación
       if (state.economy.debt > 200)  state.economy.inflation = Math.min(100, state.economy.inflation + 3);
@@ -425,7 +425,7 @@ window.Systems = window.Systems || {
       if (factionPower < 35) moralDelta -= 3;
       // Rutas comerciales
       (state.activeTradeRoutes||[]).forEach(rt => { if(rt.income&&rt.income.morale) moralDelta += rt.income.morale * 0.5; });
-      state.morale = Math.max(0, Math.min(100, state.morale + moralDelta));
+      state.morale = Math.max(0, Math.min(100, Math.round(state.morale + moralDelta)));
 
       // ESTABILIDAD
       const gov = GOVERNMENT_TYPES[state.government];
@@ -437,7 +437,7 @@ window.Systems = window.Systems || {
       if (state.morale < 30) stabDelta -= 3;
       if (state.morale > 70) stabDelta += 1;
       if (state.economy.debt > 500) stabDelta -= 2;
-      state.stability = Math.max(0, Math.min(100, state.stability + stabDelta));
+      state.stability = Math.max(0, Math.min(100, Math.round(state.stability + stabDelta)));
 
       // Tracking
       if (state.stability <= 0) state.collapseTurns = (state.collapseTurns||0) + 1;
@@ -971,6 +971,90 @@ window.Systems = window.Systems || {
       if (state.log.length > 60) state.log.pop();
     }
   }
+};
+
+// ============================================================
+// COMERCIO BILATERAL — intercambio de recursos entre naciones
+// ============================================================
+var TradeExchange = {
+
+  RESOURCES: ['gold','food','iron','stone','wood'],
+  LABELS: { gold:'Oro', food:'Grano', iron:'Hierro', stone:'Piedra', wood:'Madera' },
+  ICONS:  { gold:'💰', food:'🌾', iron:'⚔️', stone:'🪨', wood:'🪵' },
+
+  // Propone un intercambio (jugador -> IA)
+  propose(state, nationId, offer, request) {
+    // offer = { gold:X, food:Y, ... }  — lo que el jugador da
+    // request = { gold:X, food:Y, ... } — lo que el jugador pide
+    const nation = (state.diplomacy||[]).find(n => n.id === nationId);
+    if (!nation) return { ok:false, msg:'Nación no encontrada.' };
+    if (nation.atWar)   return { ok:false, msg:'No puedes comerciar con una nación en guerra.' };
+    if (nation.relation < -40) return { ok:false, msg:'La relación es demasiado mala para comerciar.' };
+
+    // Check player can afford the offer
+    for (const [res, amt] of Object.entries(offer)) {
+      if (amt > 0 && (state.resources[res]||0) < amt) {
+        return { ok:false, msg:'No tienes suficiente ' + (this.LABELS[res]||res) + '.' };
+      }
+    }
+
+    // AI accepts if the deal value favors them slightly or is balanced
+    const offerValue   = this._value(offer);
+    const requestValue = this._value(request);
+    const ratio = offerValue / Math.max(1, requestValue);
+
+    // Acceptance threshold: >=0.7 ratio (player offers at least 70% of what they ask)
+    // Allies accept at 0.6, neutrals at 0.8
+    const threshold = nation.allied ? 0.6 : (nation.relation >= 10 ? 0.72 : 0.85);
+
+    if (ratio < threshold) {
+      return { ok:false, msg: nation.name + ' rechaza el trato. Ofrece mas a cambio.' };
+    }
+
+    // Execute the exchange
+    for (const [res, amt] of Object.entries(offer)) {
+      if (amt > 0) state.resources[res] = Math.max(0, (state.resources[res]||0) - amt);
+    }
+    for (const [res, amt] of Object.entries(request)) {
+      if (amt > 0) state.resources[res] = (state.resources[res]||0) + amt;
+    }
+
+    // Relation bonus for fair trades, small penalty for extractive ones
+    const relDelta = ratio >= 1.1 ? -3 : ratio >= 0.9 ? 5 : 2;
+    nation.relation = Math.max(-100, Math.min(100, (nation.relation||0) + relDelta));
+
+    Systems.Log.add(state, '🤝 Comercio con ' + nation.name + ': entregaste ' +
+      this._summary(offer) + ' y recibiste ' + this._summary(request), 'good');
+
+    return { ok:true, msg:'Trato cerrado con ' + nation.name + '.' };
+  },
+
+  _value(bundle) {
+    // Rough exchange values (relative to gold)
+    const rates = { gold:1, food:0.4, iron:0.7, stone:0.5, wood:0.35 };
+    return Object.entries(bundle).reduce((sum,[res,amt]) => sum + (amt||0) * (rates[res]||0.5), 0);
+  },
+
+  _summary(bundle) {
+    const icons = { gold:'💰', food:'🌾', iron:'⚔️', stone:'🪨', wood:'🪵' };
+    return Object.entries(bundle)
+      .filter(([,v]) => v > 0)
+      .map(([k,v]) => v + (icons[k]||k))
+      .join(' + ') || 'nada';
+  },
+
+  // Get AI nation's estimated available resources for display
+  getAIResources(nation) {
+    // Estimate based on army size and relation
+    const base = Math.max(100, (nation.army||200) * 0.5);
+    return {
+      gold:  Math.floor(base * 1.5 + (nation.relation||0) * 2),
+      food:  Math.floor(base * 2),
+      iron:  Math.floor(base * 0.8),
+      stone: Math.floor(base * 0.6),
+      wood:  Math.floor(base * 0.7),
+    };
+  },
 };
 
 var Systems = window.Systems;
