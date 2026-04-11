@@ -1153,11 +1153,9 @@ var MusicPlayer = {
   },
 };
 
-document.addEventListener('DOMContentLoaded', () => {
-  buildCodex();
-  Auth.init();
-  SaveSystem.renderLoginSaves();
-  MusicPlayer.init();
-  // Start music on first user interaction (browser autoplay policy)
-  MusicPlayer.start(); // attempt immediate autoplay
+document.addEventListener('DOMContentLoaded', function() {
+  try { buildCodex(); } catch(e) { console.warn('[Codex]', e.message); }
+  try { if (window.Auth) window.Auth.init(); } catch(e) { console.warn('[Auth]', e.message); }
+  try { if (window.SaveSystem) window.SaveSystem.renderLoginSaves(); } catch(e) { console.warn('[Saves]', e.message); }
+  try { if (window.MusicPlayer) { window.MusicPlayer.init(); window.MusicPlayer.start(); } } catch(e) { console.warn('[Music]', e.message); }
 });
