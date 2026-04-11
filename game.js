@@ -56,64 +56,17 @@ window.Game = window.Game || {
     }
     // Inicializar personajes diplomáticos
     if (typeof DiplomacySystem !== 'undefined') DiplomacySystem.initCharacters(this.state);
-    // Inicializar sistema de arcos narrativos
-    if (typeof ArcManager !== 'undefined') ArcManager.init(this.state);
-    // Inicializar sistema de arcos
-    if (typeof ArcSystem !== 'undefined') ArcSystem.init(this.state);
-    else if (typeof ArcManager !== 'undefined') ArcManager.init(this.state);
-    Systems.Log.add(this.state, '⚔️ ' + civ.name + ' comienza su historia. Que los dioses os guíen.', 'good');
-
-    if (typeof DiplomacySystem !== "undefined") DiplomacySystem.initCharacters(this.state);
-    if (this._blitzMode) BlitzMode.apply(this.state);
-    // Init AP so first-turn actions work immediately
-    if (typeof ActionPoints !== 'undefined') ActionPoints.reset(this.state);
-    this.generateTurnEvents();
-  },
-
-  // ----------------------------------------------
-  // HOVER DEL MAPA → columna derecha
-  // ----------------------------------------------
-  _attachMapHover() {
-    const canvas = MapRenderer.canvas;
-    if (!canvas) return;
-    canvas.addEventListener('mousemove', (e) => {
-      const rect  = canvas.getBoundingClientRect();
-      const scaleX = canvas.width  / rect.width;
-      const scaleY = canvas.height / rect.height;
-      const px = (e.clientX - rect.left) * scaleX;
-      const py = (e.clientY - rect.top)  * scaleY;
-      const col = Math.floor(px / MapRenderer.CELL_W);
-      const row = Math.floor(py / MapRenderer.CELL_H);
-      if (col >= 0 && col < MapRenderer.map.cols && row >= 0 && row < MapRenderer.map.rows) {
-        const cell = MapRenderer.map.cells[row * MapRenderer.map.cols + col];
-        UI.updateHoverInfo(cell);
-      }
-    });
-    canvas.addEventListener('mouseleave', () => UI.updateHoverInfo(null));
-  },
-
-  renderMapInfoBar() {
-    const el = document.getElementById('map-info-bar');
-    if (!el || !this.state.capitalCell) return;
-    const cap = this.state.capitalCell;
-    el.innerHTML = `
-      <span>🏰 Capital: ${cap.biome.icon} ${cap.biome.name}</span>
-      <span>📍 (${cap.col},${cap.row})</span>
-      <span>🌡️ ${cap.temperature > 0.65 ? 'Cálido' : cap.temperature < 0.3 ? 'Frío' : 'Templado'}</span>
-      <span>💧 ${cap.humidity > 0.6 ? 'Húmedo' : cap.humidity < 0.3 ? 'Árido' : 'Normal'}</span>
-      <span>🗺️ 40×25 · ~500km²</span>
-    `;
   },
 
   // ----------------------------------------------
   // ESTADO INICIAL
   // ----------------------------------------------
   initState(civ) {
-    const mapSeed    = Math.floor(Math.random() * 9999999);
-    const mapData    = MapGenerator.generate(mapSeed);
+    const mapSeed     = Math.floor(Math.random() * 9999999);
+    const mapData     = MapGenerator.generate(mapSeed);
     const playerStart = MapGenerator.getPlayerStartStats(mapData);
-    const aiNations  = this.initAINations(mapData);
-    const mb         = playerStart.resourceBonuses;
+    const aiNations   = this.initAINations(mapData);
+    const mb          = playerStart.resourceBonuses;
 
     this.state = {
       civId: civ.id, civName: civ.name, civIcon: civ.icon,
@@ -128,44 +81,39 @@ window.Game = window.Game || {
         iron:  Math.floor(civ.startResources.iron  + mb.iron  * 0.5),
       },
       rates: {},
-      population: civ.startStats.population,
-      stability:  civ.startStats.stability,
-      morale:     civ.startStats.morale,
-      army:       civ.startStats.army,
+      population:  civ.startStats.population,
+      stability:   civ.startStats.stability,
+      morale:      civ.startStats.morale,
+      army:        civ.startStats.army,
       economy: {
         corruption: civ.id === 'chinese' ? 30 : 10,
         inflation: 0, debt: 0, trade_income: 8, food_bonus: 0,
-        taxRate: 20   // impuesto base 20% — rango 0–90%
+        taxRate: 20,
       },
       climate: this.detectStartClimate(playerStart.capitalCell, mapData),
       territories:     playerStart.territories,
-      althoriaRegions:  1,  // Regiones de Althoria controladas (victoria al llegar a 14)
-      playerCells:  playerStart.cellIds,
-      capitalCell:  playerStart.capitalCell,
-      armyUnits:    Systems.Military.initArmy(civ, civ.startStats.army),
-      legendaryUnit: null,
-      spies: Systems.Spies.init(civ),
-      intelligence: {},
-      activeTradeRoutes: [],
-      activeSpending: [],
-      factions: Systems.Factions.init(civ),
-      diplomacy: aiNations,
-      activePolicies: [],
+      althoriaRegions: 1,
+      playerCells:     playerStart.cellIds,
+      capitalCell:     playerStart.capitalCell,
+      armyUnits:       Systems.Military.initArmy(civ, civ.startStats.army),
+      legendaryUnit:   null,
+      activeSpending:  [],
+      diplomacy:       aiNations,
       currentEvents: [], activeEventIndex: null, resolvedEvents: [],
       log: [],
+      _troopMovements: [],
+      _attackTarget:   null,
       prosperityTurns: 0, collapseTurns: 0, famineturns: 0,
-      _unlocked: {},        // UnlockSystem cache
-      _warSummaries: [],    // War result history
-      _diplomacyTab: 'neutral'  // default diplomacy tab
+      _unlocked: {},
+      _warSummaries: [],
+      _warsWon: 0,
+      _reputation: 50,
+      xp: 0, level: 1,
+      _history: [],        // Kingdom event history [{turn,year,type,title,text,icon,img}]
+      _pendingChain: null, // Chained military event
     };
-    // Inicializar personajes diplomáticos inmediatamente
-    if (typeof DiplomacySystem !== "undefined") DiplomacySystem.initCharacters(this.state);
-    // Sistemas profundos
-    if (typeof DeepSystemsIntegration !== "undefined") DeepSystemsIntegration.onInit(this.state);
-    // Inicializar arcos narrativos
-    if (typeof StoryArcSystem !== "undefined") StoryArcSystem.init(this.state);
-    // Inicializar AP para que el primer turno funcione
-    if (typeof ActionPoints !== "undefined") ActionPoints.reset(this.state);
+    if (typeof DiplomacySystem !== 'undefined') DiplomacySystem.initCharacters(this.state);
+    if (typeof ActionPoints    !== 'undefined') ActionPoints.reset(this.state);
   },
 
   detectStartClimate(capitalCell, mapData) {
@@ -191,108 +139,12 @@ window.Game = window.Game || {
     });
   },
 
-  // ----------------------------------------------
-  // FIN DE TURNO — BLOQUEO si hay evento crítico sin resolver
-  // ----------------------------------------------
-  // -- RESOLVER PETICIONES DIPLOMÁTICAS PENDIENTES -------------
+  // Procesar diplomacia pendiente cada turno — version simplificada
   _processPendingDiplomacy(state) {
     (state.diplomacy || []).forEach(nation => {
-
-      // -- ALIANZA PENDIENTE -------------------------------------
-      if (nation._alliancePending && state.turn > nation._alliancePendingTurn) {
-        nation._alliancePending = false;
-        const accepts = nation.relation > 30 && Math.random() < 0.7 + (nation.relation / 300);
-        if (accepts) {
-          nation.allied = true;
-          nation.treaties = nation.treaties || [];
-          if (!nation.treaties.includes('alliance')) nation.treaties.push('alliance');
-          nation.relation = Math.min(100, nation.relation + 15);
-          Systems.Log.add(state, '🛡 ' + nation.name + ' ACEPTA la alianza. ¡Acuerdo de defensa mutua!', 'good');
-          (function(){
-          state.diplomacyInbox = state.diplomacyInbox || [];
-          state.diplomacyInbox.push({
-            id: 'diplo_' + Date.now() + Math.random(),
-            nationId: nation.id,
-            nationIcon: nation.icon || '🏳',
-            nationName: nation.name,
-            charName: nation.character ? nation.character.name : '',
-            char: nation.character || null,
-            text: 'Aceptamos la alianza. Nuestras naciones lucharán juntas.',
-            turn: state.turn,
-            read: false,
-            options: [{label:'Excelente',action:'ignore',effect:''}]
-          });
-        })()
-        } else {
-          nation.relation = Math.max(-100, nation.relation - 5);
-          Systems.Log.add(state, '❌ ' + nation.name + ' rechaza la alianza. Relaciones insuficientes.', 'warn');
-          (function(){
-          state.diplomacyInbox = state.diplomacyInbox || [];
-          state.diplomacyInbox.push({
-            id: 'diplo_' + Date.now() + Math.random(),
-            nationId: nation.id,
-            nationIcon: nation.icon || '🏳',
-            nationName: nation.name,
-            charName: nation.character ? nation.character.name : '',
-            char: nation.character || null,
-            text: 'Declino la propuesta. Las circunstancias no son favorables.',
-            turn: state.turn,
-            read: false,
-            options: [{label:'Entendido',action:'ignore',effect:''}]
-          });
-        })()
-        }
-      }
-
-      // -- TRIBUTO PENDIENTE -------------------------------------
-      if (nation._tributePending && state.turn > nation._tributePendingTurn) {
-        nation._tributePending = false;
-        const playerStr   = Systems.Military.calculateEffectiveStrength(state);
-        const defenderStr = (nation.army || 200) * (0.8 + Math.random() * 0.4);
-        const successChance = Math.min(0.75, Math.max(0.1, playerStr / (playerStr + defenderStr)));
-        const success = Math.random() < successChance;
-
-        if (success) {
-          const amount = 80 + Math.floor(successChance * 200) + Math.floor(Math.random() * 80);
-          state.resources.gold += amount;
-          nation.relation = Math.max(-100, nation.relation - 15);
-          nation._lastTributeTurn = state.turn;
-          nation._tributeCount    = (nation._tributeCount || 0) + 1;
-          Systems.Log.add(state, '💰 ' + nation.name + ' PAGA el tributo: +' + amount + ' oro.', 'good');
-          (function(){
-          state.diplomacyInbox = state.diplomacyInbox || [];
-          state.diplomacyInbox.push({
-            id: 'diplo_' + Date.now() + Math.random(),
-            nationId: nation.id,
-            nationIcon: nation.icon || '🏳',
-            nationName: nation.name,
-            charName: nation.character ? nation.character.name : '',
-            char: nation.character || null,
-            text: 'Pagamos el tributo... por ahora. No olvides que la paciencia tiene límites.',
-            turn: state.turn,
-            read: false,
-            options: [{label:'Bien',action:'ignore',effect:''}]
-          });
-        })()
-        } else {
-          nation.relation = Math.max(-100, nation.relation - 25);
-          Systems.Log.add(state, '😤 ' + nation.name + ' RECHAZA el tributo. Relación -25.', 'crisis');
-          (function(){
-          state.diplomacyInbox = state.diplomacyInbox || [];
-          state.diplomacyInbox.push({
-            id: 'diplo_' + Date.now() + Math.random(),
-            nationId: nation.id,
-            nationIcon: nation.icon || '🏳',
-            nationName: nation.name,
-            charName: nation.character ? nation.character.name : '',
-            char: nation.character || null,
-            text: '¡Nos niegas el respeto? No cederemos ante tu intimidación.',
-            turn: state.turn,
-            read: false,
-            options: [{label:'Comprendido',action:'ignore',effect:''}]
-          });
-        })()
-        }
+      // Recuperacion lenta de relaciones en paz
+      if (!nation.atWar && (nation.relation || 0) < 0) {
+        nation.relation = Math.min(0, (nation.relation || 0) + 1);
       }
     });
   },
@@ -378,38 +230,27 @@ window.Game = window.Game || {
     // 1. Actualizar clima
     Systems.Climate.update(state);
 
-    // 2. Espías
-    Systems.Spies.processMissions(state);
-    Systems.Spies.tickIntelligence(state);
-
     // 3. Economía
     const rates = Systems.Economy.calculateRates(state);
     Systems.Economy.applyRates(state, rates);
     Systems.Economy.updateCorruption(state);
 
     // 4. Gasto público
-    this._applyActiveSpending(state);
+    if (typeof this._applyActiveSpending === 'function') this._applyActiveSpending(state);
 
     // 5. Población
     Systems.Population.update(state);
-
-    // 6. Facciones
-    Systems.Factions.update(state);
-
-    // 7. Sociedad
-    Systems.Society.update(state);
 
     // 8. Sync army
     state.army = Systems.Military.totalSoldiers(state);
 
     // 9. IA
-    AI.tick(state);
+    if (typeof AI !== 'undefined' && AI && AI.tick) AI.tick(state);
     // 9b. Procesar turnos de guerra multi-turno
     // Skip if BattleSystem has active battle (battle IS this turn's combat)
     var _battleActive = (typeof BattleSystem !== 'undefined' && BattleSystem.activeBattle);
     state.diplomacy.forEach(n => {
       if (n.atWar) {
-        Systems.Trade.closeRoutesForNation(state, n.id);
         if (n._war && typeof WarSystem !== 'undefined' && !_battleActive) {
           WarSystem.processTurn(state, n);
         }
@@ -423,7 +264,6 @@ window.Game = window.Game || {
     // 10b. XP por turno supervivido
     Progression.awardXP(state, 'turn_survived');
     // 10c. Degradar salud de rutas bajo ataque
-    Systems.Trade.decayRouteHealth(state);
     // 10d. Aplicar costes ocultos acumulados
     HiddenCosts.applyAccumulated(state);
     // 10e. Cooldowns
@@ -437,24 +277,13 @@ window.Game = window.Game || {
     this.generateTurnEvents();
 
     // 13. Condiciones de fin
+    this._checkSurrenders(state);
     const result = this.checkEndConditions();
     if (result) { this.showEndScreen(result); return; }
 
-    // 14. Renovar demandas de facciones cada 5 turnos
-    if (state.turn % 5 === 0) {
-      state.factions.forEach(f => { f.currentDemand = Systems.Factions.generateDemand(f.id); });
-    }
-
-    // 15. Arcos narrativos y eventos encadenados
-    if (typeof StoryArcSystem !== "undefined") {
-      StoryArcSystem.checkActivations(state);
-      StoryArcSystem.processPendingChains(state);
-    }
     // 16. Mensajes diplomáticos del turno
     if (typeof UnlockSystem !== "undefined") UnlockSystem.processTurn(state);
-    if (typeof DiplomacySystem !== "undefined") {
-      DiplomacySystem.generateTurnMessages(state);
-    }
+    if (typeof DiplomacySystem !== 'undefined') DiplomacySystem.processTurn(state);
     // -- Limpiar inbox: máximo 20 mensajes, purgar los más viejos --
     if (state.diplomacyInbox && state.diplomacyInbox.length > 20) {
       // Marcar como leídos los más viejos y conservar solo los 20 recientes
@@ -474,16 +303,12 @@ window.Game = window.Game || {
       }
     }
     // 17. Story Arcs y eventos de faccion/civ
-    if (typeof ArcSystem !== "undefined") {
-      ArcSystem.tick(state);
-    }
-    // 18. Sistemas profundos
-    if (typeof DeepSystemsIntegration !== 'undefined') DeepSystemsIntegration.onEndTurn(state);
+    // ArcSystem removed
     // 19. Render
     UI.fullRender(state);
     // 20. Crónica del turno
-    // Crónica: mostrar automáticamente después del render
-    if (state.turn > 2 && typeof ChronicleSystem !== 'undefined') {
+    // Crónica: mostrar cada 4 turnos (1 año)
+    if (state.turn > 2 && state.turn % 4 === 0 && typeof ChronicleSystem !== 'undefined') {
       const _snap = _prevSnapshot;
       const _st   = state;
       setTimeout(function() {
@@ -493,7 +318,6 @@ window.Game = window.Game || {
     // Sync Althoria (war zones, spies, trade routes)
     if (typeof AlthoriaMap !== 'undefined') {
       AlthoriaMap.sync(state);
-      AlthoriaMap._syncTradeRoutes(state);  // Refresh route lines every turn
     }
     Systems.Log.add(state, '📅 Año ' + state.year + ', Turno ' + state.turn + ' — Población: ' + state.population.toLocaleString(), 'info');
     // UI.renderLog removed — game-log panel removed from HTML
@@ -516,24 +340,7 @@ window.Game = window.Game || {
       if (ef.corruption)         state.economy.corruption = Math.max(0, state.economy.corruption + ef.corruption);
       if (ef.trade_income)       state.economy.trade_income += ef.trade_income;
       if (ef.food_bonus)         state.economy.food_bonus = (state.economy.food_bonus||0) + ef.food_bonus;
-      if (ef.inflation)          state.economy.inflation = Math.max(0, state.economy.inflation + ef.inflation);
-      if (ef.faction_pueblo) {
-        const f = state.factions.find(f=>f.id==='pueblo');
-        if (f) f.satisfaction = Math.min(100, f.satisfaction + ef.faction_pueblo);
-      }
-      if (ef.faction_ejercito) {
-        const f = state.factions.find(f=>f.id==='ejercito');
-        if (f) f.satisfaction = Math.min(100, f.satisfaction + ef.faction_ejercito);
-      }
-      if (ef.faction_comerciantes) {
-        const f = state.factions.find(f=>f.id==='comerciantes');
-        if (f) f.satisfaction = Math.min(100, f.satisfaction + ef.faction_comerciantes);
-      }
-      if (ef.faction_iglesia) {
-        const f = state.factions.find(f=>f.id==='iglesia');
-        if (f) f.satisfaction = Math.min(100, f.satisfaction + ef.faction_iglesia);
-      }
-    });
+      if (ef.inflation)          state.economy.inflation = Math.max(0, state.economy.inflation + ef.inflation);    });
   },
 
   toggleSpending(id) {
@@ -591,13 +398,14 @@ window.Game = window.Game || {
       }
       return ev;
     });
-    // Añadir eventos de arcos narrativos y eventos encadenados
-    if (typeof ArcManager !== 'undefined') {
-      ArcManager.applyTurnBonus(state);
-      const arcEvents = ArcManager.generateForTurn(state);
-      // Los eventos de arco tienen prioridad — van primero
-      events = [...arcEvents, ...events].filter((e,i,a) => a.findIndex(x=>x.id===e.id)===i).slice(0,5);
+    // Chained military events after battle
+    if (state._pendingChain && typeof CHAIN_EVENT_POOL !== 'undefined') {
+      var chainId = state._pendingChain;
+      state._pendingChain = null;
+      var chainEv = CHAIN_EVENT_POOL.find(function(e){ return e.id === chainId; });
+      if (chainEv) events.unshift(Object.assign({}, chainEv, {id: chainId+'_'+state.turn}));
     }
+    events = events.slice(0, 5);
     state.currentEvents    = events;
     state.activeEventIndex = events.length > 0 ? 0 : null;
     UI.renderEventQueue(state);
@@ -616,11 +424,6 @@ window.Game = window.Game || {
     const event = state.currentEvents[eventIdx];
     if (!event) return;
 
-    // Notificar al sistema de arcos antes de resolver
-    if (typeof StoryArcSystem !== "undefined") {
-      StoryArcSystem.onEventDecision(state, event, optionIdx);
-    }
-
     // Guard: validate option exists before applying
     if (!event.options || !event.options[optionIdx]) {
       // Event has no valid option — just remove it
@@ -636,14 +439,38 @@ window.Game = window.Game || {
     }
 
     Systems.Events.applyDecision(state, event, optionIdx);
-    // Procesar decisión de arco si corresponde
-    if (typeof ArcManager !== 'undefined' && event.isArcEvent) {
-      ArcManager.onDecision(state, event, optionIdx);
+
+    // Handle special effects
+    const _opt = (event.options && event.options[optionIdx]) ? event.options[optionIdx] : null;
+    const _ef  = _opt ? (_opt.effects || {}) : {};
+
+    // Tax revolt
+    if (_opt && _opt.specialAction === 'setTax15') this.setTaxRate(15);
+
+    // End war (surrender)
+    if (_ef._endWar) {
+      const _warN = (state.diplomacy||[]).find(function(n){return n.id===_ef._endWar;});
+      if (_warN) {
+        _warN.atWar = false; _warN._war = null; _warN._surrenderOffered = false;
+        _warN.relation = Math.min(-10, (_warN.relation||0) + 20);
+        state._warsWon = (state._warsWon||0) + 1;
+      }
+      // Trigger chain event
+      var _chains = ['loot_aftermath','war_hero_rises'];
+      state._pendingChain = _chains[Math.floor(Math.random()*_chains.length)];
     }
-    // Acción especial tax revolt
-    if (event.options && event.options[optionIdx] && event.options[optionIdx].specialAction === 'setTax15') {
-      this.setTaxRate(15);
+
+    // Log important events to kingdom history
+    if (event.priority === 'critical' || event.priority === 'high') {
+      state._history = state._history || [];
+      state._history.push({
+        turn: state.turn, year: state.year,
+        type: 'event', icon: event.icon || '📜',
+        title: event.title,
+        text: _opt ? 'Decisión: ' + _opt.label : event.description,
+      });
     }
+
     state.currentEvents.splice(eventIdx, 1);
 
     if (state.currentEvents.length > 0) {
@@ -656,6 +483,10 @@ window.Game = window.Game || {
     }
 
     UI.fullRender(state);
+    if (typeof switchRightTab === 'function' && window._showHistoryAfterEvent) {
+      window._showHistoryAfterEvent = false;
+      switchRightTab('history');
+    }
   },
 
   // ----------------------------------------------
@@ -673,12 +504,10 @@ window.Game = window.Game || {
     } else {
       // Fallback
       const state  = this.state;
-      if (!ActionPoints.spend(state, 2, "Declarar guerra")) return;
-      const nation = state.diplomacy.find(n => n.id === nationId);
+        const nation = state.diplomacy.find(n => n.id === nationId);
       if (!nation) return;
       nation.atWar = true;
       nation.relation = Math.max(-100, nation.relation - 30);
-      Systems.Trade.closeRoutesForNation(state, nationId);
       Systems.Log.add(state, '⚔️ Guerra declarada contra ' + nation.name, 'crisis');
       if (typeof AlthoriaMap !== 'undefined') AlthoriaMap.updateWar(state);
       if (typeof BattleSystem !== 'undefined') BattleSystem.initBattle(state, nation);
@@ -705,39 +534,6 @@ window.Game = window.Game || {
   // ----------------------------------------------
   // POLÍTICAS
   // ----------------------------------------------
-  togglePolicy(policyId, category) {
-    const state    = this.state;
-    const policies = POLICIES[category];
-    const policy   = policies.find(p => p.id === policyId);
-    if (!policy) return;
-
-    const idx = state.activePolicies.indexOf(policyId);
-    if (idx > -1) {
-      state.activePolicies.splice(idx, 1);
-      Systems.Log.add(state, '📋 Política cancelada: ' + policy.name, 'info');
-    } else {
-      // Exclusividad por categoría
-      const catIds = policies.map(p => p.id);
-      if (category === 'economia' || category === 'militar') {
-        state.activePolicies = state.activePolicies.filter(ap => !catIds.includes(ap));
-      }
-      if (policy.cost_gold > 0 && state.resources.gold < policy.cost_gold) {
-        Systems.Log.add(state, '⚠️ Oro insuficiente para ' + policy.name, 'warn');
-        // UI.renderLog removed — game-log panel removed from HTML
-        return;
-      }
-      if (policy.cost_gold > 0) state.resources.gold -= policy.cost_gold;
-      state.activePolicies.push(policyId);
-      if (policy.factionEffect) {
-        Object.entries(policy.factionEffect).forEach(([fId, delta]) => {
-          const f = state.factions.find(f => f.id === fId);
-          if (f) f.satisfaction = Math.max(0, Math.min(100, f.satisfaction + delta));
-        });
-      }
-      Systems.Log.add(state, '✅ Política activada: ' + policy.name, 'good');
-    }
-    UI.fullRender(state);
-  },
 
   // ----------------------------------------------
   // ACCIONES ECONÓMICAS
@@ -855,7 +651,6 @@ window.Game = window.Game || {
       if (def.cost.wood && s.resources.wood < def.cost.wood*(n/50)) miss.push({icon:'🌲',name:'Madera',need:Math.ceil(def.cost.wood*(n/50)),have:Math.floor(s.resources.wood)});
       if (miss.length) { if (typeof showResourceError==='function') showResourceError(miss); return; }
     }
-    if (!ActionPoints.spend(this.state, 1, 'Reclutar tropas')) return;
     const result = Systems.Military.recruitUnit(this.state, typeId, count);
     if (!result.ok) {
       Systems.Log.add(this.state, '⚠️ ' + result.msg, 'warn');
@@ -881,70 +676,47 @@ window.Game = window.Game || {
 
   // ----------------------------------------------
   // ESPÍAS
-  // ----------------------------------------------
-  sendSpy(missionId, nationId) {
-    if (!ActionPoints.spend(this.state, 1, 'Enviar espía')) return;
-    const result = Systems.Spies.sendMission(this.state, missionId, nationId);
-    if (!result.ok) Systems.Log.add(this.state, '⚠️ ' + result.msg, 'warn');
-    UI.fullRender(this.state);
-  },
 
-  trainSpy() {
-    if (this.state.resources.gold < 200) {
-      Systems.Log.add(this.state, '⚠️ Necesitas 200💰 para entrenar un espía.', 'warn');
-      if(typeof showResourceError==='function') showResourceError([{icon:'💰',name:'Oro',need:200,have:Math.floor(this.state.resources.gold)}]);
-    } else {
-      this.state.resources.gold -= 200;
-      this.state.spies = this.state.spies || { count: 1, active: [] };
-      this.state.spies.count++;
-      Systems.Log.add(this.state, '🕵️ Nuevo espía entrenado.', 'good');
-    }
-    UI.fullRender(this.state);
-  },
 
   // ----------------------------------------------
   // COMERCIO
   // ----------------------------------------------
-  openTradeRoute(routeId, nationId) {
-    // Check if route can open BEFORE spending AP
-    const rt = TRADE_ROUTES[routeId];
-    const nation = (this.state.diplomacy||[]).find(n=>n.id===nationId);
-    if (!rt || !nation) return;
-    if (nation.relation < (rt.requires?.relation||0)) {
-      if (typeof showResourceError === 'function')
-        showResourceError([{icon:'🤝',name:'Relación',need:rt.requires?.relation||0,have:nation.relation}]);
-      return;
-    }
-    if (this.state.resources.gold < rt.cost.gold) {
-      if (typeof showResourceError === 'function')
-        showResourceError([{icon:'💰',name:'Oro',need:rt.cost.gold,have:Math.floor(this.state.resources.gold)}]);
-      return;
-    }
-    // Now spend AP
-    if (!ActionPoints.spend(this.state, 1, 'Abrir ruta comercial')) return;
-    const result = Systems.Trade.openRoute(this.state, routeId, nationId);
-    if (!result.ok) {
-      Systems.Log.add(this.state, '⚠️ ' + result.msg, 'warn');
-      if (typeof showResourceError === 'function') {
-        const rt=TRADE_ROUTES[routeId]; const s=this.state;
-        const m=[];
-        if(rt&&rt.cost.gold &&s.resources.gold <rt.cost.gold)  m.push({icon:'💰',name:'Oro',   need:rt.cost.gold,  have:Math.floor(s.resources.gold)});
-        if(rt&&rt.cost.iron &&s.resources.iron <rt.cost.iron)  m.push({icon:'⚙️', name:'Hierro',need:rt.cost.iron,  have:Math.floor(s.resources.iron)});
-        if(rt&&rt.cost.wood &&s.resources.wood <rt.cost.wood)  m.push({icon:'🌲',name:'Madera', need:rt.cost.wood,  have:Math.floor(s.resources.wood)});
-        if(m.length) showResourceError(m);
-      }
-    }
-    UI.fullRender(this.state);
-  },
-
-  closeTradeRoute(routeId, nationId) {
-    Systems.Trade.closeRoute(this.state, routeId, nationId);
-    UI.fullRender(this.state);
-  },
 
   // ----------------------------------------------
   // CONDICIONES FINALES
   // ----------------------------------------------
+
+  // Check if any enemy nation wants to surrender (army < 20% of player)
+  _checkSurrenders(state) {
+    const playerStr = state.army || 0;
+    (state.diplomacy || []).forEach(function(n) {
+      if (!n.atWar) return;
+      if ((n.army||200) < playerStr * 0.20 && !n._surrenderOffered) {
+        n._surrenderOffered = true;
+        // Generate surrender event
+        state.currentEvents = state.currentEvents || [];
+        state.currentEvents.unshift({
+          id: 'surrender_'+n.id,
+          title: n.name + ' solicita rendición',
+          description: n.name + ' ha perdido la mayor parte de su ejército y ofrece rendirse a cambio de recursos.',
+          icon: '🏳️',
+          category: 'MILITAR',
+          priority: 'high',
+          options: [
+            { label: 'Aceptar rendición (+300 oro, +100 hierro)',
+              effects: { gold: 300, iron: 100, _endWar: n.id } },
+            { label: 'Rechazar — continuar la guerra',
+              effects: { morale: 5 } },
+            { label: 'Exigir tributo anual (+50 oro/turno)',
+              effects: { gold: 150, _endWar: n.id } },
+          ]
+        });
+        if (typeof Systems !== 'undefined')
+          Systems.Log.add(state, '🏳️ ' + n.name + ' solicita rendición. El ejército enemigo está destrozado.', 'warn');
+      }
+    });
+  },
+
   checkEndConditions() {
     const s = this.state;
     for (const lose of LOSE_CONDITIONS) { if (lose.check(s)) return { type:'defeat',  condition: lose }; }
@@ -953,55 +725,77 @@ window.Game = window.Game || {
   },
 
   showEndScreen(result) {
-    const overlay = document.getElementById('modal-overlay');
-    const title   = document.getElementById('modal-title');
-    const body    = document.getElementById('modal-body');
-    if (!overlay) return;
-    // Populate content BEFORE showing — prevents flash of black empty box
+    // Log to history
+    if (this.state) {
+      this.state._history = this.state._history || [];
+      this.state._history.push({
+        turn: this.state.turn, year: this.state.year,
+        type: (result.type === 'victory' || result.victory) ? 'victory' : 'defeat',
+        title: result.victory ? 'Victoria Total' : 'Derrota',
+        icon: result.victory ? '🏆' : '💀',
+        text: result.message || (result.victory ? 'El reino ha conquistado todas las naciones.' : 'El reino ha caído.'),
+      });
+    }
+    const modal = document.getElementById('modal-endgame');
+    const content = document.getElementById('endgame-content');
+    if (!modal || !content) return;
 
-    const s = this.state;
-    const isVictory = result.type === 'victory';
+    const st = this.state || {};
+    const isVictory = result.type === 'victory' || result.victory;
+    const accentCol = isVictory ? '#72c882' : '#e05050';
+    const bgCol     = isVictory ? 'rgba(60,120,60,0.08)' : 'rgba(120,20,20,0.08)';
 
-    // -- Generar mensajes de las naciones rivales --
-    const nationMessages = this._generateEndMessages(s, isVictory);
-
-    if (isVictory) {
-      title.innerHTML = '<span style="font-size:2em">⚔️</span><br>¡VICTORIA!';
-      title.style.color = 'var(--gold2)';
-    } else {
-      title.innerHTML = '<span style="font-size:2em">💀</span><br>DERROTA';
-      title.style.color = 'var(--red2)';
+    // Find enemy leader portrait for defeat screen
+    var enemyPortrait = '';
+    if (!isVictory && result.nationId && st.diplomacy) {
+      const killer = st.diplomacy.find(function(n){return n.id===result.nationId;});
+      if (killer && killer.portrait) enemyPortrait = (window.IMAGE_BASE||'') + killer.portrait;
     }
 
-    body.innerHTML = `
-      <div class="end-condition">
-        <b>${result.condition.name}</b>
-        <div>${result.condition.description}</div>
-      </div>
-      <div class="end-stats">
-        <span>🏰 ${s.civName}</span>
-        <span>📅 Año ${s.year}, Turno ${s.turn}</span>
-        <span>👥 ${s.population.toLocaleString()} hab.</span>
-        <span>🗺️ ${s.althoriaRegions || 1} regiones</span>
-      </div>
-      <div class="end-epitaph">
-        ${isVictory
-          ? `<em>"${s.civName} forjó un legado que los siglos recordarán."</em>`
-          : `<em>"La historia no olvidará las decisiones que llevaron a ${s.civName} a su fin."</em>`}
-      </div>
-      <div class="end-messages">
-        <div class="em-header">${isVictory ? '📣 Los otros gobernantes reaccionan:' : '🎺 El mundo comenta tu caída:'}</div>
-        ${nationMessages.map(m => `
-          <div class="end-msg-card">
-            <div class="emc-portrait">${m.portrait}</div>
-            <div class="emc-body">
-              <div class="emc-from">${m.nationIcon} ${m.nationName} — <span class="emc-role">${m.charName}</span></div>
-              <div class="emc-text">"${m.text}"</div>
-            </div>
-          </div>`).join('')}
-      </div>
-    `;
-    overlay.classList.remove('hidden');  // Show AFTER content ready
+    content.innerHTML =
+      '<div style="background:'+bgCol+';padding:0">' +
+      // Banner
+      '<div style="background:'+(isVictory?'linear-gradient(180deg,rgba(60,120,60,0.4),rgba(0,0,0,0))':'linear-gradient(180deg,rgba(120,20,20,0.4),rgba(0,0,0,0))')+';padding:24px;text-align:center">' +
+        '<div style="font-size:48px;margin-bottom:8px">'+(isVictory?'🏆':'💀')+'</div>' +
+        '<div style="font-family:var(--font-title);font-size:22px;color:'+accentCol+';font-weight:900;letter-spacing:3px">'+(isVictory?'VICTORIA':'DERROTA')+'</div>' +
+        '<div style="font-family:var(--font-title);font-size:11px;color:var(--gold);margin-top:6px;letter-spacing:2px">'+(st.civName||'Tu Reino')+'</div>' +
+      '</div>' +
+      // Enemy portrait (on defeat)
+      ((!isVictory && enemyPortrait) ?
+        '<div style="text-align:center;padding:16px 24px 0">' +
+          '<img src="'+enemyPortrait+'" style="width:96px;height:96px;object-fit:cover;object-position:top;border:2px solid #e05050;margin:0 auto">' +
+          '<div style="font-family:var(--font-mono);font-size:9px;color:#e05050;margin-top:6px">Conquistado por</div>' +
+        '</div>' : '') +
+      // Stats
+      '<div style="padding:20px 28px">' +
+        '<div style="font-family:var(--font-body);font-size:13px;color:var(--text2);margin-bottom:16px;font-style:italic">'+( result.message||'El destino de tu reino ha sido sellado.')+'</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px">' +
+          '<div style="background:var(--bg4);padding:10px;border:1px solid var(--border2)">' +
+            '<div style="font-family:var(--font-mono);font-size:8px;color:var(--text3)">TURNOS</div>' +
+            '<div style="font-family:var(--font-title);font-size:16px;color:var(--gold)">'+(st.turn||1)+'</div>' +
+          '</div>' +
+          '<div style="background:var(--bg4);padding:10px;border:1px solid var(--border2)">' +
+            '<div style="font-family:var(--font-mono);font-size:8px;color:var(--text3)">GUERRAS GANADAS</div>' +
+            '<div style="font-family:var(--font-title);font-size:16px;color:var(--gold)">'+(st._warsWon||0)+'</div>' +
+          '</div>' +
+          '<div style="background:var(--bg4);padding:10px;border:1px solid var(--border2)">' +
+            '<div style="font-family:var(--font-mono);font-size:8px;color:var(--text3)">EJÉRCITO FINAL</div>' +
+            '<div style="font-family:var(--font-title);font-size:16px;color:var(--gold)">'+(st.army||0).toLocaleString()+'</div>' +
+          '</div>' +
+          '<div style="background:var(--bg4);padding:10px;border:1px solid var(--border2)">' +
+            '<div style="font-family:var(--font-mono);font-size:8px;color:var(--text3)">ORO ACUMULADO</div>' +
+            '<div style="font-family:var(--font-title);font-size:16px;color:var(--gold)">'+(Math.round(st.resources&&st.resources.gold||0)).toLocaleString()+'</div>' +
+          '</div>' +
+        '</div>' +
+        '<button onclick="location.reload()" style="width:100%;font-family:var(--font-title);font-size:12px;font-weight:700;letter-spacing:2px;padding:14px;background:linear-gradient(180deg,'+accentCol+','+( isVictory?'#3a7a3a':'#8a2020')+');color:#fff;border:none;cursor:pointer">NUEVA PARTIDA</button>' +
+      '</div>' +
+      '</div>';
+
+    modal.classList.remove('hidden');
+    modal.setAttribute('style',
+      'display:flex !important;position:fixed !important;inset:0 !important;' +
+      'z-index:10000 !important;background:rgba(2,1,0,0.95) !important;' +
+      'align-items:center !important;justify-content:center !important;');
   },
 
   _generateEndMessages(state, isVictory) {
