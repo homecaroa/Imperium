@@ -61,63 +61,41 @@
   <!-- -  PANTALLA INICIO             - -->
   <!-- -------------------------------- -->
   <div id="screen-start" class="screen" style="background:#080604;align-items:center;justify-content:center;overflow:hidden">
-    <div style="text-align:center;max-width:460px;width:90%;padding:40px 20px;position:relative;z-index:1">
 
-      <!-- Divider top -->
-      <div style="display:flex;align-items:center;gap:14px;margin-bottom:32px">
+    <div style="position:absolute;inset:0;background:linear-gradient(rgba(200,152,42,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(200,152,42,0.025) 1px,transparent 1px);background-size:60px 60px;pointer-events:none"></div>
+    <div style="position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);width:500px;height:500px;background:radial-gradient(circle,rgba(200,152,42,0.07) 0%,transparent 70%);pointer-events:none"></div>
+
+    <div style="position:relative;z-index:1;text-align:center;width:90%;max-width:460px;padding:20px">
+
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:28px">
         <div style="flex:1;height:1px;background:linear-gradient(to right,transparent,#4e3820)"></div>
-        <span style="color:#4e3820;letter-spacing:4px;font-size:13px">✦</span>
+        <span style="color:#4e3820;font-size:12px">&#10022;</span>
         <div style="flex:1;height:1px;background:linear-gradient(to left,transparent,#4e3820)"></div>
       </div>
 
-      <!-- Eyebrow -->
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#6a4a18;letter-spacing:5px;text-transform:uppercase;margin-bottom:14px">ESTRATEGIA MEDIEVAL</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#5a3a10;letter-spacing:5px;text-transform:uppercase;margin-bottom:12px">Estrategia Medieval</div>
+      <div style="font-family:'Cinzel',Georgia,serif;font-size:clamp(48px,8vw,76px);font-weight:900;color:#e8b840;line-height:1;letter-spacing:8px;text-shadow:0 0 60px rgba(232,184,64,0.2);margin-bottom:10px">IMPERIUM</div>
+      <div style="font-family:'Crimson Text',Georgia,serif;font-size:14px;color:#8a6840;font-style:italic;letter-spacing:1px;margin-bottom:32px">Civilizaci&#243;n &nbsp;&#183;&nbsp; Poder &nbsp;&#183;&nbsp; Conquista</div>
 
-      <!-- Main title -->
-      <div style="font-family:'Cinzel',Georgia,serif;font-size:72px;font-weight:900;color:#e8b840;line-height:1;letter-spacing:10px;text-shadow:0 0 80px rgba(232,184,64,0.25);margin-bottom:12px">IMPERIUM</div>
-
-      <!-- Subtitle -->
-      <div style="font-family:'Crimson Text',Georgia,serif;font-size:15px;color:#a08060;font-style:italic;letter-spacing:2px;margin-bottom:36px">Civilizaci&#243;n &nbsp;&#183;&nbsp; Poder &nbsp;&#183;&nbsp; Conquista</div>
-
-      <!-- Divider middle -->
-      <div style="display:flex;align-items:center;gap:14px;margin-bottom:32px">
-        <div style="flex:1;height:1px;background:linear-gradient(to right,transparent,#3a2a10)"></div>
-        <span style="color:#4e3820;font-size:10px;letter-spacing:6px">&#9876; &nbsp; &#9876; &nbsp; &#9876;</span>
-        <div style="flex:1;height:1px;background:linear-gradient(to left,transparent,#3a2a10)"></div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:28px">
+        <div style="flex:1;height:1px;background:linear-gradient(to right,transparent,#3a2810)"></div>
+        <span style="color:#3a2810;font-size:10px;letter-spacing:4px">&#9876; &#9876; &#9876;</span>
+        <div style="flex:1;height:1px;background:linear-gradient(to left,transparent,#3a2810)"></div>
       </div>
 
-      <!-- Welcome name -->
-      <div id="welcome-name" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#6a4a18;letter-spacing:2px;margin-bottom:20px;min-height:18px"></div>
+      <div id="welcome-name" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#5a3a10;letter-spacing:2px;margin-bottom:18px;min-height:16px"></div>
 
-      <!-- Buttons -->
-      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:36px">
-        <button onclick="Game.startNewGame()"
-          style="font-family:'Cinzel',Georgia,serif;font-size:13px;font-weight:700;letter-spacing:3px;padding:17px 32px;background:linear-gradient(180deg,#e8b840,#c8982a);color:#080604;border:none;cursor:pointer;text-transform:uppercase;transition:opacity 0.15s"
-          onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">
-          &#9876; &nbsp; NUEVA PARTIDA
-        </button>
-        <button id="btn-load-save" onclick="SaveSystem.showLoadMenu()"
-          style="font-family:'Cinzel',Georgia,serif;font-size:11px;font-weight:700;letter-spacing:2px;padding:14px 32px;background:transparent;color:#8a6840;border:1px solid #3a2a10;cursor:pointer;text-transform:uppercase;transition:all 0.15s"
-          onmouseover="this.style.borderColor='#c8982a';this.style.color='#e8b840'" onmouseout="this.style.borderColor='#3a2a10';this.style.color='#8a6840'">
-          &#128221; &nbsp; CARGAR PARTIDA
-        </button>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:28px">
+        <button onclick="Game.startNewGame()" style="font-family:'Cinzel',Georgia,serif;font-size:12px;font-weight:700;letter-spacing:3px;padding:16px;background:linear-gradient(180deg,#e8b840,#c8982a);color:#080604;border:none;cursor:pointer;width:100%" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter=''">&#9876; NUEVA PARTIDA</button>
+        <button id="btn-load-save" onclick="SaveSystem.showLoadMenu()" style="font-family:'Cinzel',Georgia,serif;font-size:11px;font-weight:700;letter-spacing:2px;padding:13px;background:transparent;color:#7a5830;border:1px solid #3a2810;cursor:pointer;width:100%" onmouseover="this.style.borderColor='#c8982a';this.style.color='#e8b840'" onmouseout="this.style.borderColor='#3a2810';this.style.color='#7a5830'">&#128221; CARGAR PARTIDA</button>
       </div>
 
-      <!-- Feature tags -->
-      <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-bottom:32px">
-        <span style="font-family:'JetBrains Mono',monospace;font-size:7px;color:#4e3820;border:1px solid #2a1e10;padding:4px 10px;letter-spacing:2px">MAPA PROCEDURAL</span>
-        <span style="font-family:'JetBrains Mono',monospace;font-size:7px;color:#4e3820;border:1px solid #2a1e10;padding:4px 10px;letter-spacing:2px">BATALLA HoMM</span>
-        <span style="font-family:'JetBrains Mono',monospace;font-size:7px;color:#4e3820;border:1px solid #2a1e10;padding:4px 10px;letter-spacing:2px">IA CON PERSONALIDAD</span>
-        <span style="font-family:'JetBrains Mono',monospace;font-size:7px;color:#4e3820;border:1px solid #2a1e10;padding:4px 10px;letter-spacing:2px">CONQUISTA TOTAL</span>
+      <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:6px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:7px;color:#3a2810;border:1px solid #2a1e08;padding:3px 8px;letter-spacing:2px">MAPA PROCEDURAL</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:7px;color:#3a2810;border:1px solid #2a1e08;padding:3px 8px;letter-spacing:2px">BATALLA HoMM</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:7px;color:#3a2810;border:1px solid #2a1e08;padding:3px 8px;letter-spacing:2px">IA ADAPTATIVA</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:7px;color:#3a2810;border:1px solid #2a1e08;padding:3px 8px;letter-spacing:2px">CONQUISTA TOTAL</span>
       </div>
-
-      <!-- Divider bottom -->
-      <div style="display:flex;align-items:center;gap:14px">
-        <div style="flex:1;height:1px;background:linear-gradient(to right,transparent,#2a1e10)"></div>
-        <span style="color:#2a1e10;font-size:12px">&#10022;</span>
-        <div style="flex:1;height:1px;background:linear-gradient(to left,transparent,#2a1e10)"></div>
-      </div>
-
     </div>
   </div>
 
