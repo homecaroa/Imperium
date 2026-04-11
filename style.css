@@ -1,12 +1,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=JetBrains+Mono:wght@400;500;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
 
 /* --------------------------------------------------
-   IMPERIUM — ESTILOS MEDIEVALES v3
+   IMPERIUM -- ESTILOS MEDIEVALES v3
    Paleta: pergamino / piedra / oro / sangre
    -------------------------------------------------- */
 :root {
   /* ======================================== */
-  --bg:     #080706;          /* negro cálido puro */
+  --bg:     #080706;          /* negro calido puro */
   --bg2:    #100e0a;          /* paneles oscuros */
   --bg3:    #16120c;          /* cabeceras, tabs */
   --bg4:    #1e1810;          /* cards, items */
@@ -36,10 +36,10 @@
   --blue3:   #5898d0;
 
   /* ======================================== */
-  --text:    #d8c490;         /* legible, cálido */
+  --text:    #d8c490;         /* legible, calido */
   --text2:   #9a7c48;         /* secundario */
   --text3:   #5a4028;         /* desactivado */
-  --bright:  #f4e4a8;         /* énfasis máximo */
+  --bright:  #f4e4a8;         /* enfasis maximo */
 
   /* ======================================== */
   --font-title: 'Cinzel', 'Georgia', serif;
@@ -92,7 +92,7 @@ body {
 .screen.active { display: flex; flex-direction: column; }
 
 /* --------------------------------------------------
-   LOGIN — PANTALLA CINEMATOGRÁFICA
+   LOGIN -- PANTALLA CINEMATOGRAFICA
    -------------------------------------------------- */
 #screen-login { position: relative; overflow: hidden; background: #06040200; }
 
@@ -225,9 +225,9 @@ body {
 .lf-sep { color: var(--border2); }
 
 /* --------------------------------------------------
-   START SCREEN — ANIMACIONES
+   START SCREEN -- ANIMACIONES
    -------------------------------------------------- */
-#screen-start { position: relative; overflow: hidden; background: var(--bg); }
+#screen-start { overflow: hidden; background: var(--bg); }
 
 #start-canvas {
   position: absolute; inset: 0; width: 100%; height: 100%;
@@ -433,7 +433,7 @@ body {
 .btn-save:hover { border-color: var(--gold); color: var(--gold); }
 
 /* --------------------------------------------------
-   MAIN BODY — 2 columnas: mapa grande + panel derecho
+   MAIN BODY -- 2 columnas: mapa grande + panel derecho
    -------------------------------------------------- */
 /* [moved to layout block] */
 
@@ -459,7 +459,7 @@ body {
 .leg-item { display: flex; align-items: center; gap: 5px; font-family: var(--font-mono); font-size: 10px; color: var(--text3); }
 .leg-dot { width: 10px; height: 10px; border-radius: 50%; }
 
-/* AGENDA DE TURNO — barra compacta */
+/* AGENDA DE TURNO -- barra compacta */
 /* [moved to layout block] */
 #agenda-header {
   display: flex; align-items: center; gap: 8px;
@@ -483,13 +483,13 @@ body {
 .event-item.critical { border-color: var(--red2); color: #e87070; }
 
 /* --------------------------------------------------
-   PANEL DERECHO — 420px fijo
+   PANEL DERECHO -- 420px fijo
    -------------------------------------------------- */
 /* [moved to layout block] */
 
 
 /* --------------------------------------------------
-   PANEL SECTIONS (común a todos los tabs)
+   PANEL SECTIONS (comun a todos los tabs)
    -------------------------------------------------- */
 .rpanel-section {
   margin-bottom: 0;
@@ -675,7 +675,7 @@ body {
 .save-slot-actions { display: flex; gap: 6px; margin-top: 8px; }
 
 /* --------------------------------------------------
-   GASTO PÚBLICO (nuevo tab)
+   GASTO PUBLICO (nuevo tab)
    -------------------------------------------------- */
 .spending-item { background: var(--bg4); border: 1px solid var(--border); padding: 9px 11px; margin-bottom: 7px; cursor: pointer; transition: border-color 0.15s; }
 .spending-item:hover { border-color: var(--gold); }
@@ -692,7 +692,7 @@ body {
 .hidden { display: none !important; }
 
 /* -----------------------------------------------
-   ALTHORIA MAP — PANEL DESLIZANTE
+   ALTHORIA MAP -- PANEL DESLIZANTE
    ----------------------------------------------- */
 
 /* ======================================== */
@@ -869,7 +869,7 @@ body {
 }
 
 /* -----------------------------------------------------------
-   PLAYER NATION BADGE — top of sidebar, always visible
+   PLAYER NATION BADGE -- top of sidebar, always visible
    ----------------------------------------------------------- */
 
 .player-nation-badge {
@@ -930,10 +930,10 @@ body {
 }
 
 /* -----------------------------------------------------------
-   PANEL TABS — icon tooltips on hover
+   PANEL TABS -- icon tooltips on hover
    ----------------------------------------------------------- */
 
-/* Tab buttons already use .tb-tip — enhance visual feedback */
+/* Tab buttons already use .tb-tip -- enhance visual feedback */
 .ptab {
   position: relative;
   transition: background 0.15s, transform 0.1s;
@@ -1070,8 +1070,8 @@ body {
 }
 
 /* -----------------------------------------------------------
-   LAYOUT DEFINITIVO — pantalla de juego completa
-   Estructura: .screen es absolute+display:none → active=flex+column
+   LAYOUT DEFINITIVO -- pantalla de juego completa
+   Estructura: .screen es absolute+display:none -> active=flex+column
    Top bar fijo + main-body flex (mapa 60% / panel 40%)
    ----------------------------------------------------------- */
 
@@ -1143,7 +1143,7 @@ body {
 .mtab-content         { display: none; overflow: hidden; }
 .mtab-content.active  { display: flex; flex-direction: column; flex: 1; overflow: hidden; min-height: 0; }
 
-/* Facciones: scroll interno, tamaño limitado */
+/* Facciones: scroll interno, tamano limitado */
 #factions-list {
   flex: 1; overflow-y: auto; padding: 4px;
   scrollbar-width: thin;
@@ -1151,8 +1151,8 @@ body {
 }
 .faction-row { margin-bottom: 4px; }
 
-/* Ejército desplegable: altura máxima 40% de la columna */
-/* military-drawer removed — using tab instead */
+/* Ejercito desplegable: altura maxima 40% de la columna */
+/* military-drawer removed -- using tab instead */
 
 /* Agenda: al fondo, limitada */
 #agenda-bar {
@@ -1243,7 +1243,7 @@ body {
    RESPONSIVE
    ------------------------------------------------------ */
 
-/* Pantallas medianas: compresión gradual */
+/* Pantallas medianas: compresion gradual */
 @media (max-width: 1300px) {
   .rpanel-section { padding: 8px 12px; }
   .rpanel-title   { font-size: 12px; }
@@ -1261,7 +1261,7 @@ body {
   .res-val     { font-size: 11px; }
 }
 
-/* Tablet/móvil: layout vertical */
+/* Tablet/movil: layout vertical */
 @media (max-width: 820px) {
   #main-body { flex-direction: column; }
   #map-area  {
@@ -1286,7 +1286,7 @@ body {
 }
 
 /* ---------------------------------------
-   EVENTOS Y DECISIONES — estilo oscuro
+   EVENTOS Y DECISIONES -- estilo oscuro
    --------------------------------------- */
 .decision-card {
   background: var(--bg4);
@@ -1363,7 +1363,7 @@ body {
 }
 
 /* ---------------------------------------------------
-   ALTHORIA MAP — tooltip flotante preciso
+   ALTHORIA MAP -- tooltip flotante preciso
    --------------------------------------------------- */
 #althoria-tooltip {
   display: none;
@@ -1401,7 +1401,7 @@ body {
 .alth-tip-res b    { color: var(--gold2); }
 
 /* ---------------------------------------------------
-   FACCIONES — tamaño -20%
+   FACCIONES -- tamano -20%
    --------------------------------------------------- */
 .faction-card {
   padding: 5px 8px !important;
@@ -1418,7 +1418,7 @@ body {
 .faction-card .alert-box  { padding: 3px 6px; font-size: 10px; margin-top: 3px; }
 
 /* ---------------------------------------------------
-   EJÉRCITO — tamaño -20%
+   EJERCITO -- tamano -20%
    --------------------------------------------------- */
 .formation-panel   { max-height: 160px !important; gap: 3px !important; padding: 5px !important; }
 .formation-row     { padding: 3px 5px !important; }
@@ -1432,14 +1432,14 @@ body {
 .policy-cost       { font-size: 10px !important; }
 
 /* ---------------------------------------------------
-   PANEL LATERAL — facciones/ejército (35%) compactos
+   PANEL LATERAL -- facciones/ejercito (35%) compactos
    --------------------------------------------------- */
 
-/* Tabs del mapa: facciones/ejército bien divididos */
+/* Tabs del mapa: facciones/ejercito bien divididos */
 .map-tabs { background: var(--bg3); border-bottom: 1px solid var(--border2); }
 #map-area .mtab { font-size: 11px; padding: 7px 6px; }
 
-/* Military is now in right panel tab — full size */
+/* Military is now in right panel tab -- full size */
 
 /* Agenda al fondo: siempre visible */
 #agenda-bar {
@@ -1450,13 +1450,13 @@ body {
 }
 
 /* ---------------------------------------------------
-   PANEL DERECHO — gestión principal (65%)
+   PANEL DERECHO -- gestion principal (65%)
    --------------------------------------------------- */
 
-/* Tabs más grandes y visibles */
+/* Tabs mas grandes y visibles */
 .panel-tabs .ptab { font-size: 20px; height: 46px; }
 
-/* Secciones del panel con más espacio */
+/* Secciones del panel con mas espacio */
 .rtab-content.active .rpanel-section { padding: 12px 16px; }
 .rtab-content.active .rpanel-title   { font-size: 14px; }
 
@@ -1464,7 +1464,7 @@ body {
 #trade-panel .diplo-btn { font-size: 11px; padding: 5px 10px; }
 
 /* ---------------------------------------------------
-   TRADE ROUTE LINES — leyenda del mapa Althoria
+   TRADE ROUTE LINES -- leyenda del mapa Althoria
    --------------------------------------------------- */
 .trade-route-legend {
   position: absolute; bottom: 8px; left: 8px;
@@ -1537,7 +1537,7 @@ body {
 @keyframes war-pulse { 0%,100%{border-color:rgba(200,50,50,0.3)} 50%{border-color:rgba(200,50,50,0.8)} }
 
 /* ---------------------------------------------------
-   SELECCIÓN DE REGIÓN EN MAPA
+   SELECCION DE REGION EN MAPA
    --------------------------------------------------- */
 #region-select-banner {
   animation: sel-flash 0.8s ease-in-out infinite;
@@ -1582,12 +1582,12 @@ body {
 #factions-list .alert-box      { padding: 2px 5px !important; font-size: 9px !important; margin-top: 2px !important; }
 #factions-list                  { scrollbar-width: thin; }
 
-/* Sidebar izquierdo: aún más compacto */
+/* Sidebar izquierdo: aun mas compacto */
 #map-area { flex: 20 !important; min-width: 150px !important; max-width: 24% !important; }
 #right-panel { flex: 80 !important; min-width: 400px !important; }
 
 /* -------------------------------------------------------
-   UNLOCK TREE — árbol de ramificaciones visual
+   UNLOCK TREE -- arbol de ramificaciones visual
    ------------------------------------------------------- */
 .unlock-tree-wrap {
   padding: 12px 10px;
@@ -1734,7 +1734,7 @@ body {
 #althoria-canvas.dragging { cursor: grabbing !important; }
 
 /* -------------------------------------------------------
-   RETRATOS DE LÍDERES — portrait images (definitive)
+   RETRATOS DE LIDERES -- portrait images (definitive)
    ------------------------------------------------------- */
 
 /* Portrait container */
@@ -1752,7 +1752,7 @@ body {
 }
 .diplo-nation-card:hover 
 
-/* Emoji fallback — always visible underneath the image */
+/* Emoji fallback -- always visible underneath the image */
 .portrait-fallback {
   font-size: 30px;
   line-height: 1;
@@ -1764,7 +1764,7 @@ body {
   user-select: none;
 }
 
-/* Portrait image — overlays the emoji fallback */
+/* Portrait image -- overlays the emoji fallback */
 .portrait-img {
   position: absolute;
   inset: 0;                    /* top:0; left:0; right:0; bottom:0 */
@@ -1804,7 +1804,7 @@ body {
 .dnc-role   { color: var(--text3); font-weight: normal; }
 
 /* -------------------------------------------------------
-   EVENT ILLUSTRATIONS — imágenes de eventos
+   EVENT ILLUSTRATIONS -- imagenes de eventos
    ------------------------------------------------------- */
 
 /* Image wrapper: full width, fixed height banner */
@@ -1817,7 +1817,7 @@ body {
   flex-shrink: 0;
 }
 
-/* The image itself — cover crop from top */
+/* The image itself -- cover crop from top */
 .event-img {
   width: 100%;
   height: 100%;
@@ -1853,7 +1853,7 @@ body {
 }
 
 /* -------------------------------------------------------
-   UNIT FORMATION — improved layout with emoji thumbnails
+   UNIT FORMATION -- improved layout with emoji thumbnails
    ------------------------------------------------------- */
 .unit-thumb-emoji {
   font-size: 20px;
@@ -1877,14 +1877,14 @@ body {
 .fl-count { font-family: var(--font-mono); font-size: var(--fs-mono); font-weight: bold; color: var(--gold2); }
 
 /* -------------------------------------------------------
-   PORTRAIT — emoji fallback + image overlay pattern
+   PORTRAIT -- emoji fallback + image overlay pattern
    ------------------------------------------------------- */
 
 /* The portrait container is position:relative (already set) */
 /* Fallback emoji always visible */
 
 
-/* Image overlays the emoji — if it loads, it covers it; if it fails, emoji shows */
+/* Image overlays the emoji -- if it loads, it covers it; if it fails, emoji shows */
 
 
 /* Small portrait in messages */
@@ -1896,7 +1896,7 @@ body {
 
 
 /* ---------------------------------------------------------------
-   VISUAL REFINEMENTS — depth, hierarchy, icon consistency
+   VISUAL REFINEMENTS -- depth, hierarchy, icon consistency
    --------------------------------------------------------------- */
 
 /* Subtle inset depth on panel content areas */
@@ -2091,17 +2091,17 @@ body {
 
 
 /* ---------------------------------------------------------------
-   OVERHAUL VISUAL DRAMÁTICO — más vistoso, más carácter
+   OVERHAUL VISUAL DRAMATICO -- mas vistoso, mas caracter
    --------------------------------------------------------------- */
 
-/* === TOP BAR — banda de poder === */
+/* === TOP BAR -- banda de poder === */
 #top-bar {
   background: linear-gradient(180deg, #1a1408 0%, #0e0b06 100%) !important;
   border-bottom: 1px solid #6a4a18 !important;
   box-shadow: 0 3px 20px rgba(0,0,0,0.9), 0 1px 0 rgba(200,152,42,0.25) !important;
 }
 
-/* === RESOURCE BLOCKS — más impacto === */
+/* === RESOURCE BLOCKS -- mas impacto === */
 .resource-block {
   background: linear-gradient(180deg, #1e1810 0%, #16120a 100%) !important;
   border: 1px solid #3a2c18 !important;
@@ -2110,12 +2110,12 @@ body {
 .res-val { font-size: 14px !important; font-weight: 700 !important; }
 .res-icon { font-size: 16px !important; }
 
-/* === STAT PILLS — color fuerte === */
+/* === STAT PILLS -- color fuerte === */
 .stat-pill.stability { background: linear-gradient(135deg,rgba(32,64,96,0.4),rgba(32,64,96,0.2)) !important; border-color: #3468a0 !important; color: #80c0e8 !important; }
 .stat-pill.morale    { background: linear-gradient(135deg,rgba(128,48,48,0.4),rgba(128,48,48,0.2)) !important; border-color: #a04040 !important; color: #f09090 !important; }
 .stat-pill.military  { background: linear-gradient(135deg,rgba(80,70,50,0.4),rgba(80,70,50,0.2)) !important; border-color: #6a5a38 !important; color: #c8b870 !important; }
 
-/* === PANEL TABS — estilo de pergamino medieval === */
+/* === PANEL TABS -- estilo de pergamino medieval === */
 .panel-tabs {
   background: linear-gradient(180deg, #1a1408 0%, #0e0b06 100%) !important;
   border-bottom: 2px solid #5a3e18 !important;
@@ -2128,7 +2128,7 @@ body {
   box-shadow: inset 0 -3px 0 var(--gold2), 0 0 8px rgba(200,152,42,0.2) !important;
 }
 
-/* === BTN END TURN — CTA principal máximo impacto === */
+/* === BTN END TURN -- CTA principal maximo impacto === */
 #btn-endturn {
   background: linear-gradient(180deg, #f0d060 0%, #c89020 50%, #a06810 100%) !important;
   border: 1px solid #e8c040 !important;
@@ -2144,7 +2144,7 @@ body {
   transform: translateY(-1px);
 }
 
-/* === RPANEL TITLE — más autoridad === */
+/* === RPANEL TITLE -- mas autoridad === */
 .rpanel-title {
   font-size: 12px !important;
   color: var(--gold2) !important;
@@ -2153,7 +2153,7 @@ body {
   text-shadow: 0 0 8px rgba(200,152,42,0.3) !important;
 }
 
-/* === FACTION CARDS — más relieve === */
+/* === FACTION CARDS -- mas relieve === */
 .faction-card {
   background: linear-gradient(135deg, #1e1810 0%, #161208 100%) !important;
   border: 1px solid #3a2c18 !important;
@@ -2166,7 +2166,7 @@ body {
   box-shadow: 0 2px 10px rgba(0,0,0,0.7), -2px 0 6px rgba(200,152,42,0.15) !important;
 }
 
-/* === PLAYER NATION BADGE — joya de la interfaz === */
+/* === PLAYER NATION BADGE -- joya de la interfaz === */
 .player-nation-badge {
   background: linear-gradient(135deg, rgba(100,220,130,0.22) 0%, rgba(100,220,130,0.06) 100%) !important;
   border: 1px solid #5a9850 !important;
@@ -2176,7 +2176,7 @@ body {
 .pnb-icon { filter: drop-shadow(0 0 8px rgba(114,200,130,0.7)) !important; font-size: 30px !important; }
 .pnb-name { font-size: 14px !important; color: #c8f0d0 !important; }
 
-/* === OPTION BUTTONS — decisiones con peso === */
+/* === OPTION BUTTONS -- decisiones con peso === */
 .option-btn {
   background: linear-gradient(135deg, #1e1810 0%, #141008 100%) !important;
   border: 1px solid #3a2c18 !important;
@@ -2201,12 +2201,12 @@ body {
   box-shadow: 0 4px 18px rgba(0,0,0,0.8) !important;
 }
 
-/* === SCROLLBAR — más elegante === */
+/* === SCROLLBAR -- mas elegante === */
 ::-webkit-scrollbar { width: 5px !important; }
 ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #5a4020, #3a2c18) !important; border-radius: 3px !important; }
 ::-webkit-scrollbar-thumb:hover { background: var(--gold) !important; }
 
-/* === AP DISPLAY — muy visible === */
+/* === AP DISPLAY -- muy visible === */
 .ap-display {
   background: linear-gradient(135deg, rgba(232,184,64,0.12), rgba(232,184,64,0.04)) !important;
   border: 1px solid rgba(232,184,64,0.4) !important;
@@ -2215,7 +2215,7 @@ body {
   box-shadow: 0 0 10px rgba(232,184,64,0.15) !important;
 }
 
-/* === POLICY BUTTONS — más claros === */
+/* === POLICY BUTTONS -- mas claros === */
 .policy-btn {
   background: linear-gradient(135deg, #1e1810 0%, #141008 100%) !important;
   border-left-width: 4px !important;
@@ -2234,7 +2234,7 @@ body {
   border-left-width: 4px !important;
 }
 
-/* === BAR FILLS — color rico === */
+/* === BAR FILLS -- color rico === */
 .bar-fill {
   background: linear-gradient(90deg, var(--green2), var(--green3)) !important;
   box-shadow: 0 0 4px rgba(74,132,40,0.4) !important;
@@ -2295,7 +2295,7 @@ body {
 
 
 /* ---------------------------------------------------------------
-   SHARE BAR — pantalla de inicio
+   SHARE BAR -- pantalla de inicio
    --------------------------------------------------------------- */
 .share-bar {
   display: flex;
@@ -2341,25 +2341,25 @@ body {
   box-shadow: 0 4px 14px rgba(0,0,0,0.6);
 }
 
-/* X / Twitter — negro */
+/* X / Twitter -- negro */
 .share-x { border-color: #333; }
 .share-x:hover { background: #000; color: #fff; border-color: #555; box-shadow: 0 4px 14px rgba(0,0,0,0.8); }
 
-/* WhatsApp — verde */
+/* WhatsApp -- verde */
 .share-wa { border-color: #1a5c2a; }
 .share-wa:hover { background: #25d366; color: #fff; border-color: #25d366; box-shadow: 0 4px 14px rgba(37,211,102,0.35); }
 
-/* Email — azul */
+/* Email -- azul */
 .share-mail { border-color: #1a3a6a; }
 .share-mail:hover { background: #1e4db4; color: #fff; border-color: #3a7ee8; box-shadow: 0 4px 14px rgba(30,77,180,0.4); }
 
-/* Copiar enlace — dorado */
+/* Copiar enlace -- dorado */
 .share-copy { border-color: var(--border3); }
 .share-copy:hover { background: rgba(200,152,42,0.2); color: var(--gold2); border-color: var(--gold); box-shadow: 0 4px 14px rgba(200,152,42,0.3); }
 
 
 /* ---------------------------------------------------------------
-   CRÓNICA DEL TURNO — modal de narrativa medieval
+   CRONICA DEL TURNO -- modal de narrativa medieval
    --------------------------------------------------------------- */
 
 .chronicle-overlay {
@@ -2504,7 +2504,7 @@ body {
 
 
 /* ---------------------------------------------------------------
-   BATTLE GRID SYSTEM — grid 10×10 drag & drop
+   BATTLE GRID SYSTEM -- grid 10x10 drag & drop
    --------------------------------------------------------------- */
 
 .battle-grid-box {
@@ -2590,7 +2590,7 @@ body {
 .bg-unit-name  { font-size: 9px; color: var(--text2); flex: 1; }
 .bg-unit-count { font-size: 11px; font-weight: bold; }
 
-/* Grid 10×10 */
+/* Grid 10x10 */
 .bg-grid {
   display: grid;
   grid-template-columns: repeat(10, 1fr);
@@ -2704,7 +2704,7 @@ body {
 
 
 /* -------------------------------------------------------
-   MUSIC PLAYER — top bar controls
+   MUSIC PLAYER -- top bar controls
    ------------------------------------------------------- */
 .music-ctrl {
   display: flex;
@@ -2728,7 +2728,7 @@ body {
 }
 .music-btn:hover { transform: scale(1.15); opacity: 1 !important; }
 
-/* Volume slider — medieval gold style */
+/* Volume slider -- medieval gold style */
 .music-vol {
   -webkit-appearance: none;
   appearance: none;
