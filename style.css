@@ -77,7 +77,7 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
-#app { width: 100vw; height: 100vh; position: relative; }
+#app { width: 100vw; height: 100vh; position: relative; overflow: hidden; }
 
 /* ======================================== */
 ::-webkit-scrollbar { width: 5px; }
@@ -89,12 +89,12 @@ body {
    SCREENS
    -------------------------------------------------- */
 .screen { display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
-.screen.active { display: flex; flex-direction: column; }
+.screen.active { display: flex; flex-direction: column; width: 100%; height: 100%; }
 
 /* --------------------------------------------------
    LOGIN -- PANTALLA CINEMATOGRAFICA
    -------------------------------------------------- */
-#screen-login { position: relative; overflow: hidden; background: #06040200; }
+#screen-login { overflow: hidden; background: #06040200; }
 
 #login-canvas {
   position: absolute; inset: 0; width: 100%; height: 100%;
@@ -227,7 +227,7 @@ body {
 /* --------------------------------------------------
    START SCREEN -- ANIMACIONES
    -------------------------------------------------- */
-#screen-start { position: relative; overflow: hidden; background: var(--bg); }
+#screen-start { overflow: hidden; background: var(--bg); }
 
 #start-canvas {
   position: absolute; inset: 0; width: 100%; height: 100%;
