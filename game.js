@@ -1,1161 +1,2782 @@
-// ============================================================
-// IMPERIUM — GAME.JS v4
-// Loop principal con: bloqueo de turno sin decisión,
-// guerra con batalla en mapa, gasto público, guardado
-// ============================================================
-
-window.Game = window.Game || {
-
-  state: null,
-
-  // ----------------------------------------------
-  // INICIO
-  // ----------------------------------------------
-  startBlitzMode() {
-    this._blitzMode = true;
-    this.startNewGame();
-  },
-
-  startNewGame() {
-    showScreen('screen-civselect');
-    this.renderCivSelect();
-  },
-
-  renderCivSelect() {
-    const grid = document.getElementById('civ-grid');
-    if (!grid) return;
-    grid.innerHTML = CIVILIZATIONS.map(civ => `
-      <div class="civ-card" onclick="Game.selectCiv('${civ.id}')">
-        <span class="civ-icon">${civ.icon}</span>
-        <div class="civ-name">${civ.name}</div>
-        <div class="civ-gov">⚖️ ${GOVERNMENT_TYPES[civ.government].name}</div>
-        <div class="civ-desc">${civ.description}</div>
-        <div class="civ-stats">
-          ${civ.traits.map(t => {
-            const pos = t.startsWith('+'), neg = t.startsWith('-');
-            return `<span class="civ-stat ${pos?'pos':neg?'neg':''}">${t}</span>`;
-          }).join('')}
-        </div>
-      </div>`).join('');
-  },
-
-  selectCiv(civId) {
-    const civ = CIVILIZATIONS.find(c => c.id === civId);
-    if (!civ) return;
-    this.initState(civ);
-    showScreen('screen-game');
-    setTimeout(() => {
-      const seedEl = document.getElementById('map-seed-label');
-      if (seedEl) seedEl.textContent = '🗺️ Semilla: ' + this.state.mapSeed;
-    }, 50);
-    UI.fullRender(this.state);
-    // Inicializar mapa de Althoria y contar regiones del jugador
-    if (typeof AlthoriaMap !== 'undefined') {
-      AlthoriaMap.assignZones(this.state);
-      this.state.althoriaRegions = (AlthoriaMap.nationZones['player'] || []).length;
-    }
-    // Inicializar personajes diplomáticos
-    if (typeof DiplomacySystem !== 'undefined') DiplomacySystem.initCharacters(this.state);
-  },
-
-  // ----------------------------------------------
-  // ESTADO INICIAL
-  // ----------------------------------------------
-  initState(civ) {
-    const mapSeed     = Math.floor(Math.random() * 9999999);
-    const mapData     = MapGenerator.generate(mapSeed);
-    const playerStart = MapGenerator.getPlayerStartStats(mapData);
-    const aiNations   = this.initAINations(mapData);
-    const mb          = playerStart.resourceBonuses;
-
-    this.state = {
-      civId: civ.id, civName: civ.name, civIcon: civ.icon,
-      civData: civ, coldImmune: !!civ.coldImmune,
-      government: civ.government, turn: 1, year: 1,
-      mapData, mapSeed,
-      resources: {
-        food:  Math.floor(civ.startResources.food  + mb.food  * 0.5),
-        gold:  Math.floor(civ.startResources.gold  + mb.gold  * 0.5),
-        wood:  Math.floor(civ.startResources.wood  + mb.wood  * 0.5),
-        stone: Math.floor(civ.startResources.stone + mb.stone * 0.5),
-        iron:  Math.floor(civ.startResources.iron  + mb.iron  * 0.5),
-      },
-      rates: {},
-      population:  civ.startStats.population,
-      stability:   civ.startStats.stability,
-      morale:      civ.startStats.morale,
-      army:        civ.startStats.army,
-      economy: {
-        corruption: civ.id === 'chinese' ? 30 : 10,
-        inflation: 0, debt: 0, trade_income: 8, food_bonus: 0,
-        taxRate: 20,
-      },
-      climate: this.detectStartClimate(playerStart.capitalCell, mapData),
-      territories:     playerStart.territories,
-      althoriaRegions: 1,
-      playerCells:     playerStart.cellIds,
-      capitalCell:     playerStart.capitalCell,
-      armyUnits:       Systems.Military.initArmy(civ, civ.startStats.army),
-      legendaryUnit:   null,
-      activeSpending:  [],
-      diplomacy:       aiNations,
-      currentEvents: [], activeEventIndex: null, resolvedEvents: [],
-      log: [],
-      _troopMovements: [],
-      _attackTarget:   null,
-      prosperityTurns: 0, collapseTurns: 0, famineturns: 0,
-      _unlocked: {},
-      _warSummaries: [],
-      _warsWon: 0,
-      _reputation: 50,
-      xp: 0, level: 1,
-      _history: [],        // Kingdom event history [{turn,year,type,title,text,icon,img}]
-      _pendingChain: null, // Chained military event
-    };
-    if (typeof DiplomacySystem !== 'undefined') DiplomacySystem.initCharacters(this.state);
-    if (typeof ActionPoints    !== 'undefined') ActionPoints.reset(this.state);
-  },
-
-  detectStartClimate(capitalCell, mapData) {
-    if (!capitalCell) return { current:'spring', season:'spring', activeExtreme:null, extremeDuration:0 };
-    const temp = capitalCell.temperature || 0.5;
-    const hum  = capitalCell.humidity   || 0.5;
-    let startSeason = 'spring';
-    if (temp < 0.25) startSeason = 'winter';
-    else if (temp > 0.75 && hum < 0.35) startSeason = 'summer';
-    return { current: startSeason, season: startSeason, activeExtreme: null, extremeDuration: 0 };
-  },
-
-  initAINations(mapData) {
-    // Elegir 3 naciones aleatorias del pool de 7 para esta partida
-    const seed    = mapData ? (mapData.seed || 42) : 42;
-    const chosen  = pickAINations(seed);
-    return chosen.map((def, i) => {
-      const nation = AI.initNation(def);
-      nation.cells = MapGenerator.getAINationCells(mapData, i + 1);
-      const placement = mapData.nationsPlacement ? mapData.nationsPlacement[i + 1] : null;
-      if (placement) { nation.mapCol = placement.col; nation.mapRow = placement.row; }
-      return nation;
-    });
-  },
-
-  // Procesar diplomacia pendiente cada turno — version simplificada
-  _processPendingDiplomacy(state) {
-    (state.diplomacy || []).forEach(nation => {
-      // Recuperacion lenta de relaciones en paz
-      if (!nation.atWar && (nation.relation || 0) < 0) {
-        nation.relation = Math.min(0, (nation.relation || 0) + 1);
-      }
-    });
-  },
-
-  endTurn() {
-    const state = this.state;
-    if (!state) return;
-
-    // -- Snapshot del estado ANTES del turno para la crónica --
-    const _prevSnapshot = {
-      morale:     state.morale,
-      stability:  state.stability,
-      resources:  { gold: state.resources.gold },
-      diplomacy:  (state.diplomacy || []).map(n => ({ id: n.id, atWar: n.atWar, relation: n.relation, allied: n.allied })),
-      _deficitTurns: state._deficitTurns || 0,
-      _warsWon:   state._warsWon || 0,
-    };
-
-    // -- Puntos de Acción: resetear al inicio del siguiente turno --
-    ActionPoints.reset(state);
-
-    // -- Resolver peticiones diplomáticas del turno anterior --
-    this._processPendingDiplomacy(state);
-
-    // ⚠️ BLOQUEO: No se puede pasar turno si hay eventos sin decidir
-    const pending = state.currentEvents || [];
-    if (pending.length > 0) {
-      // -- Auto-resolver eventos bloqueados demasiado tiempo -------
-      // Si un evento lleva más de 3 turnos pendiente, se auto-resuelve
-      // con la opción menos dañina (índice 0 = primera opción)
-      const autoResolvedNow = [];
-      pending.forEach((ev, idx) => {
-        const evAge = state.turn - (ev._generatedTurn || state.turn);
-        if (evAge >= 3) {
-          autoResolvedNow.push({ ev, idx });
-        }
-      });
-      if (autoResolvedNow.length > 0) {
-        // Resolver del último al primero para no desfasar índices
-        autoResolvedNow.reverse().forEach(({ ev, idx }) => {
-          Systems.Log.add(state, '⏳ Auto-resolución: "' + ev.title + '" sin acción durante 3 turnos. Se elige la primera opción.', 'warn');
-          try { this.resolveEvent(idx, 0); } catch(e) {
-            // Si falla, forzar eliminación
-            state.currentEvents.splice(idx, 1);
-          }
-        });
-        // Si se resolvieron todos, permitir continuar
-        if (!state.currentEvents || state.currentEvents.length === 0) {
-          state.activeEventIndex = null;
-          // Continuar con el endTurn normalmente (no hacer return)
-        } else {
-          // Aún quedan pendientes — bloquear
-          this.selectEvent(0);
-          return;
-        }
-      } else {
-        // Marcar turno de generación en eventos que no lo tengan
-        pending.forEach(ev => {
-          if (ev._generatedTurn === undefined) ev._generatedTurn = state.turn;
-        });
-
-        // Mostrar advertencia en la agenda
-        const warnEl = document.getElementById('agenda-warning');
-        if (warnEl) warnEl.classList.remove('hidden');
-        this.selectEvent(0);
-
-        // Flash del botón con info de turnos restantes
-        const oldest = Math.min(...pending.map(ev => ev._generatedTurn || state.turn));
-        const turnsLeft = Math.max(0, 3 - (state.turn - oldest));
-        const btn = document.getElementById('btn-endturn');
-        if (btn) {
-          btn.style.background = '#c83030';
-          btn.textContent = turnsLeft > 0 ? '⚠ Decide (' + turnsLeft + 't)' : '⚠ Decide ya';
-          setTimeout(() => {
-            btn.style.background = '';
-            btn.textContent = '⏭ Fin de Turno';
-          }, 2000);
-        }
-        return; // BLOQUEO EFECTIVO
-      }
-    }
-
-    // 1. Actualizar clima
-    Systems.Climate.update(state);
-
-    // 3. Economía
-    const rates = Systems.Economy.calculateRates(state);
-    Systems.Economy.applyRates(state, rates);
-    Systems.Economy.updateCorruption(state);
-
-    // 4. Gasto público
-    if (typeof this._applyActiveSpending === 'function') this._applyActiveSpending(state);
-
-    // 5. Población
-    Systems.Population.update(state);
-
-    // 8. Sync army
-    state.army = Systems.Military.totalSoldiers(state);
-
-    // 9. IA
-    if (typeof AI !== 'undefined' && AI && AI.tick) AI.tick(state);
-    // 9b. Procesar turnos de guerra multi-turno
-    // Skip if BattleSystem has active battle (battle IS this turn's combat)
-    var _battleActive = (typeof BattleSystem !== 'undefined' && BattleSystem.activeBattle);
-    state.diplomacy.forEach(n => {
-      if (n.atWar) {
-        if (n._war && typeof WarSystem !== 'undefined' && !_battleActive) {
-          WarSystem.processTurn(state, n);
-        }
-      }
-    });
-
-    // 10. Avanzar turno
-    state.turn++;
-    if (state.turn % 4 === 1) state.year++;
-
-    // 10b. XP por turno supervivido
-    Progression.awardXP(state, 'turn_survived');
-    // 10c. Degradar salud de rutas bajo ataque
-    // 10d. Aplicar costes ocultos acumulados
-    HiddenCosts.applyAccumulated(state);
-    // 10e. Cooldowns
-    ActionPoints.tickCooldowns(state);
-
-    // 11. Limpiar eventos
-    state.currentEvents  = [];
-    state.activeEventIndex = null;
-
-    // 12. Generar nuevos eventos
-    this.generateTurnEvents();
-
-    // 13. Condiciones de fin
-    this._checkSurrenders(state);
-    const result = this.checkEndConditions();
-    if (result) { this.showEndScreen(result); return; }
-
-    // 16. Mensajes diplomáticos del turno
-    if (typeof UnlockSystem !== "undefined") UnlockSystem.processTurn(state);
-    if (typeof DiplomacySystem !== 'undefined') DiplomacySystem.processTurn(state);
-    // -- Limpiar inbox: máximo 20 mensajes, purgar los más viejos --
-    if (state.diplomacyInbox && state.diplomacyInbox.length > 20) {
-      // Marcar como leídos los más viejos y conservar solo los 20 recientes
-      state.diplomacyInbox = state.diplomacyInbox.slice(-20);
-    }
-    // Auto-marcar como leídos mensajes con más de 5 turnos
-    if (state.diplomacyInbox) {
-      state.diplomacyInbox.forEach(function(m) {
-        if (state.turn - (m.turn || 0) >= 5) m.read = true;
-      });
-      // Eliminar mensajes leídos si el inbox supera 15
-      if (state.diplomacyInbox.filter(m=>!m.read).length > 10 ||
-          state.diplomacyInbox.length > 15) {
-        state.diplomacyInbox = state.diplomacyInbox.filter(function(m) {
-          return !m.read || state.turn - (m.turn||0) < 5;
-        }).slice(-15);
-      }
-    }
-    // 17. Story Arcs y eventos de faccion/civ
-    // ArcSystem removed
-    // 19. Render
-    UI.fullRender(state);
-    // 20. Crónica del turno
-    // Crónica: mostrar cada 4 turnos (1 año)
-    if (state.turn > 2 && state.turn % 4 === 0 && typeof ChronicleSystem !== 'undefined') {
-      const _snap = _prevSnapshot;
-      const _st   = state;
-      setTimeout(function() {
-        ChronicleSystem.show(_st, _snap);
-      }, 600);
-    }
-    // Sync Althoria (war zones, spies, trade routes)
-    if (typeof AlthoriaMap !== 'undefined') {
-      AlthoriaMap.sync(state);
-    }
-    Systems.Log.add(state, '📅 Año ' + state.year + ', Turno ' + state.turn + ' — Población: ' + state.population.toLocaleString(), 'info');
-    // UI.renderLog removed — game-log panel removed from HTML
-  },
-
-  // ----------------------------------------------
-  // GASTO PÚBLICO — aplicar efectos por turno
-  // ----------------------------------------------
-  _applyActiveSpending(state) {
-    const active = state.activeSpending || [];
-    active.forEach(id => {
-      const sp = PUBLIC_SPENDING[id];
-      if (!sp) return;
-      // Coste por turno
-      state.resources.gold = Math.max(0, state.resources.gold - sp.costPerTurn);
-      // Efectos
-      const ef = sp.effects || {};
-      if (ef.morale)             state.morale    = Math.round(Math.min(100, Math.max(0, state.morale + ef.morale)));
-      if (ef.stability)          state.stability = Math.min(100, state.stability + ef.stability);
-      if (ef.corruption)         state.economy.corruption = Math.max(0, state.economy.corruption + ef.corruption);
-      if (ef.trade_income)       state.economy.trade_income += ef.trade_income;
-      if (ef.food_bonus)         state.economy.food_bonus = (state.economy.food_bonus||0) + ef.food_bonus;
-      if (ef.inflation)          state.economy.inflation = Math.max(0, state.economy.inflation + ef.inflation);    });
-  },
-
-  toggleSpending(id) {
-    const state = this.state;
-    if (!state) return;
-    state.activeSpending = state.activeSpending || [];
-    const sp = PUBLIC_SPENDING[id];
-    if (!sp) return;
-
-    const idx = state.activeSpending.indexOf(id);
-    if (idx > -1) {
-      // Desactivar
-      state.activeSpending.splice(idx, 1);
-      // Revertir trade_income si aplica
-      if (sp.effects.trade_income) state.economy.trade_income -= sp.effects.trade_income;
-      Systems.Log.add(state, '🏗️ Gasto público cancelado: ' + sp.name, 'info');
-    } else {
-      // Activar — coste de activación único
-      if (sp.costOneTime && state.resources.gold < sp.costOneTime) {
-        Systems.Log.add(state, '⚠️ Oro insuficiente para activar ' + sp.name + ' (necesitas ' + sp.costOneTime + '💰)', 'warn');
-        // UI.renderLog removed — game-log panel removed from HTML
-        return;
-      }
-      if (sp.oneTimeCost) {
-        const oc = sp.oneTimeCost;
-        if (oc.stone && state.resources.stone < oc.stone) { Systems.Log.add(state, '⚠️ Piedra insuficiente', 'warn'); return; }
-        if (oc.wood  && state.resources.wood  < oc.wood)  { Systems.Log.add(state, '⚠️ Madera insuficiente', 'warn'); return; }
-        if (oc.stone) state.resources.stone -= oc.stone;
-        if (oc.wood)  state.resources.wood  -= oc.wood;
-      }
-      if (sp.costOneTime) state.resources.gold -= sp.costOneTime;
-      state.activeSpending.push(id);
-      Systems.Log.add(state, '🏗️ Gasto activado: ' + sp.name + ' (-' + sp.costPerTurn + '💰/turno)', 'good');
-    }
-    UI.fullRender(state);
-  },
-
-  // ----------------------------------------------
-  // EVENTOS
-  // ----------------------------------------------
-  generateTurnEvents() {
-    const state  = this.state;
-    let events   = Systems.Events.generateForTurn(state);
-    // Enrich events with dynamic nation context
-    events = events.map(ev => {
-      if (!ev._dynamic && ev.id === 'alliance_offer') {
-        // Find the event def in EVENT_POOL
-        const def = EVENT_POOL.find(e => e.id === 'alliance_offer');
-        if (def) {
-          if (def._buildTitle)   ev.title       = def._buildTitle(state);
-          if (def._buildDesc)    ev.description = def._buildDesc(state);
-          if (def._buildContext) ev.context     = def._buildContext(state);
-          if (def._nationId)     ev._offerNationId = def._nationId(state);
-        }
-      }
-      return ev;
-    });
-    // Chained military events after battle
-    if (state._pendingChain && typeof CHAIN_EVENT_POOL !== 'undefined') {
-      var chainId = state._pendingChain;
-      state._pendingChain = null;
-      var chainEv = CHAIN_EVENT_POOL.find(function(e){ return e.id === chainId; });
-      if (chainEv) events.unshift(Object.assign({}, chainEv, {id: chainId+'_'+state.turn}));
-    }
-    events = events.slice(0, 5);
-    state.currentEvents    = events;
-    state.activeEventIndex = events.length > 0 ? 0 : null;
-    UI.renderEventQueue(state);
-    UI.renderActiveEvent(state);
-  },
-
-  selectEvent(idx) {
-    this.state.activeEventIndex = idx;
-    UI.renderEventQueue(this.state);
-    UI.renderActiveEvent(this.state);
-  },
-
-  resolveEvent(eventIdx, optionIdx) {
-    const state = this.state;
-    if (!state || !state.currentEvents) return;
-    const event = state.currentEvents[eventIdx];
-    if (!event) return;
-
-    // Guard: validate option exists before applying
-    if (!event.options || !event.options[optionIdx]) {
-      // Event has no valid option — just remove it
-      state.currentEvents.splice(eventIdx, 1);
-      if (state.currentEvents.length > 0) {
-        state.activeEventIndex = Math.min(eventIdx, state.currentEvents.length - 1);
-      } else {
-        state.activeEventIndex = null;
-      }
-      UI.renderEventQueue(state);
-      UI.renderActiveEvent(state);
-      return;
-    }
-
-    Systems.Events.applyDecision(state, event, optionIdx);
-
-    // Handle special effects
-    const _opt = (event.options && event.options[optionIdx]) ? event.options[optionIdx] : null;
-    const _ef  = _opt ? (_opt.effects || {}) : {};
-
-    // Tax revolt
-    if (_opt && _opt.specialAction === 'setTax15') this.setTaxRate(15);
-
-    // End war (surrender)
-    if (_ef._endWar) {
-      const _warN = (state.diplomacy||[]).find(function(n){return n.id===_ef._endWar;});
-      if (_warN) {
-        _warN.atWar = false; _warN._war = null; _warN._surrenderOffered = false;
-        _warN.relation = Math.min(-10, (_warN.relation||0) + 20);
-        state._warsWon = (state._warsWon||0) + 1;
-      }
-      // Trigger chain event
-      var _chains = ['loot_aftermath','war_hero_rises'];
-      state._pendingChain = _chains[Math.floor(Math.random()*_chains.length)];
-    }
-
-    // Log important events to kingdom history
-    if (event.priority === 'critical' || event.priority === 'high') {
-      state._history = state._history || [];
-      state._history.push({
-        turn: state.turn, year: state.year,
-        type: 'event', icon: event.icon || '📜',
-        title: event.title,
-        text: _opt ? 'Decisión: ' + _opt.label : event.description,
-      });
-    }
-
-    state.currentEvents.splice(eventIdx, 1);
-
-    if (state.currentEvents.length > 0) {
-      state.activeEventIndex = Math.min(eventIdx, state.currentEvents.length - 1);
-    } else {
-      state.activeEventIndex = null;
-      // Ocultar advertencia
-      const warnEl = document.getElementById('agenda-warning');
-      if (warnEl) warnEl.classList.add('hidden');
-    }
-
-    UI.fullRender(state);
-    if (typeof switchRightTab === 'function' && window._showHistoryAfterEvent) {
-      window._showHistoryAfterEvent = false;
-      switchRightTab('history');
-    }
-  },
-
-  // ----------------------------------------------
-  // GUERRA CON BATALLA EN MAPA
-  // ----------------------------------------------
-  toggleMilitaryPanel() {
-    // Military is now a right-panel tab — switch to it
-    if (typeof switchRightTab === 'function') switchRightTab('military');
-  },
-
-  declareWar(nationId, targetRegionId) {
-    // Use WarDeclaration for relation-based check + multi-turn war
-    if (typeof WarDeclaration !== 'undefined') {
-      WarDeclaration.declare(this.state, nationId, targetRegionId);
-    } else {
-      // Fallback
-      const state  = this.state;
-        const nation = state.diplomacy.find(n => n.id === nationId);
-      if (!nation) return;
-      nation.atWar = true;
-      nation.relation = Math.max(-100, nation.relation - 30);
-      Systems.Log.add(state, '⚔️ Guerra declarada contra ' + nation.name, 'crisis');
-      if (typeof AlthoriaMap !== 'undefined') AlthoriaMap.updateWar(state);
-      if (typeof BattleSystem !== 'undefined') BattleSystem.initBattle(state, nation);
-    }
-    if (typeof BattleSystem === 'undefined') UI.fullRender(this.state);
-  },
-
-  // Select attack target from map
-  selectAttackTarget() {
-    if (typeof RegionSelector !== 'undefined') {
-      RegionSelector.selectAttackTarget(this.state);
-    }
-  },
-
-  // Reinforce active war
-  reinforceWar(nationId, troops) {
-    if (typeof WarSystem !== 'undefined') WarSystem.reinforce(this.state, nationId, troops);
-  },
-
-  retreatWar(nationId) {
-    if (typeof WarSystem !== 'undefined') WarSystem.retreat(this.state, nationId);
-  },
-
-  // ----------------------------------------------
-  // POLÍTICAS
-  // ----------------------------------------------
-
-  // ----------------------------------------------
-  // ACCIONES ECONÓMICAS
-  // ----------------------------------------------
-  takeLoan() {
-    this.state.resources.gold += 200;
-    this.state.economy.debt   += 200;
-    this.state.economy.inflation = Math.min(100, this.state.economy.inflation + 5);
-    Systems.Log.add(this.state, '💳 Préstamo: +200💰. Deuda +200.', 'warn');
-    UI.fullRender(this.state);
-  },
-
-  payDebt() {
-    const s = this.state;
-    if (s.resources.gold < 100) { Systems.Log.add(s, '⚠️ Sin oro suficiente para pagar deuda.', 'warn'); }
-    else if (s.economy.debt <= 0) { Systems.Log.add(s, 'ℹ️ Sin deuda que pagar.', 'info'); }
-    else {
-      s.resources.gold -= 100;
-      s.economy.debt    = Math.max(0, s.economy.debt - 100);
-      s.economy.inflation = Math.max(0, s.economy.inflation - 3);
-      Systems.Log.add(s, '📤 Deuda reducida: -100. Inflación baja.', 'good');
-    }
-    UI.fullRender(this.state);
-  },
-
-  // -- SISTEMA DE IMPUESTOS EN % — slider % libre con etiquetas --
-  setTaxRate(rate) {
-    const state = this.state;
-    if (!state) return;
-    const pct = Math.max(0, Math.min(100, parseInt(rate) || 0));
-    state.economy.taxRate = pct;
-    // Feedback inmediato en log
-    const label = pct <= 5 ? '✨ Exento'
-                : pct <= 20 ? '📊 Moderado'
-                : pct <= 40 ? '📈 Alto'
-                : pct <= 65 ? '💸 Oneroso'
-                : '🔥 Confiscatorio';
-    Systems.Log.add(state, `📊 Impuestos ajustados a ${pct}% — ${label}`, pct > 50 ? 'warn' : 'info');
-    // Recalcular tasas inmediatamente
-    const rates = Systems.Economy.calculateRates(state);
-    state.rates = rates;
-    UI.updateTopBar(state);
-    UI.renderEconomy(state);
-    // UI.renderLog removed — game-log panel removed from HTML
-  },
-
-  raiseTexes() {
-    // Legacy — ahora usa setTaxRate
-    const cur = this.state.economy.taxRate || 20;
-    this.setTaxRate(cur + 10);
-  },
-
-  buildIrrigation() {
-    const s = this.state;
-    if (s.resources.wood < 150 || s.resources.stone < 100 || s.resources.gold < 200) {
-      Systems.Log.add(s, '⚠️ Faltan recursos para irrigación (150🌲 100🏔️ 200💰).', 'warn');
-      if (typeof showResourceError === 'function') {
-        const m=[];
-        if(s.resources.wood<150)  m.push({icon:'🌲',name:'Madera',need:150,have:Math.floor(s.resources.wood)});
-        if(s.resources.stone<100) m.push({icon:'🏔️',name:'Piedra', need:100,have:Math.floor(s.resources.stone)});
-        if(s.resources.gold<200)  m.push({icon:'💰',name:'Oro',    need:200,have:Math.floor(s.resources.gold)});
-        if(m.length) showResourceError(m);
-      }
-    } else {
-      s.resources.wood  -= 150; s.resources.stone -= 100; s.resources.gold -= 200;
-      s.economy.food_bonus = (s.economy.food_bonus || 0) + 50;
-      Systems.Log.add(s, '🚿 Irrigación construida. +50 alimentos/turno.', 'good');
-    }
-    UI.fullRender(this.state);
-  },
-
-  buildGranary() {
-    const s = this.state;
-    if (s.resources.wood < 100) { Systems.Log.add(s, '⚠️ Faltan 100🌲 para graneros.', 'warn'); if(typeof showResourceError==='function') showResourceError([{icon:'🌲',name:'Madera',need:100,have:Math.floor(s.resources.wood)}]); }
-    else {
-      s.resources.wood -= 100; s.resources.food += 200;
-      Systems.Log.add(s, '🏚️ Graneros construidos. +200 alimentos.', 'good');
-    }
-    UI.fullRender(this.state);
-  },
-
-  // ----------------------------------------------
-  // MILITAR
-  // ----------------------------------------------
-
-
-
-  proposeTradeExchange(nationId, offer, request) {
-    if (typeof TradeExchange === 'undefined') return;
-    const state = this.state;
-    const result = TradeExchange.propose(state, nationId, offer, request);
-    if (result.ok) {
-      UI.renderResources(state);
-      UI.renderDiplomacy(state);
-    }
-    // Show result message in diplomacy panel
-    const msgEl = document.getElementById('trade-exchange-msg');
-    if (msgEl) {
-      msgEl.textContent = result.msg;
-      msgEl.style.color = result.ok ? '#72c882' : '#e05050';
-      setTimeout(() => { if (msgEl) msgEl.textContent = ''; }, 3000);
-    }
-    return result;
-  },
-
-
-  recruitUnit(typeId, count) {
-    // Check resources BEFORE spending AP
-    const def = MILITARY_UNITS[typeId];
-    if (def) {
-      const s = this.state; const n = count || 50;
-      const miss = [];
-      if (def.cost.gold && s.resources.gold < def.cost.gold*(n/50)) miss.push({icon:'💰',name:'Oro',need:Math.ceil(def.cost.gold*(n/50)),have:Math.floor(s.resources.gold)});
-      if (def.cost.iron && s.resources.iron < def.cost.iron*(n/50)) miss.push({icon:'⚙️',name:'Hierro',need:Math.ceil(def.cost.iron*(n/50)),have:Math.floor(s.resources.iron)});
-      if (def.cost.wood && s.resources.wood < def.cost.wood*(n/50)) miss.push({icon:'🌲',name:'Madera',need:Math.ceil(def.cost.wood*(n/50)),have:Math.floor(s.resources.wood)});
-      if (miss.length) { if (typeof showResourceError==='function') showResourceError(miss); return; }
-    }
-    const result = Systems.Military.recruitUnit(this.state, typeId, count);
-    if (!result.ok) {
-      Systems.Log.add(this.state, '⚠️ ' + result.msg, 'warn');
-      if (typeof showResourceError === 'function') {
-        const def = MILITARY_UNITS[typeId];
-        const s   = this.state;
-        const miss = [];
-        if (def && def.cost.gold && s.resources.gold < def.cost.gold * (count/50)) miss.push({icon:'💰',name:'Oro',    need: Math.ceil(def.cost.gold*(count/50)),  have:Math.floor(s.resources.gold)});
-        if (def && def.cost.iron && s.resources.iron < def.cost.iron * (count/50)) miss.push({icon:'⚙️', name:'Hierro', need: Math.ceil(def.cost.iron*(count/50)), have:Math.floor(s.resources.iron)});
-        if (def && def.cost.wood && s.resources.wood < def.cost.wood * (count/50)) miss.push({icon:'🌲',name:'Madera',  need: Math.ceil(def.cost.wood*(count/50)),  have:Math.floor(s.resources.wood)});
-        if (miss.length) showResourceError(miss);
-      }
-    }
-    this.state.army = Systems.Military.totalSoldiers(this.state);
-    UI.fullRender(this.state);
-  },
-
-  recruitLegendary(legendaryId) {
-    const result = Systems.Military.recruitLegendary(this.state, legendaryId);
-    if (!result.ok) Systems.Log.add(this.state, '⚠️ ' + result.msg, 'warn');
-    UI.fullRender(this.state);
-  },
-
-  // ----------------------------------------------
-  // ESPÍAS
-
-
-  // ----------------------------------------------
-  // COMERCIO
-  // ----------------------------------------------
-
-  // ----------------------------------------------
-  // CONDICIONES FINALES
-  // ----------------------------------------------
-
-  // Check if any enemy nation wants to surrender (army < 20% of player)
-  _checkSurrenders(state) {
-    const playerStr = state.army || 0;
-    (state.diplomacy || []).forEach(function(n) {
-      if (!n.atWar) return;
-      if ((n.army||200) < playerStr * 0.20 && !n._surrenderOffered) {
-        n._surrenderOffered = true;
-        // Generate surrender event
-        state.currentEvents = state.currentEvents || [];
-        state.currentEvents.unshift({
-          id: 'surrender_'+n.id,
-          title: n.name + ' solicita rendición',
-          description: n.name + ' ha perdido la mayor parte de su ejército y ofrece rendirse a cambio de recursos.',
-          icon: '🏳️',
-          category: 'MILITAR',
-          priority: 'high',
-          options: [
-            { label: 'Aceptar rendición (+300 oro, +100 hierro)',
-              effects: { gold: 300, iron: 100, _endWar: n.id } },
-            { label: 'Rechazar — continuar la guerra',
-              effects: { morale: 5 } },
-            { label: 'Exigir tributo anual (+50 oro/turno)',
-              effects: { gold: 150, _endWar: n.id } },
-          ]
-        });
-        if (typeof Systems !== 'undefined')
-          Systems.Log.add(state, '🏳️ ' + n.name + ' solicita rendición. El ejército enemigo está destrozado.', 'warn');
-      }
-    });
-  },
-
-  checkEndConditions() {
-    const s = this.state;
-    for (const lose of LOSE_CONDITIONS) { if (lose.check(s)) return { type:'defeat',  condition: lose }; }
-    for (const win  of WIN_CONDITIONS)  { if (win.check(s))  return { type:'victory', condition: win  }; }
-    return null;
-  },
-
-  showEndScreen(result) {
-    // Log to history
-    if (this.state) {
-      this.state._history = this.state._history || [];
-      this.state._history.push({
-        turn: this.state.turn, year: this.state.year,
-        type: (result.type === 'victory' || result.victory) ? 'victory' : 'defeat',
-        title: result.victory ? 'Victoria Total' : 'Derrota',
-        icon: result.victory ? '🏆' : '💀',
-        text: result.message || (result.victory ? 'El reino ha conquistado todas las naciones.' : 'El reino ha caído.'),
-      });
-    }
-    const modal = document.getElementById('modal-endgame');
-    const content = document.getElementById('endgame-content');
-    if (!modal || !content) return;
-
-    const st = this.state || {};
-    const isVictory = result.type === 'victory' || result.victory;
-    const accentCol = isVictory ? '#72c882' : '#e05050';
-    const bgCol     = isVictory ? 'rgba(60,120,60,0.08)' : 'rgba(120,20,20,0.08)';
-
-    // Find enemy leader portrait for defeat screen
-    var enemyPortrait = '';
-    if (!isVictory && result.nationId && st.diplomacy) {
-      const killer = st.diplomacy.find(function(n){return n.id===result.nationId;});
-      if (killer && killer.portrait) enemyPortrait = (window.IMAGE_BASE||'') + killer.portrait;
-    }
-
-    content.innerHTML =
-      '<div style="background:'+bgCol+';padding:0">' +
-      // Banner
-      '<div style="background:'+(isVictory?'linear-gradient(180deg,rgba(60,120,60,0.4),rgba(0,0,0,0))':'linear-gradient(180deg,rgba(120,20,20,0.4),rgba(0,0,0,0))')+';padding:24px;text-align:center">' +
-        '<div style="font-size:48px;margin-bottom:8px">'+(isVictory?'🏆':'💀')+'</div>' +
-        '<div style="font-family:var(--font-title);font-size:22px;color:'+accentCol+';font-weight:900;letter-spacing:3px">'+(isVictory?'VICTORIA':'DERROTA')+'</div>' +
-        '<div style="font-family:var(--font-title);font-size:11px;color:var(--gold);margin-top:6px;letter-spacing:2px">'+(st.civName||'Tu Reino')+'</div>' +
-      '</div>' +
-      // Enemy portrait (on defeat)
-      ((!isVictory && enemyPortrait) ?
-        '<div style="text-align:center;padding:16px 24px 0">' +
-          '<img src="'+enemyPortrait+'" style="width:96px;height:96px;object-fit:cover;object-position:top;border:2px solid #e05050;margin:0 auto">' +
-          '<div style="font-family:var(--font-mono);font-size:9px;color:#e05050;margin-top:6px">Conquistado por</div>' +
-        '</div>' : '') +
-      // Stats
-      '<div style="padding:20px 28px">' +
-        '<div style="font-family:var(--font-body);font-size:13px;color:var(--text2);margin-bottom:16px;font-style:italic">'+( result.message||'El destino de tu reino ha sido sellado.')+'</div>' +
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px">' +
-          '<div style="background:var(--bg4);padding:10px;border:1px solid var(--border2)">' +
-            '<div style="font-family:var(--font-mono);font-size:8px;color:var(--text3)">TURNOS</div>' +
-            '<div style="font-family:var(--font-title);font-size:16px;color:var(--gold)">'+(st.turn||1)+'</div>' +
-          '</div>' +
-          '<div style="background:var(--bg4);padding:10px;border:1px solid var(--border2)">' +
-            '<div style="font-family:var(--font-mono);font-size:8px;color:var(--text3)">GUERRAS GANADAS</div>' +
-            '<div style="font-family:var(--font-title);font-size:16px;color:var(--gold)">'+(st._warsWon||0)+'</div>' +
-          '</div>' +
-          '<div style="background:var(--bg4);padding:10px;border:1px solid var(--border2)">' +
-            '<div style="font-family:var(--font-mono);font-size:8px;color:var(--text3)">EJÉRCITO FINAL</div>' +
-            '<div style="font-family:var(--font-title);font-size:16px;color:var(--gold)">'+(st.army||0).toLocaleString()+'</div>' +
-          '</div>' +
-          '<div style="background:var(--bg4);padding:10px;border:1px solid var(--border2)">' +
-            '<div style="font-family:var(--font-mono);font-size:8px;color:var(--text3)">ORO ACUMULADO</div>' +
-            '<div style="font-family:var(--font-title);font-size:16px;color:var(--gold)">'+(Math.round(st.resources&&st.resources.gold||0)).toLocaleString()+'</div>' +
-          '</div>' +
-        '</div>' +
-        '<button onclick="location.reload()" style="width:100%;font-family:var(--font-title);font-size:12px;font-weight:700;letter-spacing:2px;padding:14px;background:linear-gradient(180deg,'+accentCol+','+( isVictory?'#3a7a3a':'#8a2020')+');color:#fff;border:none;cursor:pointer">NUEVA PARTIDA</button>' +
-      '</div>' +
-      '</div>';
-
-    modal.classList.remove('hidden');
-    modal.setAttribute('style',
-      'display:flex !important;position:fixed !important;inset:0 !important;' +
-      'z-index:10000 !important;background:rgba(2,1,0,0.95) !important;' +
-      'align-items:center !important;justify-content:center !important;');
-  },
-
-  _generateEndMessages(state, isVictory) {
-    const diplomacy = state.diplomacy || [];
-    const msgs = [];
-
-    // Mensajes según personalidad y resultado
-    const VICTORY_MSGS = {
-      agresiva: [
-        "Nunca subestimes a alguien que lucha en nombre de su pueblo. Lección aprendida... a nuestra costa.",
-        "Merecido. Yo hubiera hecho lo mismo. O algo peor, sin mentir.",
-        "Bah. Esta derrota es temporal. Regresaré con el doble de ejército. Disfruta mientras puedas.",
-        "¡Maldición! Perdí una fortuna apostando contra ti. Mis respetos, aunque me arruines.",
-        "Mira lo que han logrado. Si hubieran sido mis aliados... ya, ya, demasiado tarde."
-      ],
-      diplomática: [
-        "Una victoria admirable. Me inclino ante vuestra excelencia. Aunque quizás... ¿podríamos hablar de términos de paz duradera?",
-        "Magnifico. Aunque debo confesar que esperaba ganarte yo en diplomacia. Parece que me quedé corto.",
-        "Los dioses os favorecen. Si hubiera sabido que erais tan... decididos, habría enviado más embajadores y menos soldados.",
-        "Habéis reunificado lo que estaba roto. Aunque si me hubieras consultado, habría sugerido algo con menos sangre.",
-        "Felicitaciones. Y dicho esto, ¿el tratado comercial que propuse sigue sobre la mesa?"
-      ],
-      oportunista: [
-        "Sabía que ganarías. Por eso aposte... en fin, los detalles son aburridos. ¡Bienvenido al poder!",
-        "Qué interesante. Había invertido mucho en el bando equivocado. Error mío. Totalmente mío.",
-        "Impresionante. ¿Buscas socios para administrar lo que acabas de conquistar? Tengo experiencia.",
-        "Lo vi venir desde el principio. Claro. Totalmente desde el principio. No desde ayer por la noche. Claro.",
-        "Eres peligroso. Me gusta eso. Casi tanto como me asusta."
-      ]
-    };
-
-    const DEFEAT_MSGS = {
-      agresiva: [
-        "¡JA! ¡Al fin! ¡He esperado esto tanto tiempo! Bueno, no TANTO tiempo... pero lo he disfrutado mucho.",
-        "Vaya. Creí que durarías más. Aunque al menos caíste como un guerrero. Aproximadamente.",
-        "El destino del débil es caer. Aunque entre nosotros, nadie esperaba que cayeras tan pronto.",
-        "No me alegra verte así. Es mentira. Sí me alegra. Bastante.",
-        "El campo de batalla no perdona. ¿Alguien me ayuda a recoger este territorio abandonado?"
-      ],
-      diplomática: [
-        "Oh, qué tragedia. Te advertí que la diplomacia era el camino. Ahora ya es tarde. Lo lamento sinceramente. Casi.",
-        "Si hubieras aceptado mi propuesta de alianza en el turno tres... pero no, demasiado orgulloso.",
-        "Querido colega: esto es lo que pasa cuando no escuchas los consejos de quienes saben más. Es decir, yo.",
-        "Lamentable final. Aunque si te sirve de consuelo, los anales de la historia te dedicarán... media página.",
-        "He enviado mis condolencias a tu pueblo. Y también una oferta para administrar tus territorios. Era lo correcto."
-      ],
-      oportunista: [
-        "Mmmm. Inesperado. Para ti. Para mí era estadísticamente probable desde el turno doce.",
-        "No te preocupes. El poder es circular. Caerás ahora... y yo subiré. Luego tú subirás... bueno, quizás no tanto tú.",
-        "Tengo buenas noticias y malas noticias. Las malas: ya sabes cuáles son. Las buenas: tu caída crea oportunidades.",
-        "¿Qué puedo decir? El que no arriesga no gana. Y el que arriesga mal tampoco.",
-        "Esto me entristece profundamente. Bueno, las palabras son baratas. En realidad estoy tomando nota de qué fronteras quedan libres."
-      ]
-    };
-
-    diplomacy.forEach((nation, i) => {
-      const p     = nation.personality || 'oportunista';
-      const pool  = isVictory ? (VICTORY_MSGS[p] || VICTORY_MSGS.oportunista) : (DEFEAT_MSGS[p] || DEFEAT_MSGS.oportunista);
-      const seed  = (state.mapSeed || 42) + i * 37 + (isVictory ? 0 : 999);
-      const idx   = seed % pool.length;
-      const char  = nation.character || { name: 'Embajador', role: 'Enviado', portrait: '📜' };
-
-      msgs.push({
-        nationIcon: nation.icon || '🏰',
-        nationName: nation.name,
-        charName:   char.name + ', ' + char.role,
-        portrait:   char.portrait,
-        text:       pool[idx],
-        personality: p
-      });
-    });
-
-    // Si hay menos de 2, añadir voz del narrador
-    if (msgs.length === 0) {
-      msgs.push({
-        nationIcon: '📜',
-        nationName: 'Los Cronistas',
-        charName:   'Historiador Real',
-        portrait:   '✍️',
-        text: isVictory
-          ? 'Los archivos registran esta victoria para la eternidad. Que sea ejemplo para las generaciones venideras.'
-          : 'Los archivos registran esta caída con sobria tristeza. Que sirva de lección a los que vengan después.'
-      });
-    }
-
-    return msgs;
-  }
-};
-
-// ----------------------------------------------
-// CODEX
-// ----------------------------------------------
-function buildCodex() {
-  const container = document.getElementById('codex-body');
-  if (!container) return;
-  container.innerHTML = `
-    <div class="codex-section"><h3>⚖️ Sistema Político</h3>
-      <p>El gobierno define modificadores base de estabilidad y corrupción. Las facciones tienen influencia política que pondera su satisfacción. Si cae bajo 35 durante 3 turnos, hay golpe de estado.</p>
-    </div>
-    <div class="codex-section"><h3>📊 Economía</h3>
-      <p>Producción neta = (base de población ÷ 12) × modificador climático × (1 − corrupción/200) − consumo. La deuda genera intereses. La inflación sobre 40 devalúa el oro.</p>
-    </div>
-    <div class="codex-section"><h3>🌱 Estaciones</h3>
-      <p>16 turnos = 1 año. 4 estaciones de 4 turnos. Invierno: -28% alimentos, -15% ejército. Verano: 28% de probabilidad de sequía. Los eventos extremos se encadenan.</p>
-    </div>
-    <div class="codex-section"><h3>⚔️ Batallas</h3>
-      <p>Al declarar guerra, se abre el panel de batalla. Probabilidad calculada: ratio de fuerzas × moral × corrupción × estación. Ganar da 50% de los recursos del rival.</p>
-    </div>
-    <div class="codex-section"><h3>🕵️ Espías</h3>
-      <p>5 misiones disponibles. Sin espionaje, la fuerza enemiga tiene ±40% de incertidumbre en el análisis de batalla. Reconocimiento revela datos exactos 4 turnos.</p>
-    </div>
-    <div class="codex-section"><h3>🏗️ Gasto Público</h3>
-      <p>10 opciones de inversión pública con efectos específicos en moral, facciones, economía y defensa. Cada una tiene reacción poblacional visible. Coste fijo por turno.</p>
-    </div>
-  `;
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=JetBrains+Mono:wght@400;500;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
+
+/* --------------------------------------------------
+   IMPERIUM -- ESTILOS MEDIEVALES v3
+   Paleta: pergamino / piedra / oro / sangre
+   -------------------------------------------------- */
+:root {
+  /* ======================================== */
+  --bg:     #080706;          /* negro calido puro */
+  --bg2:    #100e0a;          /* paneles oscuros */
+  --bg3:    #16120c;          /* cabeceras, tabs */
+  --bg4:    #1e1810;          /* cards, items */
+  --panel:  #0e0b07;          /* panel derecho */
+  --parch:  #1c1610;
+
+  /* ======================================== */
+  --border:  #2e2318;         /* sutil */
+  --border2: #4e3820;         /* activo / hover */
+  --border3: #6e5030;         /* highlight */
+
+  /* ======================================== */
+  --gold:    #c8982a;
+  --gold2:   #e8b840;
+  --gold3:   #f8d870;
+  --gold-glow: rgba(232,184,64,0.15);
+
+  /* ======================================== */
+  --red:     #7a1c1c;
+  --red2:    #c02828;
+  --red3:    #e04040;
+  --green:   #2a5018;
+  --green2:  #4a8428;
+  --green3:  #6ab840;
+  --blue:    #1a3858;
+  --blue2:   #3468a0;
+  --blue3:   #5898d0;
+
+  /* ======================================== */
+  --text:    #d8c490;         /* legible, calido */
+  --text2:   #9a7c48;         /* secundario */
+  --text3:   #5a4028;         /* desactivado */
+  --bright:  #f4e4a8;         /* enfasis maximo */
+
+  /* ======================================== */
+  --font-title: 'Cinzel', 'Georgia', serif;
+  --font-body:  'Crimson Text', 'Georgia', serif;
+  --font-mono:  'JetBrains Mono', 'Consolas', monospace;
+  --font-ui:    'JetBrains Mono', monospace;
+
+  /* ======================================== */
+  --fs-title:  16px;
+  --fs-body:   14px;
+  --fs-ui:     12px;
+  --fs-mono:   11px;
+  --fs-tiny:   10px;
+  --fs-micro:   9px;
+
+  /* ======================================== */
+  --shadow:    0 4px 24px rgba(0,0,0,0.9);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.7);
+  --glow-gold: 0 0 12px rgba(200,152,42,0.4);
+  --glow-green:0 0 10px rgba(74,132,40,0.4);
+  --inset:     inset 0 1px 4px rgba(0,0,0,0.7);
+  --radius:    3px;
+  --radius-lg: 6px;
 }
 
-// ----------------------------------------------
-// INIT
-// ----------------------------------------------
-// -- TOP-BAR TOOLTIP SYSTEM ----------------------------------
-(function() {
-  const box = document.getElementById('tb-tooltip');
-  if (!box) return;
+*  { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  overflow: hidden;
+  height: 100vh;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+#app { width: 100vw; height: 100vh; position: relative; overflow: hidden; }
 
-  document.addEventListener('mouseover', function(e) {
-    const el = e.target.closest('.tb-tip');
-    if (!el) { box.style.display = 'none'; return; }
-    const raw = el.getAttribute('data-tip');
-    if (!raw) return;
-    // First line is bold title, rest is body
-    const lines = raw.split('&#10;');
-    box.innerHTML = '<b>' + lines[0] + '</b>' + lines.slice(1).join('<br>');
-    box.style.display = 'block';
-    _positionTooltip(e, box);
-  });
+/* ======================================== */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gold); }
 
-  document.addEventListener('mousemove', function(e) {
-    if (box.style.display === 'none') return;
-    _positionTooltip(e, box);
-  });
+/* --------------------------------------------------
+   SCREENS
+   -------------------------------------------------- */
+.screen { display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
+.screen.active { display: flex; flex-direction: column; width: 100%; height: 100%; }
 
-  document.addEventListener('mouseout', function(e) {
-    const el = e.target.closest('.tb-tip');
-    if (el && !el.contains(e.relatedTarget)) box.style.display = 'none';
-  });
+/* --------------------------------------------------
+   LOGIN -- PANTALLA CINEMATOGRAFICA
+   -------------------------------------------------- */
+#screen-login { overflow: hidden; background: #06040200; }
 
-  function _positionTooltip(e, box) {
-    const bw = box.offsetWidth  || 240;
-    const bh = box.offsetHeight || 80;
-    let x = e.clientX + 14;
-    let y = e.clientY + 14;
-    if (x + bw > window.innerWidth  - 8) x = e.clientX - bw - 8;
-    if (y + bh > window.innerHeight - 8) y = e.clientY - bh - 8;
-    box.style.left = x + 'px';
-    box.style.top  = y + 'px';
+#login-canvas {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  z-index: 0;
+}
+.login-overlay {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(200,160,48,0.12) 0%, transparent 60%),
+    radial-gradient(ellipse at 20% 80%, rgba(140,80,20,0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(60,40,10,0.1) 0%, transparent 50%),
+    linear-gradient(to bottom, rgba(6,4,2,0.3) 0%, rgba(6,4,2,0.6) 60%, rgba(6,4,2,0.9) 100%);
+}
+.login-center {
+  position: relative; z-index: 2;
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; height: 100%;
+  gap: 32px; padding: 40px 20px;
+}
+.login-logo-wrap { text-align: center; }
+
+.login-crest-animated {
+  font-size: 52px; display: block; margin-bottom: 12px;
+  filter: drop-shadow(0 0 20px rgba(200,160,48,0.7));
+  animation: crest-pulse 3s ease-in-out infinite;
+}
+@keyframes crest-pulse {
+  0%,100% { filter: drop-shadow(0 0 20px rgba(200,160,48,0.7)); transform: scale(1); }
+  50%      { filter: drop-shadow(0 0 35px rgba(200,160,48,1.0)) drop-shadow(0 0 60px rgba(200,160,48,0.4)); transform: scale(1.05); }
+}
+
+.login-title {
+  font-family: var(--font-title); font-weight: 900;
+  font-size: clamp(56px, 9vw, 108px);
+  color: transparent;
+  background: linear-gradient(160deg, #f8e090 0%, #c8a030 40%, #e8c050 60%, #a06010 100%);
+  -webkit-background-clip: text; background-clip: text;
+  letter-spacing: 14px; line-height: 1;
+  text-shadow: none;
+  filter: drop-shadow(0 4px 30px rgba(200,160,48,0.5));
+  animation: title-emerge 1.2s cubic-bezier(0.16,1,0.3,1) both;
+}
+@keyframes title-emerge {
+  from { opacity: 0; transform: translateY(20px) scale(0.95); filter: drop-shadow(0 4px 60px rgba(200,160,48,0)); }
+  to   { opacity: 1; transform: translateY(0) scale(1); filter: drop-shadow(0 4px 30px rgba(200,160,48,0.5)); }
+}
+
+.login-divider {
+  display: flex; align-items: center; gap: 12px; margin: 10px auto;
+  width: 280px;
+}
+.login-divider span:not(.login-div-icon) {
+  flex: 1; height: 1px;
+  background: linear-gradient(to right, transparent, var(--border2), transparent);
+}
+.login-div-icon { color: var(--gold); font-size: 12px; animation: spin-slow 8s linear infinite; }
+@keyframes spin-slow { to { transform: rotate(360deg); } }
+
+.login-sub {
+  font-family: var(--font-mono); font-size: 10px; color: var(--text2);
+  letter-spacing: 4px; margin-top: 4px;
+  animation: fade-up 1.4s 0.3s both;
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.login-box {
+  position: relative; z-index: 2;
+  background: rgba(22,15,8,0.92);
+  border: 1px solid var(--border2);
+  border-top: 2px solid var(--gold);
+  padding: 28px 36px; width: min(400px, 90vw);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.9), inset 0 0 40px rgba(200,160,48,0.03);
+  animation: box-drop 1s 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+@keyframes box-drop {
+  from { opacity: 0; transform: translateY(-24px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.login-field { text-align: left; margin-bottom: 16px; }
+.login-field label {
+  display: block; font-family: var(--font-mono); font-size: 9px;
+  color: var(--gold); letter-spacing: 3px; margin-bottom: 6px;
+  text-transform: uppercase;
+}
+.login-field input {
+  width: 100%; background: var(--bg3); border: 1px solid var(--border);
+  border-bottom: 2px solid var(--border2);
+  color: var(--bright); font-family: var(--font-title); font-size: 16px;
+  padding: 10px 14px; outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.login-field input:focus {
+  border-color: var(--gold); border-bottom-color: var(--gold2);
+  box-shadow: 0 2px 12px rgba(200,160,48,0.2);
+}
+.login-field input::placeholder { color: var(--text3); font-size: 13px; font-family: var(--font-body); }
+
+.login-btn-row { display: flex; gap: 10px; }
+.login-enter-btn { flex: 1; font-size: 14px !important; padding: 12px 16px !important; }
+.login-guest-btn { width: 110px; font-size: 11px !important; padding: 12px 8px !important; }
+.btn-icon-big { font-size: 16px; }
+
+.login-saves { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 14px; }
+.login-saves-title { font-family: var(--font-mono); font-size: 9px; color: var(--gold); letter-spacing: 2px; margin-bottom: 8px; text-transform: uppercase; }
+.save-preview {
+  background: var(--bg3); border: 1px solid var(--border); border-left: 3px solid var(--border2);
+  padding: 8px 10px; margin-bottom: 6px; cursor: pointer;
+  transition: border-color 0.15s, transform 0.1s; text-align: left;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.save-preview:hover { border-color: var(--gold); border-left-color: var(--gold2); transform: translateX(2px); }
+.save-preview .sp-name { font-family: var(--font-title); font-size: 12px; color: var(--gold); }
+.save-preview .sp-info { font-family: var(--font-mono); font-size: 10px; color: var(--text3); }
+
+.login-footer-bar {
+  position: absolute; bottom: 0; left: 0; right: 0; z-index: 2;
+  display: flex; align-items: center; justify-content: center; gap: 16px;
+  padding: 10px 20px;
+  background: rgba(6,4,2,0.8);
+  border-top: 1px solid var(--border);
+  font-family: var(--font-mono); font-size: 10px; color: var(--text3);
+  letter-spacing: 0.5px;
+}
+.lf-sep { color: var(--border2); }
+
+/* --------------------------------------------------
+   START SCREEN -- ANIMACIONES
+   -------------------------------------------------- */
+#screen-start { overflow: hidden; background: var(--bg); }
+
+#start-canvas {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  z-index: 0; opacity: 0.6;
+}
+.start-particles {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  overflow: hidden;
+}
+.spark {
+  position: absolute;
+  width: 2px; height: 2px;
+  background: var(--gold);
+  border-radius: 50%;
+  animation: spark-float linear infinite;
+  opacity: 0;
+}
+@keyframes spark-float {
+  0%   { opacity: 0; transform: translateY(0) translateX(0) scale(0); }
+  10%  { opacity: 0.8; }
+  90%  { opacity: 0.4; }
+  100% { opacity: 0; transform: translateY(-120px) translateX(var(--dx,20px)) scale(0.3); }
+}
+.start-vignette {
+  position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 40%, transparent 30%, rgba(6,4,2,0.5) 80%),
+    linear-gradient(to bottom, rgba(6,4,2,0.4) 0%, transparent 20%, transparent 70%, rgba(6,4,2,0.6) 100%);
+}
+.start-content {
+  position: relative; z-index: 3; text-align: center;
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; height: 100%;
+  gap: 32px; padding: 40px 20px;
+}
+.title-block { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.title-eyebrow {
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: 4px;
+  color: var(--gold); display: flex; align-items: center; gap: 12px;
+}
+.eyebrow-line { flex: 0 0 60px; height: 1px; background: var(--gold); opacity: 0.4; }
+
+.game-title {
+  font-family: var(--font-title); font-weight: 900;
+  font-size: clamp(64px, 10vw, 120px);
+  color: transparent;
+  background: linear-gradient(160deg, #f8e090 0%, #c8a030 35%, #e8c050 55%, #a06010 100%);
+  -webkit-background-clip: text; background-clip: text;
+  letter-spacing: 12px; line-height: 1;
+  filter: drop-shadow(0 4px 30px rgba(200,160,48,0.45));
+}
+.start-title-anim {
+  animation: title-shimmer 0.8s cubic-bezier(0.16,1,0.3,1) both;
+}
+@keyframes title-shimmer {
+  from { opacity: 0; transform: scale(0.92) translateY(15px); filter: drop-shadow(0 4px 60px rgba(200,160,48,0)); }
+  to   { opacity: 1; transform: scale(1) translateY(0); filter: drop-shadow(0 4px 30px rgba(200,160,48,0.45)); }
+}
+
+.title-ornament { font-family: var(--font-title); font-size: 13px; color: var(--text3); letter-spacing: 6px; margin: 2px 0; }
+.title-subtitle { font-family: var(--font-title); font-size: 13px; color: var(--text2); letter-spacing: 6px; }
+.welcome-name {
+  font-family: var(--font-title); font-size: 15px; color: var(--gold2); margin-top: 2px;
+  animation: fade-up 0.8s 0.3s both;
+}
+
+.start-menu { display: flex; flex-direction: column; gap: 10px; width: 300px; }
+.start-btn-anim { animation: btn-slide-in 0.6s cubic-bezier(0.34,1.3,0.64,1) both; }
+@keyframes btn-slide-in {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.start-stats-row {
+  display: flex; gap: 24px; margin-top: 8px;
+}
+.start-stat {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  font-family: var(--font-mono); font-size: 9px; color: var(--text3);
+  letter-spacing: 0.5px; text-align: center; line-height: 1.4;
+  padding: 10px 16px; border: 1px solid var(--border);
+  background: rgba(22,15,8,0.6);
+  transition: border-color 0.2s, color 0.2s;
+  animation: fade-up 0.8s both;
+}
+.start-stat:hover { border-color: var(--gold); color: var(--text2); }
+.start-stat:nth-child(1) { animation-delay: 0.5s; }
+.start-stat:nth-child(2) { animation-delay: 0.6s; }
+.start-stat:nth-child(3) { animation-delay: 0.7s; }
+.start-stat:nth-child(4) { animation-delay: 0.8s; }
+.ss-icon { font-size: 20px; margin-bottom: 2px; }
+
+/* --------------------------------------------------
+   BUTTONS
+   -------------------------------------------------- */
+.menu-btn {
+  background: transparent; border: 1px solid var(--border2);
+  color: var(--text); font-family: var(--font-title); font-size: 13px;
+  letter-spacing: 1px; padding: 11px 20px; cursor: pointer;
+  transition: all 0.18s; display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.menu-btn:hover { border-color: var(--gold); color: var(--gold3); background: rgba(200,160,48,0.07); }
+.menu-btn.primary { border-color: var(--gold); color: var(--gold3); background: rgba(200,160,48,0.1); }
+.menu-btn.primary:hover { background: rgba(200,160,48,0.2); }
+.menu-btn.danger { border-color: var(--red2); color: #e86060; }
+.menu-btn.danger:hover { background: rgba(200,48,48,0.1); }
+.btn-icon { font-size: 16px; }
+.back-btn { background: transparent; border: 1px solid var(--border2); color: var(--text2); font-family: var(--font-mono); font-size: 11px; padding: 6px 12px; cursor: pointer; }
+.back-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+/* --------------------------------------------------
+   CIV SELECT
+   -------------------------------------------------- */
+#screen-civselect { background: var(--bg2); padding: 24px; align-items: center; }
+.screen-header { text-align: center; margin-bottom: 24px; }
+.screen-header h2 { font-family: var(--font-title); font-size: 26px; color: var(--gold2); letter-spacing: 3px; }
+.screen-header p { color: var(--text2); margin-top: 6px; font-style: italic; }
+.civ-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px,1fr)); gap: 14px; width: 100%; max-width: 1000px; max-height: 75vh; overflow-y: auto; }
+.civ-card { background: var(--panel); border: 1px solid var(--border); padding: 18px; cursor: pointer; transition: all 0.18s; }
+.civ-card:hover { border-color: var(--gold); background: rgba(200,160,48,0.04); transform: translateY(-1px); }
+.civ-card .civ-icon { font-size: 34px; margin-bottom: 8px; display: block; }
+.civ-card .civ-name { font-family: var(--font-title); font-size: 16px; color: var(--gold2); }
+.civ-card .civ-gov { font-family: var(--font-mono); font-size: 10px; color: var(--text3); margin: 3px 0; letter-spacing: 1px; }
+.civ-card .civ-desc { font-size: 12px; color: var(--text2); line-height: 1.5; margin: 7px 0; font-style: italic; }
+.civ-stats { display: flex; gap: 6px; flex-wrap: wrap; }
+.civ-stat { font-family: var(--font-mono); font-size: 10px; background: var(--bg4); padding: 2px 6px; }
+.civ-stat.pos { color: var(--green2); }
+.civ-stat.neg { color: var(--red2); }
+
+/* --------------------------------------------------
+   TOP BAR
+   -------------------------------------------------- */
+/* [moved to layout block] */
+.res-group { display: flex; gap: 5px; flex-wrap: wrap; }
+.resource-block {
+  display: flex; align-items: center; gap: 5px;
+  background: var(--bg4);
+  border: 1px solid var(--border);
+  border-top: 1px solid var(--border2);
+  padding: 5px 9px;
+  min-width: 68px;
+  border-radius: var(--radius);
+  transition: border-color 0.15s;
+}
+.resource-block:hover { border-color: var(--border3); }
+.res-icon { font-size: 14px; }
+.res-val {
+  font-family: var(--font-mono);
+  font-size: var(--fs-ui);
+  color: var(--gold2);
+  font-weight: bold;
+  letter-spacing: 0.3px;
+}
+.res-delta { font-family: var(--font-mono); font-size: 10px; color: var(--green2); }
+.res-delta.neg { color: var(--red2); }
+.stat-pills { display: flex; gap: 5px; margin-left: 8px; }
+.stat-pill {
+  display: flex; align-items: center; gap: 4px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  padding: 4px 9px;
+  border: 1px solid var(--border2);
+  color: var(--text2);
+  white-space: nowrap;
+  border-radius: var(--radius);
+  background: var(--bg4);
+}
+.stat-pill.stability { border-color: #406080; color: #80a8c8; }
+.stat-pill.morale    { border-color: #803030; color: #e09090; }
+.stat-pill.military  { border-color: #606060; color: #a0a0a0; }
+.turn-block { display: flex; flex-direction: column; align-items: flex-end; margin-left: auto; gap: 2px; }
+.turn-season { font-family: var(--font-body); font-size: 12px; color: var(--gold); }
+.turn-num { font-family: var(--font-mono); font-size: 10px; color: var(--text2); }
+#btn-endturn {
+  background: linear-gradient(180deg, var(--gold2) 0%, var(--gold) 100%);
+  border: none;
+  color: #0a0800;
+  font-family: var(--font-title);
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  border-radius: var(--radius);
+  box-shadow: 0 2px 8px rgba(200,152,42,0.35), var(--inset);
+  min-width: 80px;
+}
+#btn-endturn:hover { background: linear-gradient(180deg, var(--gold3) 0%, var(--gold2) 100%); box-shadow: 0 3px 14px rgba(200,152,42,0.55); }
+#btn-endturn:disabled { background: var(--text3); cursor: not-allowed; }
+.btn-save {
+  background: transparent;
+  border: 1px solid var(--border2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  padding: 5px 9px;
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: border-color 0.15s, color 0.15s;
+}
+.btn-save:hover { border-color: var(--gold); color: var(--gold); }
+
+/* --------------------------------------------------
+   MAIN BODY -- 2 columnas: mapa grande + panel derecho
+   -------------------------------------------------- */
+/* [moved to layout block] */
+
+/* --------------------------------------------------
+   MAPA AREA
+   -------------------------------------------------- */
+/* [moved to layout block] */
+
+/* [moved to layout block] */
+/* [moved to layout block] */
+/* [moved to layout block] */
+/* [moved to layout block] */
+.map-tab-right { margin-left: auto; padding-right: 10px; }
+.seed-label { font-family: var(--font-mono); font-size: 9px; color: var(--text3); }
+
+.mtab-content { display: none; flex: 1; overflow-y: auto; }
+.mtab-content.active { display: flex; flex-direction: column; }
+
+/* Mapa canvas */
+#map-info-bar { font-family: var(--font-mono); font-size: 10px; color: var(--text3); padding: 4px 8px; background: var(--bg); border-bottom: 1px solid var(--border); flex-shrink: 0; display: flex; gap: 12px; flex-wrap: wrap; }
+#world-map { flex: 1; overflow: auto; background: #0a0806; }
+#map-legend { display: flex; gap: 12px; flex-wrap: wrap; padding: 5px 8px; background: var(--panel); border-top: 1px solid var(--border); flex-shrink: 0; }
+.leg-item { display: flex; align-items: center; gap: 5px; font-family: var(--font-mono); font-size: 10px; color: var(--text3); }
+.leg-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+/* AGENDA DE TURNO -- barra compacta */
+/* [moved to layout block] */
+#agenda-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 10px;
+  background: linear-gradient(180deg, var(--bg3) 0%, var(--bg2) 100%);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-title);
+  font-size: var(--fs-mono);
+  color: var(--gold);
+  letter-spacing: 1px;
+  flex-shrink: 0;
+}
+.badge { background: var(--red2); color: white; font-size: 9px; padding: 1px 5px; border-radius: 10px; font-family: var(--font-mono); }
+.agenda-warn { font-family: var(--font-mono); font-size: 10px; color: #e87070; margin-left: auto; animation: pulse 1.2s ease-in-out infinite; }
+.agenda-warn.hidden { display: none; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+#event-queue { display: flex; gap: 5px; overflow-x: auto; padding: 5px 8px; max-height: 50px; }
+.event-item { flex-shrink: 0; font-family: var(--font-mono); font-size: 10px; color: var(--text2); padding: 3px 8px; border: 1px solid var(--border2); cursor: pointer; transition: all 0.12s; white-space: nowrap; }
+.event-item:hover { border-color: var(--gold); color: var(--bright); }
+.event-item.active { border-color: var(--gold); color: var(--gold2); background: rgba(200,160,48,0.08); }
+.event-item.critical { border-color: var(--red2); color: #e87070; }
+
+/* --------------------------------------------------
+   PANEL DERECHO -- 420px fijo
+   -------------------------------------------------- */
+/* [moved to layout block] */
+
+
+/* --------------------------------------------------
+   PANEL SECTIONS (comun a todos los tabs)
+   -------------------------------------------------- */
+.rpanel-section {
+  margin-bottom: 0;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.rpanel-section:last-child { border-bottom: none; }
+.rpanel-section:last-child { border-bottom: none; }
+.rpanel-title {
+  font-family: var(--font-title);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  display: flex; align-items: center; gap: 7px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(200,152,42,0.2);
+}
+.stat-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 9px; font-family: var(--font-mono); font-size: 14px; }
+.stat-row-label { color: var(--text2); }
+.stat-row-val { color: var(--bright); }
+.bar-wrap { margin-bottom: 7px; }
+.bar-label { font-family: var(--font-mono); font-size: 10px; color: var(--text3); display: flex; justify-content: space-between; }
+.bar-track { height: 5px; background: var(--bg); margin-top: 3px; }
+.bar-fill { height: 100%; transition: width 0.4s; }
+.bar-fill.gold { background: var(--gold); }
+.bar-fill.green { background: var(--green2); }
+.bar-fill.red { background: var(--red2); }
+.bar-fill.blue { background: var(--blue2); }
+
+/* Botones de panel */
+.policy-btn {
+  width: 100%;
+  background: var(--bg4);
+  border: 1px solid var(--border2);
+  border-left: 3px solid var(--border3);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  padding: 10px 13px;
+  text-align: left;
+  cursor: pointer;
+  margin-bottom: 6px;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  display: flex; justify-content: space-between; align-items: center;
+  border-radius: var(--radius);
+}
+.policy-btn:hover {
+  border-color: var(--gold);
+  border-left-color: var(--gold2);
+  background: rgba(200,152,42,0.08);
+  color: var(--bright);
+}
+.policy-btn.active {
+  border-color: var(--green2);
+  border-left-color: var(--green3);
+  color: var(--green3);
+  background: rgba(74,132,40,0.12);
+}
+.policy-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.policy-cost { font-size: 9px; color: var(--text3); }
+.diplo-btn {
+  font-family: var(--font-mono);
+  font-size: var(--fs-tiny);
+  padding: 7px 14px;
+  background: var(--bg4);
+  border: 1px solid var(--border2);
+  color: var(--text2);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  border-radius: var(--radius);
+  letter-spacing: 0.5px;
+}
+.diplo-btn:hover {
+  border-color: var(--gold);
+  background: rgba(200,152,42,0.1);
+  color: var(--gold2);
+}
+.diplo-btn.danger { border-color: var(--red); color: #e87070; }
+.diplo-btn.danger:hover { background: rgba(200,48,48,0.1); }
+
+/* Facciones */
+.faction-card {
+  background: var(--bg4);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border2);
+  padding: 8px 10px;
+  margin-bottom: 5px;
+  border-radius: var(--radius);
+  transition: border-color 0.15s;
+  cursor: help;
+}
+.faction-card:hover { border-color: var(--border3); }
+.faction-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+.faction-name { font-family: var(--font-title); font-size: 11px; color: var(--gold); }
+.faction-power { font-family: var(--font-mono); font-size: 12px; color: var(--text3); }
+.faction-mood { font-size: 13px; color: var(--text3); font-style: italic; margin-top: 4px; }
+.faction-demand { font-family: var(--font-mono); font-size: 12px; color: #c8a060; margin-top: 5px; }
+
+/* Alertas */
+.alert-box { padding: 6px 10px; margin-bottom: 7px; font-family: var(--font-mono); font-size: 10px; line-height: 1.5; border-left: 3px solid; }
+.alert-box.warn   { border-color: var(--gold); background: rgba(200,160,48,0.07); color: var(--gold); }
+.alert-box.danger { border-color: var(--red2); background: rgba(200,48,48,0.07); color: var(--red2); }
+.alert-box.info   { border-color: var(--blue2); background: rgba(64,112,160,0.07); color: var(--blue2); }
+.alert-box.good   { border-color: var(--green2); background: rgba(90,144,48,0.07); color: var(--green2); }
+
+/* Militar */
+.mil-unit-row { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 14px; padding: 9px 0; border-bottom: 1px solid var(--border); color: var(--text2); }
+.mil-unit-row:last-child { border-bottom: none; }
+.gov-badge { display: inline-block; font-family: var(--font-title); font-size: 11px; color: var(--gold3); background: rgba(200,160,48,0.1); border: 1px solid var(--gold); padding: 2px 8px; letter-spacing: 1px; }
+.diplo-nation { background: var(--bg4); border: 1px solid var(--border); padding: 14px; margin-bottom: 9px; }
+.diplo-name { font-family: var(--font-title); font-size: 13px; color: var(--gold); margin-bottom: 3px; }
+.diplo-rel { font-family: var(--font-mono); font-size: 13px; margin-bottom: 7px; }
+.diplo-actions { display: flex; gap: 5px; flex-wrap: wrap; }
+.climate-indicator { text-align: center; padding: 14px; }
+.climate-icon { font-size: 40px; display: block; margin-bottom: 6px; }
+.climate-name { font-family: var(--font-title); font-size: 14px; color: var(--gold); }
+.climate-desc { font-family: var(--font-mono); font-size: 12px; color: var(--text3); margin-top: 4px; }
+
+/* Log */
+.log-header { font-family: var(--font-mono); font-size: 10px; color: var(--text3); padding: 6px 10px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--panel); letter-spacing: 1px; }
+.log-entry {
+  padding: 5px 10px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  color: var(--text2);
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  line-height: 1.6;
+}
+.log-entry .log-turn { color: var(--text3); margin-right: 8px; }
+.log-entry .log-msg { color: var(--text2); }
+.log-entry.log-warn .log-msg   { color: var(--gold); }
+.log-entry.log-crisis .log-msg { color: var(--red2); }
+.log-entry.log-good .log-msg   { color: var(--green2); }
+
+/* --------------------------------------------------
+   CODEX
+   -------------------------------------------------- */
+#screen-codex { background: var(--bg2); }
+.codex-header { display: flex; align-items: center; gap: 16px; padding: 16px 28px; border-bottom: 1px solid var(--border); background: var(--panel); }
+.codex-header h2 { font-family: var(--font-title); font-size: 22px; color: var(--gold2); }
+.codex-body { padding: 24px; overflow-y: auto; height: calc(100% - 60px); display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.codex-section { background: var(--panel); border: 1px solid var(--border); padding: 18px; }
+.codex-section h3 { font-family: var(--font-title); font-size: 15px; color: var(--gold2); margin-bottom: 10px; }
+.codex-section p, .codex-section li { font-size: 12px; color: var(--text2); line-height: 1.7; }
+.codex-section ul { padding-left: 14px; }
+
+/* --------------------------------------------------
+   MODALES
+   -------------------------------------------------- */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.88); display: flex; align-items: center; justify-content: center; z-index: 500; }
+.modal-overlay.hidden { display: none; }
+.modal-box { background: var(--panel); border: 1px solid var(--border2); padding: 32px; max-width: 520px; width: 90%; }
+#modal-title { font-family: var(--font-title); font-size: 28px; color: var(--gold2); margin-bottom: 14px; text-align: center; }
+#modal-body { color: var(--text2); line-height: 1.7; margin-bottom: 22px; font-size: 14px; text-align: center; }
+
+/* BATALLA */
+.battle-box { max-width: 600px; }
+.battle-header { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 16px; }
+.battle-header h2 { font-family: var(--font-title); font-size: 20px; color: var(--gold2); }
+.battle-icon { font-size: 28px; }
+#battle-map-mini { background: var(--bg3); border: 1px solid var(--border); height: 120px; overflow: hidden; display: flex; align-items: center; justify-content: center; margin-bottom: 14px; position: relative; }
+#battle-info { font-family: var(--font-mono); font-size: 11px; color: var(--text2); line-height: 1.8; margin-bottom: 14px; padding: 10px; background: var(--bg3); border: 1px solid var(--border); }
+.battle-progress { margin-bottom: 16px; }
+.battle-bar-wrap { height: 20px; display: flex; overflow: hidden; border: 1px solid var(--border2); margin-bottom: 8px; }
+.battle-bar-attacker { background: var(--green2); transition: width 1s ease; }
+.battle-bar-defender { background: var(--red2); transition: width 1s ease; }
+#battle-result-text { font-family: var(--font-title); font-size: 15px; color: var(--gold2); text-align: center; }
+#battle-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+/* GUARDAR */
+.save-box { max-width: 440px; }
+.save-box h2 { font-family: var(--font-title); font-size: 20px; color: var(--gold2); margin-bottom: 18px; text-align: center; }
+#save-slots { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+.save-slot { background: var(--bg3); border: 1px solid var(--border); padding: 12px 14px; }
+.save-slot-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.save-slot-name { font-family: var(--font-title); font-size: 13px; color: var(--gold); }
+.save-slot-date { font-family: var(--font-mono); font-size: 10px; color: var(--text3); }
+.save-slot-info { font-family: var(--font-mono); font-size: 10px; color: var(--text3); line-height: 1.6; }
+.save-slot-empty { font-family: var(--font-mono); font-size: 11px; color: var(--text3); font-style: italic; }
+.save-slot-actions { display: flex; gap: 6px; margin-top: 8px; }
+
+/* --------------------------------------------------
+   GASTO PUBLICO (nuevo tab)
+   -------------------------------------------------- */
+.spending-item { background: var(--bg4); border: 1px solid var(--border); padding: 9px 11px; margin-bottom: 7px; cursor: pointer; transition: border-color 0.15s; }
+.spending-item:hover { border-color: var(--gold); }
+.spending-item.active { border-color: var(--green2); background: rgba(90,144,48,0.08); }
+.spending-name { font-family: var(--font-title); font-size: 14px; color: var(--gold); margin-bottom: 4px; }
+.spending-cost { font-family: var(--font-mono); font-size: 12px; color: var(--text3); margin-bottom: 5px; }
+.spending-effects { font-family: var(--font-mono); font-size: 12px; color: var(--text2); line-height: 1.6; }
+.spending-reaction { font-family: var(--font-body); font-size: 13px; color: var(--text3); font-style: italic; margin-top: 5px; }
+
+/* --------------------------------------------------
+   UTILIDADES
+   -------------------------------------------------- */
+.separator { width: 1px; height: 28px; background: var(--border); margin: 0 3px; }
+.hidden { display: none !important; }
+
+/* -----------------------------------------------
+   ALTHORIA MAP -- PANEL DESLIZANTE
+   ----------------------------------------------- */
+
+/* ======================================== */
+#btn-althoria {
+  background: rgba(200,168,75,0.12);
+  border: 1px solid var(--gold);
+  color: var(--gold2);
+  font-family: var(--font-title);
+  font-size: 11px;
+  letter-spacing: 1px;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+#btn-althoria:hover {
+  background: rgba(200,168,75,0.25);
+  color: var(--gold3);
+}
+#btn-althoria.active {
+  background: rgba(200,168,75,0.30);
+  box-shadow: 0 0 8px rgba(200,168,75,0.3);
+}
+
+/* ======================================== */
+#althoria-panel {
+  position: fixed;
+  top: 0;
+  right: -82%;
+  width: 80%;
+  height: 100vh;
+  background: #0d0a06;
+  border-left: 2px solid var(--gold);
+  z-index: 8000;
+  transition: right 0.35s cubic-bezier(0.25,0.8,0.25,1);
+  display: flex;
+  flex-direction: column;
+  transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: -8px 0 40px rgba(0,0,0,0.8);
+}
+#althoria-panel.open {
+  right: 0;
+}
+
+/* ======================================== */
+#althoria-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: #0a0806;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+#althoria-title {
+  font-family: var(--font-title);
+  font-size: 15px;
+  color: var(--gold2);
+  letter-spacing: 3px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+#althoria-legend-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+.alth-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text2);
+  background: rgba(255,255,255,0.04);
+  padding: 2px 6px;
+  border-radius: 2px;
+}
+.alth-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.alth-zones-count {
+  color: var(--text3);
+  font-size: 9px;
+  margin-left: 2px;
+}
+#althoria-close {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid var(--border2);
+  color: var(--text2);
+  font-size: 14px;
+  width: 26px;
+  height: 26px;
+  cursor: pointer;
+  border-radius: 2px;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+#althoria-close:hover {
+  border-color: var(--red2);
+  color: var(--red2);
+}
+
+/* ======================================== */
+#althoria-canvas-wrap {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #080604;
+}
+#althoria-canvas {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* ======================================== */
+#althoria-info-bar {
+  padding: 6px 12px;
+  background: #0a0806;
+  border-top: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text3);
+  min-height: 30px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* ---------------------------------------
+   TOP-BAR TOOLTIPS
+   --------------------------------------- */
+.tb-tip { position: relative; cursor: help; }
+
+.tb-tooltip-box {
+  position: fixed;
+  background: rgba(8,6,4,0.98);
+  border: 1px solid var(--border3);
+  border-top: 2px solid var(--gold);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  padding: 9px 13px;
+  max-width: 260px;
+  line-height: 1.75;
+  pointer-events: none;
+  z-index: 9999;
+  display: none;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.9), 0 0 0 1px rgba(200,152,42,0.08);
+  white-space: pre-line;
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+.tb-tooltip-box b {
+  color: var(--gold2);
+  display: block;
+  margin-bottom: 4px;
+  font-family: var(--font-title);
+  letter-spacing: 1.5px;
+  font-size: var(--fs-tiny);
+  text-transform: uppercase;
+}
+
+/* -----------------------------------------------------------
+   PLAYER NATION BADGE -- top of sidebar, always visible
+   ----------------------------------------------------------- */
+
+.player-nation-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  margin: 0 0 10px 0;
+  background: linear-gradient(135deg,
+    rgba(100,220,130,0.18) 0%,
+    rgba(100,220,130,0.06) 100%);
+  border: 1px solid #72c882;
+  border-left: 4px solid #72c882;
+  border-radius: 4px;
+  box-shadow: 0 0 12px rgba(114,200,130,0.18), inset 0 0 20px rgba(100,220,130,0.04);
+  cursor: help;
+  position: relative;
+}
+
+.pnb-icon {
+  font-size: 28px;
+  line-height: 1;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 6px rgba(114,200,130,0.6));
+}
+
+.pnb-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.pnb-name {
+  font-family: var(--font-title);
+  font-size: 13px;
+  color: #a0e8b0;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pnb-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 2.5px;
+  color: #72c882;
+  text-transform: uppercase;
+  font-weight: bold;
+}
+
+.pnb-tag {
+  font-size: 18px;
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+/* -----------------------------------------------------------
+   PANEL TABS -- icon tooltips on hover
+   ----------------------------------------------------------- */
+
+/* Tab buttons already use .tb-tip -- enhance visual feedback */
+.ptab {
+  position: relative;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.ptab:hover {
+  transform: translateY(-1px);
+  background: rgba(200,168,72,0.12) !important;
+}
+
+.ptab.active {
+  background: rgba(200,168,72,0.18) !important;
+  border-bottom: 2px solid var(--gold2) !important;
+  color: var(--gold2) !important;
+}
+
+/* Tooltip arrow pointer for tb-tip on small elements */
+.tb-tooltip-box::before {
+  display: none; /* clean, no arrow needed */
+}
+
+/* ---------------------------------------
+   RESOURCE ERROR TOAST
+   --------------------------------------- */
+.resource-toast {
+  position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+  background: rgba(14,8,4,0.97); border: 1px solid var(--red2);
+  border-left: 4px solid var(--red2);
+  color: var(--text); font-family: var(--font-mono); font-size: 11px;
+  padding: 10px 18px; z-index: 9998; display: flex; align-items: center; gap: 10px;
+  max-width: 90vw; pointer-events: none;
+  opacity: 0; transition: opacity 0.3s ease;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.8);
+}
+.resource-toast.toast-show { opacity: 1; }
+.toast-icon { font-size: 16px; flex-shrink: 0; }
+
+/* ======================================== */
+.btn-load {
+  background: rgba(60,80,200,0.12) !important;
+  border-color: var(--blue2) !important;
+  color: #8ab4e0 !important;
+}
+.btn-load:hover { background: rgba(60,80,200,0.25) !important; color: #b0d0f0 !important; }
+
+/* ---------------------------------------
+   ARMY FORMATION PANEL
+   --------------------------------------- */
+.formation-section {}
+.formation-panel {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 8px; background: var(--bg3);
+  border: 1px solid var(--border); margin-bottom: 8px;
+  max-height: 260px; overflow-y: auto;
+}
+.formation-row {
+  padding: 7px 10px;
+  margin-bottom: 4px;
+  background: var(--bg4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: help;
+  transition: border-color 0.15s;
+}
+.formation-row:hover { border-color: var(--border3); }
+.formation-row:hover { border-left-color: var(--gold); }
+.formation-label {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--font-mono); font-size: 12px; margin-bottom: 4px;
+}
+.fl-icon { font-size: 16px; flex-shrink: 0; }
+.fl-name { color: var(--text2); flex: 1; }
+.fl-count { color: var(--gold2); font-weight: bold; font-size: 13px; }
+.formation-bar {
+  height: 4px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 2px;
+  margin-top: 5px;
+  overflow: hidden;
+}
+.formation-fill { height: 100%; border-radius: 1px; transition: width 0.4s ease; }
+.formation-sprites {
+  font-size: 13px; line-height: 1.3; color: rgba(255,255,255,0.7);
+  word-break: break-all; letter-spacing: 1px;
+}
+.formation-empty { font-family: var(--font-mono); font-size: 10px; color: var(--text3); padding: 12px; text-align: center; }
+.formation-legendary {
+  font-family: var(--font-title); font-size: 12px; color: var(--gold3);
+  padding: 6px 8px; border: 1px solid rgba(200,160,48,0.3);
+  background: rgba(200,160,48,0.05); cursor: help;
+}
+.leg-badge {
+  font-size: 9px; letter-spacing: 1px; color: var(--gold);
+  background: rgba(200,160,48,0.15); padding: 1px 5px; margin-left: 6px;
+}
+.formation-stats {
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+.fstat {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  padding: 7px 10px; background: var(--bg3); border: 1px solid var(--border);
+  font-family: var(--font-mono); font-size: 11px; color: var(--text3); gap: 3px;
+}
+.fstat b { font-size: 15px; color: var(--text); }
+
+/* ---------------------------------------
+   DEPLOY UNITS IN ALTHORIA
+   --------------------------------------- */
+.alth-deploy-panel {
+  padding: 8px 10px; border-top: 1px solid var(--border);
+  background: rgba(10,8,6,0.8); flex-shrink: 0;
+}
+.alth-deploy-title { font-family: var(--font-mono); font-size: 10px; color: var(--gold); letter-spacing: 1px; margin-bottom: 6px; }
+.alth-deploy-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.alth-region-select {
+  flex: 1; background: var(--bg3); border: 1px solid var(--border2); color: var(--text);
+  font-family: var(--font-mono); font-size: 10px; padding: 4px 6px; outline: none;
+}
+.alth-region-select:focus { border-color: var(--gold); }
+.alth-troop-input {
+  width: 70px; background: var(--bg3); border: 1px solid var(--border2); color: var(--text);
+  font-family: var(--font-mono); font-size: 11px; padding: 4px 6px; outline: none; text-align: center;
+}
+.alth-deploy-btn {
+  background: rgba(100,200,130,0.15); border: 1px solid var(--green2);
+  color: var(--green2); font-family: var(--font-mono); font-size: 10px;
+  padding: 4px 10px; cursor: pointer; transition: all 0.15s; white-space: nowrap;
+}
+.alth-deploy-btn:hover { background: rgba(100,200,130,0.3); }
+.alth-deployed-list { margin-top: 6px; font-family: var(--font-mono); font-size: 10px; color: var(--text3); }
+.alth-deployed-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 2px 4px; border-bottom: 1px solid rgba(58,44,24,0.4);
+}
+
+/* -----------------------------------------------------------
+   LAYOUT DEFINITIVO -- pantalla de juego completa
+   Estructura: .screen es absolute+display:none -> active=flex+column
+   Top bar fijo + main-body flex (mapa 60% / panel 40%)
+   ----------------------------------------------------------- */
+
+/* ======================================== */
+.screen         { display: none; width: 100%; height: 100%;
+                  position: absolute; top: 0; left: 0; overflow: hidden; }
+.screen.active  { display: flex; flex-direction: column; }
+
+/* ======================================== */
+#screen-game    { background: var(--bg); }
+
+/* ======================================== */
+#top-bar {
+  display: flex; align-items: center; gap: 6px;
+  padding: 0 12px;
+  background: linear-gradient(180deg, var(--bg3) 0%, var(--bg2) 100%);
+  border-bottom: 1px solid var(--border2);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.6), 0 1px 0 rgba(200,152,42,0.12);
+  flex-shrink: 0; flex-wrap: nowrap;
+  min-height: 48px; max-height: 54px;
+  overflow-x: auto; scrollbar-width: none;
+}
+#top-bar::-webkit-scrollbar { display: none; }
+
+/* ======================================== */
+#main-body {
+  display: flex; flex-direction: row;
+  flex: 1; overflow: hidden; min-height: 0;
+}
+
+/* ======================================== */
+#map-area {
+  flex: 25;
+  min-width: 170px; max-width: 30%;
+  display: flex; flex-direction: column;
+  background: var(--bg2);
+  border-right: 1px solid var(--border2);
+  box-shadow: 2px 0 12px rgba(0,0,0,0.5);
+  overflow: hidden;
+}
+
+/* ======================================== */
+#right-panel {
+  flex: 75;
+  min-width: 400px; max-width: 78%;
+  display: flex; flex-direction: column;
+  background: var(--panel);
+  overflow: hidden;
+}
+
+/* ======================================== */
+.map-tabs {
+  display: flex; flex-shrink: 0;
+  border-bottom: 1px solid var(--border2);
+  background: var(--bg3);
+}
+.mtab {
+  flex: 1; padding: 6px 4px; font-size: 10px;
+  background: transparent; border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text3); cursor: pointer;
+  transition: all 0.15s; white-space: nowrap;
+}
+.mtab:hover  { color: var(--gold); background: rgba(200,160,48,0.06); }
+.mtab.active { border-bottom-color: var(--gold2); color: var(--gold2);
+               background: rgba(200,160,48,0.10); }
+
+/* Contenido de tabs del mapa */
+.mtab-content         { display: none; overflow: hidden; }
+.mtab-content.active  { display: flex; flex-direction: column; flex: 1; overflow: hidden; min-height: 0; }
+
+/* Facciones: scroll interno, tamano limitado */
+#factions-list {
+  flex: 1; overflow-y: auto; padding: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+.faction-row { margin-bottom: 4px; }
+
+/* Ejercito desplegable: altura maxima 40% de la columna */
+/* military-drawer removed -- using tab instead */
+
+/* Agenda: al fondo, limitada */
+#agenda-bar {
+  flex-shrink: 0; border-top: 1px solid var(--border2);
+  max-height: 30vh; overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+/* ======================================== */
+.panel-tabs {
+  display: flex; flex-wrap: nowrap;
+  background: linear-gradient(180deg, var(--bg3) 0%, var(--bg2) 100%);
+  border-bottom: 1px solid var(--border2);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  flex-shrink: 0;
+  overflow-x: auto; scrollbar-width: none;
+}
+.panel-tabs::-webkit-scrollbar { display: none; }
+
+.ptab {
+  flex: 1; min-width: 38px; height: 46px;
+  background: transparent; border: none;
+  border-right: 1px solid var(--border);
+  color: var(--text3); font-size: 17px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  display: flex; align-items: center; justify-content: center;
+  position: relative; flex-shrink: 0;
+}
+.ptab:last-child    { border-right: none; }
+.ptab:hover {
+  background: rgba(232,184,64,0.10);
+  color: var(--gold);
+}
+.ptab.active {
+  background: rgba(232,184,64,0.16);
+  color: var(--gold2);
+  box-shadow: inset 0 -3px 0 var(--gold2);
+}
+
+/* Tab badge (notificaciones) */
+.tab-badge {
+  position: absolute; top: 3px; right: 3px;
+  background: var(--red2); color: #fff;
+  font-size: 9px; font-family: var(--font-mono);
+  padding: 0 3px; border-radius: 6px;
+  pointer-events: none; z-index: 10; line-height: 14px;
+  min-width: 14px; text-align: center;
+}
+
+/* ======================================== */
+.rtab-content         { display: none; overflow: hidden; }
+.rtab-content.active  {
+  display: flex; flex-direction: column;
+  flex: 1; min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+
+/* ======================================== */
+.rpanel-section {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.rpanel-section:last-child { border-bottom: none; }
+.rpanel-title {
+  font-family: var(--font-title); font-size: 13px;
+  color: var(--gold); letter-spacing: 1px;
+  margin-bottom: 8px;
+  display: flex; align-items: center; gap: 6px;
+}
+
+/* ======================================== */
+#decision-area { flex-shrink: 0; }
+#hover-info-panel { flex-shrink: 0; }
+
+/* ======================================== */
+#right-panel *::-webkit-scrollbar       { width: 4px; height: 4px; }
+#right-panel *::-webkit-scrollbar-track { background: transparent; }
+#right-panel *::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+#map-area    *::-webkit-scrollbar       { width: 4px; }
+#map-area    *::-webkit-scrollbar-track { background: transparent; }
+#map-area    *::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* ------------------------------------------------------
+   RESPONSIVE
+   ------------------------------------------------------ */
+
+/* Pantallas medianas: compresion gradual */
+@media (max-width: 1300px) {
+  .rpanel-section { padding: 8px 12px; }
+  .rpanel-title   { font-size: 12px; }
+  .ptab           { font-size: 16px; height: 40px; }
+  .resource-block { padding: 3px 6px; min-width: 52px; }
+}
+
+@media (max-width: 1050px) {
+  #map-area    { flex: 5; }
+  #right-panel { flex: 4; min-width: 300px; }
+  .rpanel-section { padding: 6px 10px; }
+  .res-delta   { display: none; }
+  .ptab        { font-size: 14px; height: 36px; min-width: 30px; }
+  .resource-block { min-width: 44px; padding: 2px 5px; }
+  .res-val     { font-size: 11px; }
+}
+
+/* Tablet/movil: layout vertical */
+@media (max-width: 820px) {
+  #main-body { flex-direction: column; }
+  #map-area  {
+    flex: none; max-width: 100%;
+    width: 100%; height: 28vh;
+    border-right: none; border-bottom: 2px solid var(--border2);
   }
-})();
+  #right-panel {
+    flex: 1; min-width: 0; max-width: 100%;
+    height: auto;
+  }
+  #top-bar .res-delta { display: none; }
+  .start-stats-row    { display: none; }
+  .login-footer-bar   { display: none; }
+}
 
-// -- RESOURCE ERROR TOAST ------------------------------------
-function showResourceError(missing) {
-  var existing = document.getElementById('resource-toast');
-  if (existing) { if(typeof existing.remove=="function") existing.remove(); else if(existing.parentNode) existing.parentNode.removeChild(existing); }
-  var toast = document.createElement('div');
-  toast.id = 'resource-toast';
-  toast.className = 'resource-toast';
-  var msgs = missing.map(function(m) {
-    return m.icon + ' ' + m.name + ': necesitas ' + m.need + ', tienes ' + m.have;
-  });
-  toast.innerHTML = '<span class="toast-icon">⚠️</span><span>' + msgs.join(' · ') + '</span>';
-  document.body.appendChild(toast);
-  setTimeout(function() { toast.classList.add('toast-show'); }, 10);
-  setTimeout(function() { toast.classList.remove('toast-show'); setTimeout(function(){toast.remove();},400); }, 3000);
+@media (max-width: 600px) {
+  #top-bar { gap: 2px; padding: 3px 6px; }
+  .resource-block { min-width: 36px; }
+  .stat-pill      { padding: 2px 4px; font-size: 10px; }
+  .ptab           { min-width: 26px; font-size: 13px; }
+}
+
+/* ---------------------------------------
+   EVENTOS Y DECISIONES -- estilo oscuro
+   --------------------------------------- */
+.decision-card {
+  background: var(--bg4);
+  border: 1px solid var(--border2);
+  border-left: 4px solid var(--gold);
+  padding: 10px 12px;
+  color: var(--text);
+  font-family: var(--font-body);
+}
+.decision-header {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 6px;
+}
+.decision-icon { font-size: 22px; flex-shrink: 0; }
+.decision-title {
+  font-family: var(--font-title); font-size: 14px;
+  color: var(--gold2); letter-spacing: 0.5px;
+}
+.decision-category {
+  font-family: var(--font-mono); font-size: 10px;
+  color: var(--text3); margin-top: 2px;
+}
+.decision-desc {
+  font-size: 12px; color: var(--text2);
+  margin: 6px 0; line-height: 1.5;
+}
+.decision-context {
+  font-family: var(--font-mono); font-size: 10px;
+  color: var(--text3); margin-bottom: 8px;
+  padding: 4px 8px; background: rgba(0,0,0,0.2);
+  border-left: 2px solid var(--border2);
+}
+.decision-options {
+  display: flex; flex-direction: column; gap: 5px;
+}
+.option-btn {
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  padding: 7px 10px; cursor: pointer;
+  text-align: left; transition: all 0.15s;
+  font-family: var(--font-body);
+}
+.option-btn:hover {
+  background: rgba(200,160,48,0.12);
+  border-color: var(--gold);
+  color: var(--text);
+}
+.option-label {
+  font-size: 12px; font-weight: bold;
+  color: var(--text); margin-bottom: 3px;
+}
+.option-effects {
+  font-family: var(--font-mono); font-size: 10px;
+  display: flex; flex-wrap: wrap; gap: 5px;
+}
+.effect-pos { color: var(--green2); }
+.effect-neg { color: var(--red2); }
+.effect-neu { color: var(--text3); }
+
+.no-events {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 16px 8px; color: var(--text3);
+  font-family: var(--font-mono); font-size: 11px;
+  text-align: center; gap: 4px;
+}
+.no-events-icon { font-size: 24px; opacity: 0.4; }
+.no-events-sub  { font-size: 10px; opacity: 0.6; line-height: 1.4; }
+.chained-event-tag {
+  font-family: var(--font-mono); font-size: 10px;
+  color: var(--gold); background: rgba(200,160,48,0.1);
+  padding: 3px 8px; border-bottom: 1px solid var(--border);
+}
+
+/* ---------------------------------------------------
+   ALTHORIA MAP -- tooltip flotante preciso
+   --------------------------------------------------- */
+#althoria-tooltip {
+  display: none;
+  position: absolute; z-index: 100;
+  background: rgba(10,8,4,0.97);
+  border: 1px solid var(--gold);
+  border-left: 3px solid var(--gold2);
+  padding: 8px 12px; pointer-events: none;
+  min-width: 180px; max-width: 260px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.7);
+}
+.alth-tip-title {
+  font-family: var(--font-title); font-size: 13px;
+  color: var(--gold2); margin-bottom: 3px;
+}
+.alth-tip-geo {
+  font-family: var(--font-mono); font-size: 10px;
+  color: var(--text3); margin-bottom: 5px;
+}
+.alth-tip-owner {
+  font-family: var(--font-mono); font-size: 11px;
+  margin-bottom: 4px;
+}
+.alth-tip-row {
+  font-family: var(--font-mono); font-size: 10px;
+  color: var(--text2); margin: 2px 0;
+}
+.alth-tip-res {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--gold); margin-top: 5px;
+  padding-top: 5px; border-top: 1px solid var(--border);
+}
+.alth-tip-res span { color: var(--text2); }
+.alth-tip-res b    { color: var(--gold2); }
+
+/* ---------------------------------------------------
+   FACCIONES -- tamano -20%
+   --------------------------------------------------- */
+.faction-card {
+  padding: 5px 8px !important;
+  margin-bottom: 4px !important;
+  font-size: 11px;
+}
+.faction-name    { font-size: 11px !important; }
+.faction-header  { margin-bottom: 3px; }
+.faction-power   { font-size: 10px; }
+.faction-mood    { font-size: 10px; padding: 1px 0; }
+.faction-demand  { font-size: 10px; color: var(--text3); }
+.faction-card .bar-track  { height: 4px; }
+.faction-card .bar-label  { font-size: 9px; margin-bottom: 1px; }
+.faction-card .alert-box  { padding: 3px 6px; font-size: 10px; margin-top: 3px; }
+
+/* ---------------------------------------------------
+   EJERCITO -- tamano -20%
+   --------------------------------------------------- */
+.formation-panel   { max-height: 160px !important; gap: 3px !important; padding: 5px !important; }
+.formation-row     { padding: 3px 5px !important; }
+.formation-label   { font-size: 9px !important; margin-bottom: 2px !important; }
+.fl-icon           { font-size: 12px !important; }
+.formation-stats   { gap: 5px !important; }
+.fstat             { padding: 3px 5px !important; font-size: 9px !important; }
+.fstat b           { font-size: 11px !important; }
+.formation-sprites { font-size: 10px !important; }
+.policy-btn        { font-size: 11px !important; padding: 5px 8px !important; }
+.policy-cost       { font-size: 10px !important; }
+
+/* ---------------------------------------------------
+   PANEL LATERAL -- facciones/ejercito (35%) compactos
+   --------------------------------------------------- */
+
+/* Tabs del mapa: facciones/ejercito bien divididos */
+.map-tabs { background: var(--bg3); border-bottom: 1px solid var(--border2); }
+#map-area .mtab { font-size: 11px; padding: 7px 6px; }
+
+/* Military is now in right panel tab -- full size */
+
+/* Agenda al fondo: siempre visible */
+#agenda-bar {
+  flex-shrink: 0;
+  border-top: 1px solid var(--border2);
+  max-height: 28vh; overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+/* ---------------------------------------------------
+   PANEL DERECHO -- gestion principal (65%)
+   --------------------------------------------------- */
+
+/* Tabs mas grandes y visibles */
+.panel-tabs .ptab { font-size: 20px; height: 46px; }
+
+/* Secciones del panel con mas espacio */
+.rtab-content.active .rpanel-section { padding: 12px 16px; }
+.rtab-content.active .rpanel-title   { font-size: 14px; }
+
+/* Rutas comerciales en el panel: botones grandes */
+#trade-panel .diplo-btn { font-size: 11px; padding: 5px 10px; }
+
+/* ---------------------------------------------------
+   TRADE ROUTE LINES -- leyenda del mapa Althoria
+   --------------------------------------------------- */
+.trade-route-legend {
+  position: absolute; bottom: 8px; left: 8px;
+  background: rgba(10,8,4,0.85);
+  border: 1px solid var(--border2);
+  padding: 5px 8px;
+  font-family: var(--font-mono); font-size: 9px;
+  color: var(--text3); pointer-events: none;
+}
+.trade-route-legend div { margin: 2px 0; }
+
+/* ---------------------------------------------------
+   RESPONSIVE ajustes para 35/65
+   --------------------------------------------------- */
+@media (max-width: 1300px) {
+  #map-area    { flex: 25; min-width: 150px; }
+  #right-panel { flex: 75; min-width: 360px; }
+}
+@media (max-width: 1050px) {
+  #map-area    { flex: 25; min-width: 130px; }
+  #right-panel { flex: 75; min-width: 300px; }
+  .panel-tabs .ptab { font-size: 16px; height: 40px; }
+}
+@media (max-width: 820px) {
+  #map-area    { flex: none; width: 100%; max-width: 100%; height: 30vh; }
+  #right-panel { flex: 1; min-width: 0; max-width: 100%; }
+}
+
+/* ---------------------------------------------------
+   RUTAS COMERCIALES en panel lateral
+   --------------------------------------------------- */
+.trade-map-overlay {
+  flex-shrink: 0; border-top: 1px solid var(--border2);
+  background: rgba(0,0,0,0.25); padding: 0;
+  max-height: 30vh; overflow-y: auto;
+  scrollbar-width: thin;
+}
+.trade-overlay-header {
+  font-family: var(--font-mono); font-size: 9px;
+  color: var(--gold); padding: 4px 8px;
+  letter-spacing: 1px; text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+}
+.trade-overlay-row {
+  display: flex; align-items: center; gap: 4px;
+  padding: 3px 8px; border-bottom: 1px solid rgba(58,44,24,0.3);
+  flex-wrap: wrap;
+}
+.tor-icon   { font-size: 12px; flex-shrink: 0; }
+.tor-name   { font-family: var(--font-mono); font-size: 9px; color: var(--gold2); flex-shrink: 0; }
+.tor-nation { font-family: var(--font-mono); font-size: 9px; flex-shrink: 0; }
+.tor-income { font-family: var(--font-mono); font-size: 9px; flex-shrink: 0; margin-left: auto; }
+.tor-bar    { width: 100%; height: 2px; background: rgba(255,255,255,0.07); border-radius: 1px; }
+.tor-fill   { height: 100%; border-radius: 1px; transition: width 0.4s; }
+
+/* ---------------------------------------------------
+   GUERRA MULTI-TURNO
+   --------------------------------------------------- */
+.war-card {
+  background: rgba(180,30,30,0.08);
+  border-left: 4px solid var(--red2);
+}
+.war-card .rpanel-title { color: var(--red2); }
+
+#active-wars-panel {
+  flex-shrink: 0;
+  border-bottom: 2px solid rgba(200,50,50,0.4);
+  animation: war-pulse 2s ease-in-out infinite;
+}
+@keyframes war-pulse { 0%,100%{border-color:rgba(200,50,50,0.3)} 50%{border-color:rgba(200,50,50,0.8)} }
+
+/* ---------------------------------------------------
+   SELECCION DE REGION EN MAPA
+   --------------------------------------------------- */
+#region-select-banner {
+  animation: sel-flash 0.8s ease-in-out infinite;
+  z-index: 200; position: relative;
+}
+@keyframes sel-flash { 0%,100%{opacity:1} 50%{opacity:0.7} }
+
+/* ---------------------------------------------------
+   ZOOM del mapa Althoria: cursor crosshair
+   --------------------------------------------------- */
+#althoria-canvas { cursor: crosshair; }
+#althoria-canvas-wrap {
+  position: relative; overflow: hidden;
+}
+
+/* ======================================== */
+.dmi-text {
+  font-family: var(--font-body);
+  font-size: 13px; font-weight: bold;
+  color: var(--text); line-height: 1.5;
+  margin-bottom: 5px; font-style: italic;
+}
+
+.diplo-msg-item {
+  background: var(--bg4);
+  border: 1px solid var(--border2);
+  border-left: 3px solid var(--gold);
+  padding: 8px 10px;
+  margin-bottom: 6px;
 }
 
 
-// ----------------------------------------------------------
-// COMPARTIR JUEGO
-// ----------------------------------------------------------
-function shareGame(platform) {
-  var url  = window.location.href.split('?')[0].split('#')[0];
-  var text = '⚔ IMPERIUM — Estrategia medieval sistémica. Mapas únicos, IA con personalidad, decisiones que duelen. ¡Reta tu destino!';
+/* ======================================== */
+#factions-list .faction-card  { padding: 4px 7px !important; margin-bottom: 3px !important; }
+#factions-list .faction-name  { font-size: 10px !important; }
+#factions-list .faction-header { margin-bottom: 2px !important; }
+#factions-list .faction-power  { font-size: 9px !important; }
+#factions-list .faction-mood   { font-size: 9px !important; padding: 0 !important; }
+#factions-list .faction-demand { font-size: 9px !important; }
+#factions-list .bar-track      { height: 3px !important; }
+#factions-list .bar-label      { font-size: 8px !important; margin-bottom: 1px !important; }
+#factions-list .alert-box      { padding: 2px 5px !important; font-size: 9px !important; margin-top: 2px !important; }
+#factions-list                  { scrollbar-width: thin; }
 
-  if (platform === 'x') {
-    var xUrl = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text) + '&url=' + encodeURIComponent(url);
-    window.open(xUrl, '_blank', 'width=600,height=400');
+/* Sidebar izquierdo: aun mas compacto */
+#map-area { flex: 20 !important; min-width: 150px !important; max-width: 24% !important; }
+#right-panel { flex: 80 !important; min-width: 400px !important; }
 
-  } else if (platform === 'whatsapp') {
-    var waUrl = 'https://wa.me/?text=' + encodeURIComponent(text + ' ' + url);
-    window.open(waUrl, '_blank');
+/* -------------------------------------------------------
+   UNLOCK TREE -- arbol de ramificaciones visual
+   ------------------------------------------------------- */
+.unlock-tree-wrap {
+  padding: 12px 10px;
+  display: flex; flex-direction: column; gap: 18px;
+}
+.unlock-cat-block {
+  background: rgba(0,0,0,0.15);
+  border: 1px solid var(--border);
+  border-radius: 4px; overflow: hidden;
+}
+.unlock-cat-title {
+  font-family: var(--font-title); font-size: 12px;
+  letter-spacing: 1px; text-transform: uppercase;
+  padding: 6px 10px;
+  background: rgba(0,0,0,0.2);
+  border-bottom: 1px solid var(--border);
+}
+.unlock-cat-tree {
+  padding: 10px 8px;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 0;
+}
+.unlock-tier {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  width: 100%;
+}
+.unlock-tier-arrow {
+  font-size: 10px; color: var(--text3);
+  padding: 2px 8px; text-align: center;
+  width: 100%;
+}
+.unlock-node-wrap {
+  display: flex; flex-direction: column; align-items: center;
+}
+.unlock-connector {
+  width: 1px; height: 10px;
+  background: var(--border2);
+  margin: 0 auto;
+}
 
-  } else if (platform === 'mail') {
-    var subject = '⚔ IMPERIUM — Juego de estrategia';
-    var body    = text + '\n\n' + url;
-    window.location.href = 'mailto:?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+/* Node states */
+.unode {
+  border: 2px solid var(--border);
+  padding: 6px 8px; min-width: 90px; max-width: 120px;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 2px; cursor: help; transition: all 0.2s;
+  background: var(--bg4);
+  text-align: center;
+}
+.unode.unlocked {
+  background: rgba(0,0,0,0.3);
+  opacity: 1;
+}
+.unode.available {
+  background: rgba(200,160,48,0.08);
+  border-style: dashed;
+  animation: node-pulse 2s ease-in-out infinite;
+}
+.unode.locked {
+  opacity: 0.45; filter: grayscale(0.6);
+}
+@keyframes node-pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
 
-  } else if (platform === 'copy') {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(url).then(function() {
-        var btn = document.getElementById('share-copy-btn');
-        if (btn) {
-          var orig = btn.innerHTML;
-          btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
-          btn.style.color = '#6ab840';
-          setTimeout(function(){ btn.innerHTML = orig; btn.style.color = ''; }, 2000);
-        }
-      });
-    } else {
-      // Fallback: select a temporary input
-      var tmp = document.createElement('input');
-      tmp.value = url;
-      document.body.appendChild(tmp);
-      tmp.select();
-      document.execCommand('copy');
-      document.body.removeChild(tmp);
-      var btn2 = document.getElementById('share-copy-btn');
-      if (btn2) { btn2.style.color = '#6ab840'; setTimeout(function(){ btn2.style.color=''; }, 2000); }
-    }
-  }
+.unode-icon   { font-size: 18px; line-height: 1; }
+.unode-name   { font-family: var(--font-mono); font-size: 9px; color: var(--text2); line-height: 1.2; }
+.unode-status { font-size: 10px; margin-top: 1px; }
+
+/* -------------------------------------------------------
+   DIPLOMACY TABS
+   ------------------------------------------------------- */
+.diplo-tabs {
+  display: flex; border-bottom: 2px solid var(--border2);
+  background: var(--bg3); flex-shrink: 0;
+}
+.diplo-tab-btn {
+  flex: 1; padding: 8px 6px; background: transparent; border: none;
+  border-bottom: 2px solid transparent; cursor: pointer;
+  font-family: var(--font-mono); font-size: 11px; font-weight: bold;
+  transition: all 0.15s; color: var(--text3);
+}
+.diplo-tab-btn:hover { background: rgba(255,255,255,0.05); }
+.diplo-tab-btn.active { background: rgba(255,255,255,0.04); }
+.diplo-tab-count {
+  display: inline-block; font-size: 9px; color: #fff;
+  padding: 0 4px; border-radius: 8px; margin-left: 3px; vertical-align: middle;
+}
+.diplo-tab-content { flex: 1; overflow-y: auto; }
+.diplo-empty {
+  padding: 20px; text-align: center;
+  font-family: var(--font-mono); font-size: 11px; color: var(--text3);
+}
+.diplo-inbox-bar {
+  background: rgba(200,160,48,0.1); border-bottom: 1px solid var(--border);
+  padding: 5px 10px; font-family: var(--font-mono); font-size: 10px; color: var(--gold);
+}
+
+/* -------------------------------------------------------
+   WAR SUMMARY CARD
+   ------------------------------------------------------- */
+.war-summary-card {
+  background: var(--bg4); border: 1px solid var(--border2);
+  margin: 8px; padding: 10px;
+}
+.ws-title { font-family: var(--font-title); font-size: 14px; margin-bottom: 8px; letter-spacing: 1px; }
+.ws-victory { color: var(--gold2); }
+.ws-defeat  { color: var(--red2); }
+.ws-grid { display: flex; flex-direction: column; gap: 3px; }
+.ws-row  { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 11px; padding: 2px 0; }
+.ws-pos  > span:last-child { color: var(--green2); font-weight: bold; }
+.ws-neg  > span:last-child { color: var(--red2);   font-weight: bold; }
+.ws-row  > span:first-child { color: var(--text3); }
+
+/* -------------------------------------------------------
+   SIDEBAR STAT BARS
+   ------------------------------------------------------- */
+.sidebar-stats {
+  flex-shrink: 0; padding: 6px 6px 0;
+  border-bottom: 1px solid var(--border2);
+}
+.sidebar-factions-title {
+  font-family: var(--font-title); font-size: 10px; letter-spacing: 1px;
+  color: var(--gold3); padding: 4px 6px 2px; text-transform: uppercase;
+}
+.sidebar-stat-row {
+  display: flex; align-items: center; gap: 5px;
+  padding: 3px 4px; cursor: help;
+}
+.ssr-icon  { font-size: 11px; flex-shrink: 0; width: 16px; text-align: center; }
+.ssr-body  { flex: 1; min-width: 0; }
+.ssr-header{ display: flex; justify-content: space-between; margin-bottom: 2px; }
+.ssr-label { font-family: var(--font-mono); font-size: 9px; color: var(--text3); }
+.ssr-val   { font-family: var(--font-mono); font-size: 9px; font-weight: bold; }
+.ssr-track {
+  height: 5px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+.ssr-fill  { height: 100%; border-radius: 2px; transition: width 0.4s ease; }
+
+/* -------------------------------------------------------
+   DRAG & DROP CURSOR
+   ------------------------------------------------------- */
+#althoria-canvas.dragging { cursor: grabbing !important; }
+
+/* -------------------------------------------------------
+   RETRATOS DE LIDERES -- portrait images (definitive)
+   ------------------------------------------------------- */
+
+/* Portrait container */
+.nation-portrait {
+  width: 80px; height: 80px;
+  flex-shrink: 0;
+  border: 2px solid var(--border2);
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--bg3);
+  position: relative;          /* required for absolute children */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.diplo-nation-card:hover 
+
+/* Emoji fallback -- always visible underneath the image */
+.portrait-fallback {
+  font-size: 30px;
+  line-height: 1;
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Portrait image -- overlays the emoji fallback */
+.portrait-img {
+  position: absolute;
+  inset: 0;                    /* top:0; left:0; right:0; bottom:0 */
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: center top; /* show face, not feet */
+  z-index: 1;
+  display: block;
+  transition: transform 0.3s ease;
+}
+.nation-portrait:hover /* Small portrait in inbox messages */
+.dmc-portrait {
+  flex-shrink: 0;
+  width: 36px; height: 36px;
+  border: 1px solid var(--border2);
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--bg3);
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+}
+.portrait-img-sm {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  z-index: 1;
+}
+
+/* Nation card layout */
+.dnc-header { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+.dnc-info   { flex: 1; min-width: 0; }
+.dnc-name   { font-family: var(--font-title); font-size: 14px; color: var(--gold2); margin-bottom: 3px; }
+.dnc-char   { font-family: var(--font-mono); font-size: 11px; color: var(--text); font-weight: bold; margin-bottom: 2px; }
+.dnc-role   { color: var(--text3); font-weight: normal; }
+
+/* -------------------------------------------------------
+   EVENT ILLUSTRATIONS -- imagenes de eventos
+   ------------------------------------------------------- */
+
+/* Image wrapper: full width, fixed height banner */
+.event-img-wrap {
+  width: 100%;
+  height: 160px;
+  overflow: hidden;
+  margin-bottom: 0;
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* The image itself -- cover crop from top */
+.event-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 25%;
+  display: block;
+  filter: brightness(0.88) contrast(1.05);
+  transition: transform 0.4s ease, filter 0.3s;
+}
+
+/* Gradient fade at bottom so text reads over it */
+.event-img-wrap::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 50%;
+  background: linear-gradient(to bottom, transparent, var(--bg4));
+  pointer-events: none;
+}
+
+/* Slight zoom on hover of the whole card */
+.decision-card:hover .event-img {
+  transform: scale(1.03);
+  filter: brightness(0.95) contrast(1.05);
+}
+
+/* Decision card gets no top padding if it has an image */
+.decision-card:has(.event-img-wrap) {
+  padding-top: 0;
+}
+.decision-card:has(.event-img-wrap) .decision-header {
+  padding-top: 10px;
+}
+
+/* -------------------------------------------------------
+   UNIT FORMATION -- improved layout with emoji thumbnails
+   ------------------------------------------------------- */
+.unit-thumb-emoji {
+  font-size: 20px;
+  flex-shrink: 0;
+  width: 28px;
+  text-align: center;
+  line-height: 1;
+}
+.unit-thumb {
+  width: 28px; height: 28px;
+  object-fit: cover; border-radius: 2px;
+  flex-shrink: 0;
+}
+.formation-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.fl-icon  { display: none; }  /* replaced by unit-thumb-emoji */
+.fl-name  { font-family: var(--font-mono); font-size: var(--fs-mono); color: var(--text); flex: 1; }
+.fl-count { font-family: var(--font-mono); font-size: var(--fs-mono); font-weight: bold; color: var(--gold2); }
+
+/* -------------------------------------------------------
+   PORTRAIT -- emoji fallback + image overlay pattern
+   ------------------------------------------------------- */
+
+/* The portrait container is position:relative (already set) */
+/* Fallback emoji always visible */
+
+
+/* Image overlays the emoji -- if it loads, it covers it; if it fails, emoji shows */
+
+
+/* Small portrait in messages */
+.dmc-portrait {
+  position: relative;
+  overflow: hidden;
+}
+.dmc-portrait 
+
+
+/* ---------------------------------------------------------------
+   VISUAL REFINEMENTS -- depth, hierarchy, icon consistency
+   --------------------------------------------------------------- */
+
+/* Subtle inset depth on panel content areas */
+.rtab-content {
+  background: linear-gradient(180deg, rgba(255,255,255,0.012) 0%, transparent 60px);
+}
+
+/* Alert boxes sharper */
+.alert-box {
+  border-radius: var(--radius);
+  font-size: var(--fs-micro);
+}
+.alert-box.danger {
+  background: rgba(192,40,40,0.15) !important;
+  border: 1px solid var(--red2);
+  border-left: 3px solid var(--red3) !important;
+  color: #e87070;
+}
+.alert-box.warning {
+  background: rgba(200,152,42,0.12);
+  border-left: 3px solid var(--gold);
+  color: var(--gold2);
+}
+
+/* War summary cards */
+.war-summary-card {
+  background: var(--bg4);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-bottom: 8px;
+}
+
+/* Relation bar */
+.relation-bar-track {
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.06);
+  overflow: hidden;
+}
+.relation-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+/* Badge chips */
+.badge, .tab-badge {
+  background: var(--red2);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  padding: 1px 5px;
+  border-radius: 8px;
+  font-weight: bold;
+}
+
+/* Locked action styling */
+.locked-action {
+  opacity: 0.45;
+  border-style: dashed !important;
+  cursor: not-allowed;
+}
+.lock-hint {
+  font-size: var(--fs-micro);
+  color: var(--text3);
+  display: block;
+  margin-top: 2px;
+}
+
+/* Policy cost display */
+.policy-cost {
+  font-size: var(--fs-micro);
+  color: var(--text3);
+  font-family: var(--font-mono);
+}
+
+/* Diplomacy tabs */
+.diplo-tab-btn {
+  flex: 1;
+  padding: 7px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.diplo-tab-btn:hover  { color: var(--gold); }
+.diplo-tab-btn.active { color: var(--gold2); border-bottom-color: var(--gold2); background: rgba(232,184,64,0.06); }
+
+/* Spy cards */
+.spy-mission-btn {
+  width: 100%;
+  background: var(--bg4);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  color: var(--text2);
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  padding: 9px 12px;
+  text-align: left;
+  cursor: pointer;
+  margin-bottom: 5px;
+  transition: border-color 0.15s, background 0.15s;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.spy-mission-btn:hover { border-color: var(--gold); background: rgba(200,152,42,0.06); color: var(--text); }
+
+/* Trade route card */
+.trade-route-card {
+  background: var(--bg4);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--blue2);
+  border-radius: var(--radius);
+  padding: 9px 12px;
+  margin-bottom: 6px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+}
+
+/* Scrollbar refinement */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+*::-webkit-scrollbar { width: 4px; height: 4px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+*::-webkit-scrollbar-thumb:hover { background: var(--border3); }
+
+/* Section dividers */
+.section-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border2) 30%, var(--border2) 70%, transparent);
+  margin: 10px 0;
+}
+
+/* No-events placeholder */
+.no-events {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+}
+.no-events-icon { font-size: 24px; margin-bottom: 6px; opacity: 0.5; }
+
+/* Formation section container */
+.formation-section .rpanel-title { color: var(--gold); }
+.formation-empty {
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  text-align: center;
+  padding: 12px;
+}
+
+/* XP bar */
+.xp-bar-wrap {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--font-mono); font-size: var(--fs-micro);
+  color: var(--text3);
+}
+.xp-bar-track {
+  flex: 1; height: 3px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 2px; overflow: hidden;
+}
+.xp-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold), var(--gold2));
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+/* AP display */
+.ap-display {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  letter-spacing: 2px;
+  color: var(--gold2);
+  padding: 4px 8px;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  background: rgba(232,184,64,0.06);
 }
 
 
-// ----------------------------------------------------------
-// MUSIC PLAYER — Cantigas de Santa María
-// ----------------------------------------------------------
-var MusicPlayer = {
-  _audio:   null,
-  _muted:   false,
-  _volume:  0.35,
-  _started: false,
+/* ---------------------------------------------------------------
+   OVERHAUL VISUAL DRAMATICO -- mas vistoso, mas caracter
+   --------------------------------------------------------------- */
 
-  init() {
-    this._audio = document.getElementById('game-music');
-    if (!this._audio) { console.warn('[Music] No audio element found'); return; }
+/* === TOP BAR -- banda de poder === */
+#top-bar {
+  background: linear-gradient(180deg, #1a1408 0%, #0e0b06 100%) !important;
+  border-bottom: 1px solid #6a4a18 !important;
+  box-shadow: 0 3px 20px rgba(0,0,0,0.9), 0 1px 0 rgba(200,152,42,0.25) !important;
+}
 
-    // Restore saved prefs
-    try {
-      var saved = localStorage.getItem('imperium_music');
-      if (saved) {
-        var p = JSON.parse(saved);
-        this._muted  = p.muted  !== undefined ? p.muted  : false;
-        this._volume = p.volume !== undefined ? p.volume : 0.35;
-      }
-    } catch(e) {}
+/* === RESOURCE BLOCKS -- mas impacto === */
+.resource-block {
+  background: linear-gradient(180deg, #1e1810 0%, #16120a 100%) !important;
+  border: 1px solid #3a2c18 !important;
+  border-top: 1px solid #5a4020 !important;
+}
+.res-val { font-size: 14px !important; font-weight: 700 !important; }
+.res-icon { font-size: 16px !important; }
 
-    this._audio.loop   = true;
-    this._audio.volume = this._muted ? 0 : this._volume;
-    var vol = document.getElementById('music-volume');
-    if (vol) vol.value = Math.round(this._volume * 100);
-    this._updateBtn();
+/* === STAT PILLS -- color fuerte === */
+.stat-pill.stability { background: linear-gradient(135deg,rgba(32,64,96,0.4),rgba(32,64,96,0.2)) !important; border-color: #3468a0 !important; color: #80c0e8 !important; }
+.stat-pill.morale    { background: linear-gradient(135deg,rgba(128,48,48,0.4),rgba(128,48,48,0.2)) !important; border-color: #a04040 !important; color: #f09090 !important; }
+.stat-pill.military  { background: linear-gradient(135deg,rgba(80,70,50,0.4),rgba(80,70,50,0.2)) !important; border-color: #6a5a38 !important; color: #c8b870 !important; }
 
-    // Log audio loading status
-    var self = this;
-    this._audio.addEventListener('canplaythrough', function() {
-      console.log('[Music] Audio ready to play');
-    });
-    this._audio.addEventListener('error', function(e) {
-      console.warn('[Music] Audio load error — check audio/ folder in repo', e);
-      var btn = document.getElementById('music-mute-btn');
-      if (btn) { btn.textContent = '🔇'; btn.title = 'Audio no disponible'; btn.style.opacity='0.3'; }
-    });
+/* === PANEL TABS -- estilo de pergamino medieval === */
+.panel-tabs {
+  background: linear-gradient(180deg, #1a1408 0%, #0e0b06 100%) !important;
+  border-bottom: 2px solid #5a3e18 !important;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.8) !important;
+}
+.ptab { font-size: 18px !important; }
+.ptab:hover { background: linear-gradient(180deg,rgba(200,152,42,0.15),rgba(200,152,42,0.05)) !important; }
+.ptab.active {
+  background: linear-gradient(180deg,rgba(200,152,42,0.25),rgba(200,152,42,0.08)) !important;
+  box-shadow: inset 0 -3px 0 var(--gold2), 0 0 8px rgba(200,152,42,0.2) !important;
+}
 
-    // The music button click is the most reliable trigger
-    var btn = document.getElementById('music-mute-btn');
-    if (btn) {
-      var origClick = btn.onclick;
-      btn.onclick = function() {
-        self.toggleMute();
-        // Also attempt play on explicit button click
-        if (!self._started && !self._muted && self._audio) {
-          self._audio.play().then(function(){ self._started=true; }).catch(function(){});
-        }
-      };
-    }
+/* === BTN END TURN -- CTA principal maximo impacto === */
+#btn-endturn {
+  background: linear-gradient(180deg, #f0d060 0%, #c89020 50%, #a06810 100%) !important;
+  border: 1px solid #e8c040 !important;
+  color: #1a0e00 !important;
+  font-weight: 900 !important;
+  letter-spacing: 2.5px !important;
+  box-shadow: 0 3px 16px rgba(200,152,42,0.5), 0 1px 0 rgba(255,230,100,0.4), inset 0 1px 0 rgba(255,255,200,0.15) !important;
+  text-shadow: 0 1px 0 rgba(255,230,100,0.3) !important;
+}
+#btn-endturn:hover {
+  background: linear-gradient(180deg, #fce870 0%, #e0a830 50%, #c07820 100%) !important;
+  box-shadow: 0 4px 24px rgba(200,152,42,0.7) !important;
+  transform: translateY(-1px);
+}
 
-    // Register gesture listeners — any interaction starts music
-    var started = false;
-    var _tryPlay = function() {
-      if (started || self._muted || !self._audio) return;
-      self._audio.volume = self._volume;
-      self._audio.play().then(function() {
-        self._started = true;
-        started = true;
-        console.log('[Music] Started');
-      }).catch(function(err) {
-        // Browser still blocking — will retry on next interaction
-        console.log('[Music] Autoplay blocked, waiting for gesture');
-      });
-    };
+/* === RPANEL TITLE -- mas autoridad === */
+.rpanel-title {
+  font-size: 12px !important;
+  color: var(--gold2) !important;
+  border-bottom: 1px solid rgba(200,152,42,0.3) !important;
+  padding-bottom: 8px !important;
+  text-shadow: 0 0 8px rgba(200,152,42,0.3) !important;
+}
 
-    // Attach to every user event type
-    ['click','mousedown','touchstart','keydown','pointerdown'].forEach(function(ev) {
-      document.addEventListener(ev, function _handler() {
-        _tryPlay();
-        if (started) document.removeEventListener(ev, _handler);
-      }, { passive:true, capture:false });
-    });
-  },
+/* === FACTION CARDS -- mas relieve === */
+.faction-card {
+  background: linear-gradient(135deg, #1e1810 0%, #161208 100%) !important;
+  border: 1px solid #3a2c18 !important;
+  border-left: 3px solid var(--border3) !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.5) !important;
+}
+.faction-card:hover {
+  border-color: var(--border3) !important;
+  border-left-color: var(--gold) !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.7), -2px 0 6px rgba(200,152,42,0.15) !important;
+}
 
-  start() {
-    if (this._started || !this._audio || this._muted) return;
-    var self = this;
-    this._audio.volume = this._volume;
-    this._audio.play().then(function() { self._started = true; }).catch(function() {});
-  },
+/* === PLAYER NATION BADGE -- joya de la interfaz === */
+.player-nation-badge {
+  background: linear-gradient(135deg, rgba(100,220,130,0.22) 0%, rgba(100,220,130,0.06) 100%) !important;
+  border: 1px solid #5a9850 !important;
+  border-left: 4px solid #72c882 !important;
+  box-shadow: 0 2px 14px rgba(114,200,130,0.22), inset 0 0 20px rgba(100,220,130,0.05) !important;
+}
+.pnb-icon { filter: drop-shadow(0 0 8px rgba(114,200,130,0.7)) !important; font-size: 30px !important; }
+.pnb-name { font-size: 14px !important; color: #c8f0d0 !important; }
 
-  toggleMute() {
-    this._muted = !this._muted;
-    if (!this._audio) return;
-    if (this._muted) {
-      this._audio.pause();
-    } else {
-      this._audio.volume = this._volume;
-      this._audio.play().catch(function() {});
-      this._started = true;
-    }
-    this._updateBtn();
-    this._save();
-  },
+/* === OPTION BUTTONS -- decisiones con peso === */
+.option-btn {
+  background: linear-gradient(135deg, #1e1810 0%, #141008 100%) !important;
+  border: 1px solid #3a2c18 !important;
+  border-left: 4px solid #5a4020 !important;
+  transition: all 0.12s !important;
+}
+.option-btn:hover {
+  background: linear-gradient(135deg, #2a2010 0%, #1a1408 100%) !important;
+  border-left-color: var(--gold2) !important;
+  box-shadow: 0 0 12px rgba(200,152,42,0.2) !important;
+  transform: translateX(3px) !important;
+}
 
-  setVolume(val) {
-    this._volume = parseInt(val) / 100;
-    if (!this._audio) return;
-    this._audio.volume = this._muted ? 0 : this._volume;
-    if (this._volume > 0 && this._muted) {
-      this._muted = false;
-      this._audio.play().catch(function() {});
-      this._started = true;
-      this._updateBtn();
-    }
-    this._save();
-  },
+/* === DIPLOMACY CARDS === */
+.diplo-nation-card {
+  background: linear-gradient(135deg, #1a1408 0%, #100c06 100%) !important;
+  border: 1px solid #3a2c18 !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.6) !important;
+}
+.diplo-nation-card:hover {
+  border-color: #6a4a20 !important;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.8) !important;
+}
 
-  _updateBtn() {
-    var btn = document.getElementById('music-mute-btn');
-    if (!btn) return;
-    if (this._muted || this._volume === 0) {
-      btn.textContent = '🔇';
-      btn.style.opacity = '0.45';
-    } else if (this._volume < 0.35) {
-      btn.textContent = '🔉';
-      btn.style.opacity = '1';
-    } else {
-      btn.textContent = '🎵';
-      btn.style.opacity = '1';
-    }
-  },
+/* === SCROLLBAR -- mas elegante === */
+::-webkit-scrollbar { width: 5px !important; }
+::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #5a4020, #3a2c18) !important; border-radius: 3px !important; }
+::-webkit-scrollbar-thumb:hover { background: var(--gold) !important; }
 
-  _save() {
-    try {
-      localStorage.setItem('imperium_music', JSON.stringify({
-        muted: this._muted, volume: this._volume
-      }));
-    } catch(e) {}
-  },
-};
+/* === AP DISPLAY -- muy visible === */
+.ap-display {
+  background: linear-gradient(135deg, rgba(232,184,64,0.12), rgba(232,184,64,0.04)) !important;
+  border: 1px solid rgba(232,184,64,0.4) !important;
+  font-size: 16px !important;
+  letter-spacing: 3px !important;
+  box-shadow: 0 0 10px rgba(232,184,64,0.15) !important;
+}
 
-document.addEventListener('DOMContentLoaded', function() {
-  try { buildCodex(); } catch(e) { console.warn('[Codex]', e.message); }
-  try { if (window.Auth) window.Auth.init(); } catch(e) { console.warn('[Auth]', e.message); }
-  try { if (window.SaveSystem) window.SaveSystem.renderLoginSaves(); } catch(e) { console.warn('[Saves]', e.message); }
-  try { if (window.MusicPlayer) { window.MusicPlayer.init(); window.MusicPlayer.start(); } } catch(e) { console.warn('[Music]', e.message); }
-});
+/* === POLICY BUTTONS -- mas claros === */
+.policy-btn {
+  background: linear-gradient(135deg, #1e1810 0%, #141008 100%) !important;
+  border-left-width: 4px !important;
+}
+.policy-btn:hover {
+  background: linear-gradient(135deg, #2a2014 0%, #1a1408 100%) !important;
+}
+.policy-btn.active {
+  background: linear-gradient(135deg, rgba(74,132,40,0.18) 0%, rgba(74,132,40,0.06) 100%) !important;
+  box-shadow: -3px 0 10px rgba(74,132,40,0.2) !important;
+}
+
+/* === FORMATION ROWS === */
+.formation-row {
+  background: linear-gradient(135deg, #1e1810 0%, #141008 100%) !important;
+  border-left-width: 4px !important;
+}
+
+/* === BAR FILLS -- color rico === */
+.bar-fill {
+  background: linear-gradient(90deg, var(--green2), var(--green3)) !important;
+  box-shadow: 0 0 4px rgba(74,132,40,0.4) !important;
+}
+
+/* === EVENT CARD === */
+.decision-card {
+  background: linear-gradient(180deg, #1c1610 0%, #100c06 100%) !important;
+  border: 1px solid #4a3618 !important;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.8) !important;
+}
+
+/* === SIDEBAR STATS (barras) === */
+.ssr-fill {
+  box-shadow: 0 0 5px currentColor !important;
+}
+
+/* === MAP AREA === */
+#map-area {
+  background: linear-gradient(180deg, #100c06 0%, #0a0806 100%) !important;
+  box-shadow: 3px 0 16px rgba(0,0,0,0.7) !important;
+}
+
+/* === MAP TABS === */
+.map-tabs {
+  background: linear-gradient(180deg, #1a1408 0%, #100c06 100%) !important;
+  border-bottom: 1px solid #5a3e18 !important;
+}
+.mtab.active {
+  background: linear-gradient(180deg,rgba(200,152,42,0.2),rgba(200,152,42,0.05)) !important;
+  border-bottom-color: var(--gold2) !important;
+  text-shadow: 0 0 8px rgba(200,152,42,0.4) !important;
+}
+
+/* === TOOLTIP === */
+.tb-tooltip-box {
+  background: linear-gradient(180deg, #1a1408 0%, #0e0b06 100%) !important;
+  border: 1px solid #6a4a18 !important;
+  border-top: 2px solid var(--gold2) !important;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.95), 0 0 0 1px rgba(200,152,42,0.1) !important;
+}
+
+/* ======================================== */
+.player-name-topbar {
+  font-family: var(--font-title);
+  font-size: 13px;
+  font-weight: 700;
+  color: #a0e8b0;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  padding: 4px 8px;
+  border: 1px solid rgba(114,200,130,0.35);
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, rgba(100,220,130,0.12), rgba(100,220,130,0.04));
+  text-shadow: 0 0 8px rgba(100,220,130,0.3);
+  cursor: help;
+}
+
+
+/* ---------------------------------------------------------------
+   SHARE BAR -- pantalla de inicio
+   --------------------------------------------------------------- */
+.share-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(200,152,42,0.15);
+}
+
+.share-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.share-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.share-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border2);
+  background: var(--bg4);
+  color: var(--text2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.18s;
+  position: relative;
+}
+
+.share-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.6);
+}
+
+/* X / Twitter -- negro */
+.share-x { border-color: #333; }
+.share-x:hover { background: #000; color: #fff; border-color: #555; box-shadow: 0 4px 14px rgba(0,0,0,0.8); }
+
+/* WhatsApp -- verde */
+.share-wa { border-color: #1a5c2a; }
+.share-wa:hover { background: #25d366; color: #fff; border-color: #25d366; box-shadow: 0 4px 14px rgba(37,211,102,0.35); }
+
+/* Email -- azul */
+.share-mail { border-color: #1a3a6a; }
+.share-mail:hover { background: #1e4db4; color: #fff; border-color: #3a7ee8; box-shadow: 0 4px 14px rgba(30,77,180,0.4); }
+
+/* Copiar enlace -- dorado */
+.share-copy { border-color: var(--border3); }
+.share-copy:hover { background: rgba(200,152,42,0.2); color: var(--gold2); border-color: var(--gold); box-shadow: 0 4px 14px rgba(200,152,42,0.3); }
+
+
+/* ---------------------------------------------------------------
+   CRONICA DEL TURNO -- modal de narrativa medieval
+   --------------------------------------------------------------- */
+
+.chronicle-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 3, 2, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9000;   /* above everything */
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+  backdrop-filter: blur(3px);
+  /* Prevent parent overflow from clipping */
+  isolation: isolate;
+}
+.chronicle-overlay.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.chronicle-box {
+  background: linear-gradient(180deg, #1c1508 0%, #100d06 60%, #0c0a04 100%);
+  border: 1px solid #6a4a18;
+  border-top: 3px solid var(--gold2);
+  border-bottom: 3px solid var(--gold2);
+  width: min(680px, 92vw);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow:
+    0 0 80px rgba(0,0,0,0.95),
+    0 0 0 1px rgba(200,152,42,0.1),
+    inset 0 0 60px rgba(200,120,20,0.04);
+  transform: translateY(12px);
+  transition: transform 0.35s ease;
+}
+.chronicle-overlay.open .chronicle-box {
+  transform: translateY(0);
+}
+
+.chronicle-header {
+  padding: 22px 28px 14px;
+  text-align: center;
+  border-bottom: 1px solid rgba(200,152,42,0.2);
+  flex-shrink: 0;
+}
+.chronicle-ornament {
+  font-family: var(--font-title);
+  color: rgba(200,152,42,0.4);
+  font-size: 11px;
+  letter-spacing: 4px;
+  margin: 4px 0;
+}
+.chronicle-title {
+  font-family: var(--font-title);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--gold2);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  text-shadow: 0 0 20px rgba(200,152,42,0.4);
+  margin: 6px 0 4px;
+}
+.chronicle-subtitle {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.chronicle-scroll {
+  padding: 24px 32px;
+  overflow-y: auto;
+  flex: 1;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+  /* Faded edges */
+  -webkit-mask-image: linear-gradient(transparent 0%, black 8%, black 92%, transparent 100%);
+  mask-image: linear-gradient(transparent 0%, black 8%, black 92%, transparent 100%);
+}
+
+.chronicle-text {
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: 17px;
+  line-height: 1.85;
+  color: #d8c490;
+  text-align: justify;
+  /* Drop cap on first letter */
+  word-spacing: 1px;
+}
+.chronicle-text::first-letter {
+  font-family: var(--font-title);
+  font-size: 3.2em;
+  font-weight: 700;
+  color: var(--gold2);
+  float: left;
+  line-height: 0.75;
+  margin: 4px 8px 0 0;
+  text-shadow: 0 0 16px rgba(200,152,42,0.5);
+}
+
+.chronicle-footer {
+  padding: 14px 28px 20px;
+  text-align: center;
+  border-top: 1px solid rgba(200,152,42,0.15);
+  flex-shrink: 0;
+}
+.chronicle-btn {
+  font-family: var(--font-title);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: #0a0800;
+  background: linear-gradient(180deg, var(--gold2) 0%, var(--gold) 100%);
+  border: none;
+  padding: 11px 32px;
+  cursor: pointer;
+  border-radius: 2px;
+  box-shadow: 0 3px 14px rgba(200,152,42,0.4);
+  transition: all 0.15s;
+}
+.chronicle-btn:hover {
+  background: linear-gradient(180deg, var(--gold3) 0%, var(--gold2) 100%);
+  box-shadow: 0 4px 20px rgba(200,152,42,0.6);
+  transform: translateY(-1px);
+}
+.chronicle-btn span {
+  margin-right: 8px;
+  font-size: 14px;
+}
+.chronicle-esc {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text3);
+  letter-spacing: 1.5px;
+  margin-top: 8px;
+}
+
+
+/* ---------------------------------------------------------------
+   BATTLE GRID SYSTEM -- grid 10x10 drag & drop
+   --------------------------------------------------------------- */
+
+.battle-grid-box {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, #0a0804 0%, #060502 100%);
+  z-index: 600;
+  font-family: var(--font-mono);
+}
+
+/* Header */
+.bg-header {
+  display: flex; align-items: center; gap: 16px;
+  padding: 10px 20px;
+  background: rgba(6,4,2,0.92);
+  border-bottom: 2px solid var(--gold);
+  flex-shrink: 0;
+}
+.bg-title {
+  font-family: var(--font-title);
+  font-size: 16px; font-weight: 700;
+  color: var(--gold2); letter-spacing: 2px;
+  flex: 1;
+}
+.bg-phase {
+  font-size: 11px; color: var(--text2);
+  letter-spacing: 1px;
+}
+.bg-close-btn {
+  font-family: var(--font-mono); font-size: 11px;
+  background: rgba(200,40,40,0.2); border: 1px solid var(--red2);
+  color: var(--red3); padding: 5px 12px; cursor: pointer;
+  border-radius: 2px; transition: background 0.15s;
+}
+.bg-close-btn:hover { background: rgba(200,40,40,0.4); }
+
+/* Body: tray | grid | tray+log */
+.bg-body {
+  display: flex; flex: 1; overflow: hidden;
+  gap: 0;
+}
+.bg-left, .bg-right {
+  width: 180px; flex-shrink: 0;
+  padding: 12px 10px;
+  background: rgba(6,4,2,0.90);
+  border-right: 1px solid var(--border2);
+  overflow-y: auto;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.bg-right { border-right: none; border-left: 1px solid var(--border2); }
+.bg-center {
+  flex: 1; display: flex;
+  align-items: center; justify-content: center;
+  padding: 16px;
+  background: #0a0806;
+}
+
+/* Unit tray */
+.bg-tray-title {
+  font-family: var(--font-title);
+  font-size: 11px; letter-spacing: 2px;
+  text-transform: uppercase;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border2);
+}
+.bg-tray { display: flex; flex-direction: column; gap: 5px; }
+.bg-unit-card {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 8px;
+  background: var(--bg4);
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+  cursor: grab;
+  transition: border-color 0.12s, opacity 0.12s;
+  user-select: none;
+}
+.bg-unit-card:hover      { border-color: var(--gold); }
+.bg-unit-card[draggable="true"] { border-left: 3px solid #72c882; }
+.bg-unit-placed { opacity: 0.5; cursor: default; border-style: dashed; }
+.bg-unit-icon  { font-size: 16px; }
+.bg-unit-name  { font-size: 9px; color: var(--text2); flex: 1; }
+.bg-unit-count { font-size: 11px; font-weight: bold; }
+
+/* Grid 10x10 */
+.bg-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  grid-template-rows: repeat(10, 1fr);
+  width: min(580px, calc(100vw - 400px));
+  height: min(580px, calc(100vh - 140px));
+  border: 2px solid var(--border2);
+  gap: 1px;
+  background: var(--border);
+}
+.bg-cell {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  position: relative;
+  background: #1a1408;
+  transition: background 0.1s;
+  cursor: default;
+  min-width: 0; min-height: 0;
+}
+.bg-land   { background: #1a1408; }
+.bg-water  { background: #0a1a2a; cursor: not-allowed; }
+.bg-cell-player { background: rgba(100,220,130,0.18); border: 1px solid #72c882; }
+.bg-cell-ai     { background: rgba(220,60,60,0.18);   border: 1px solid #e05050; }
+.bg-cell-dragover {
+  background: rgba(200,152,42,0.25) !important;
+  outline: 2px solid var(--gold2);
+}
+.bg-terrain-icon { font-size: 10px; opacity: 0.5; }
+.bg-cell-icon    { font-size: 14px; line-height: 1; }
+.bg-cell-count   {
+  font-size: 8px; font-weight: bold;
+  color: #fff; line-height: 1;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.9);
+}
+
+/* Battle log */
+.bg-log {
+  flex: 1;
+  border-top: 1px solid var(--border2);
+  padding-top: 8px;
+  overflow-y: auto;
+}
+.bg-log-line {
+  font-size: 9px; color: var(--text2);
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  line-height: 1.5;
+}
+
+/* Footer */
+.bg-footer {
+  display: flex; gap: 12px; align-items: center;
+  padding: 10px 20px;
+  background: rgba(6,4,2,0.92);
+  border-top: 1px solid var(--border2);
+  flex-shrink: 0;
+}
+.bg-btn-primary {
+  font-family: var(--font-title); font-size: 12px;
+  font-weight: 700; letter-spacing: 2px;
+  background: linear-gradient(180deg, var(--gold2) 0%, var(--gold) 100%);
+  color: #0a0800; border: none; padding: 10px 24px;
+  cursor: pointer; border-radius: 2px;
+  box-shadow: 0 3px 12px rgba(200,152,42,0.4);
+  transition: all 0.15s;
+}
+.bg-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, var(--gold3) 0%, var(--gold2) 100%);
+  box-shadow: 0 4px 18px rgba(200,152,42,0.6);
+}
+.bg-btn {
+  font-family: var(--font-mono); font-size: 11px;
+  background: transparent; border: 1px solid var(--border2);
+  color: var(--text2); padding: 9px 18px;
+  cursor: pointer; border-radius: 2px; transition: all 0.15s;
+}
+.bg-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+/* Error toast */
+.bg-error-toast {
+  position: fixed; bottom: 80px; left: 50%;
+  transform: translateX(-50%);
+  background: rgba(200,40,40,0.9); color: #fff;
+  font-family: var(--font-mono); font-size: 11px;
+  padding: 8px 20px; border-radius: 3px;
+  pointer-events: none;
+  transition: opacity 0.3s;
+  z-index: 700;
+}
+
+/* ======================================== */
+#modal-battle:not(.hidden) {
+  display: flex !important;
+  position: fixed;
+  inset: 0;
+  z-index: 8500;
+  background: transparent;   /* Althoria map shows behind */
+  align-items: stretch;
+  justify-content: stretch;
+}
+.battle-grid-box {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+/* Midline marker on grid */
+.bg-cell-midline {
+  border-right: 2px solid rgba(200,152,42,0.3) !important;
+}
+
+
+/* -------------------------------------------------------
+   MUSIC PLAYER -- top bar controls
+   ------------------------------------------------------- */
+.music-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px 0 4px;
+  border-right: 1px solid var(--border2);
+  margin-right: 4px;
+}
+
+.music-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+  line-height: 1;
+  transition: opacity 0.15s, transform 0.12s;
+  color: var(--text2);
+}
+.music-btn:hover { transform: scale(1.15); opacity: 1 !important; }
+
+/* Volume slider -- medieval gold style */
+.music-vol {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 72px;
+  height: 3px;
+  background: var(--border2);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.music-vol:hover { background: var(--border3); }
+
+.music-vol::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--gold2);
+  cursor: pointer;
+  box-shadow: 0 0 4px rgba(200,152,42,0.5);
+  transition: transform 0.12s;
+}
+.music-vol::-webkit-slider-thumb:hover { transform: scale(1.3); }
+
+.music-vol::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--gold2);
+  border: none;
+  cursor: pointer;
+}
+.music-vol::-webkit-slider-runnable-track {
+  background: linear-gradient(90deg, var(--gold) calc(var(--val,35) * 1%), var(--border2) calc(var(--val,35) * 1%));
+  border-radius: 2px;
+  height: 3px;
+}
+
+/* ======================================== */
+.bg-cell-selected {
+  outline: 3px solid #ffe060 !important;
+  outline-offset: -3px;
+  background: rgba(255,224,96,0.18) !important;
+}
+.bg-cell-player { background: rgba(100,220,130,0.22); border: 1px solid #72c882; }
+.bg-cell-ai     { background: rgba(220,60,60,0.22);   border: 1px solid #e05050; }
+.player-count   { color: #a0f0b0 !important; font-weight: bold; }
+.ai-count       { color: #f09090 !important; font-weight: bold; }
+.bg-cell-range  { font-size: 8px; position: absolute; top: 1px; right: 2px; opacity: 0.7; }
+.bg-cell        { position: relative; }
