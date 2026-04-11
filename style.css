@@ -227,7 +227,7 @@ body {
 /* --------------------------------------------------
    START SCREEN -- ANIMACIONES
    -------------------------------------------------- */
-#screen-start { overflow: hidden; background: var(--bg); }
+#screen-start { position: relative; overflow: hidden; background: var(--bg); }
 
 #start-canvas {
   position: absolute; inset: 0; width: 100%; height: 100%;
