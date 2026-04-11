@@ -26,7 +26,7 @@ window.Systems = window.Systems || {
       // Producción bruta (granjas, caza, pesca)
       let food_base = Math.floor(state.population / 12);
       let food_extra = state.economy.food_bonus || 0;
-      let food_policy = state.activePolicies.includes('forced_labor') ? 0.15 : 0;
+      let food_policy = false ? 0.15 : 0;
       let food_produced = Math.floor((food_base + food_extra) * (1 + foodMod + food_policy) * corr);
       // Consumo: cada habitante consume ~0.06 unidades/turno (antes era gratuito)
       let food_consumed = Math.floor(state.population * 0.06);
@@ -37,36 +37,25 @@ window.Systems = window.Systems || {
       let gold_base = Math.floor(state.population / 20) + state.economy.trade_income;
       // Los impuestos multiplican los ingresos base de oro
       gold_base = Math.floor(gold_base * (1 + (taxRate - 0.20)));  // 20% es la línea base
-      // Rutas comerciales activas
-      let trade_bonus = 0;
-      (state.activeTradeRoutes || []).forEach(rt => {
-        if (rt.income && rt.income.gold) trade_bonus += rt.income.gold;
-      });
-      gold_base += trade_bonus;
       let gold_army = this.calculateArmyUpkeep(state);
       let gold_debt  = Math.floor(state.economy.debt / 20);
-      let gold_policy = state.activePolicies.includes('free_market') ? 20 :
-                        state.activePolicies.includes('state_control') ? -10 : 0;
-      let gold_bread = state.activePolicies.includes('bread_circus') ? -80 : 0;
+      let gold_policy = false ? 20 :
+                        false ? -10 : 0;
+      let gold_bread = false ? -80 : 0;
       let gold_rate  = Math.floor((gold_base + gold_policy + gold_bread) * (1 + goldMod * 0.5) * corr) - gold_army - gold_debt;
 
       // MADERA
       let wood_rate = Math.floor(state.population / 30);
-      if (state.activePolicies.includes('forced_labor')) wood_rate += 20;
+      if (false) wood_rate += 20;
       wood_rate = Math.floor(wood_rate * (1 + woodMod * 0.5));
 
       // PIEDRA
       let stone_rate = Math.floor(state.population / 40);
-      if (state.activePolicies.includes('forced_labor')) stone_rate += 30;
+      if (false) stone_rate += 30;
 
       // HIERRO
       let iron_rate = Math.floor(state.population / 50);
-      if (state.activePolicies.includes('war_economy')) iron_rate += 20;
-
-      // Ruta comercial hierro
-      (state.activeTradeRoutes || []).forEach(rt => {
-        if (rt.income && rt.income.iron) iron_rate += rt.income.iron;
-      });
+      if (false) iron_rate += 20;
 
       return { food: food_rate, gold: gold_rate, wood: wood_rate, stone: stone_rate, iron: iron_rate };
     },
@@ -123,10 +112,6 @@ window.Systems = window.Systems || {
         }
         if (state._deficitTurns >= 3) {
           // Crisis económica severa: facciones se rebelan
-          const ejercito = (state.factions||[]).find(f=>f.id==='ejercito');
-          const pueblo   = (state.factions||[]).find(f=>f.id==='pueblo');
-          if (ejercito) ejercito.satisfaction = Math.max(0, ejercito.satisfaction - 15);
-          if (pueblo)   pueblo.satisfaction   = Math.max(0, pueblo.satisfaction   - 10);
           state.morale    = Math.max(0, state.morale - 10);
           Systems.Log.add(state, '💀 CRISIS ECONÓMICA: ' + state._deficitTurns + ' turnos sin pagar. Las facciones exigen soluciones.', 'crisis');
         }
@@ -150,13 +135,8 @@ window.Systems = window.Systems || {
       else                moralTaxDelta = -18;  // impuestos opresivos
       // Facciones también se ven afectadas
       if (tax > 40) {
-        const pueblo = (state.factions||[]).find(f=>f.id==='pueblo');
-        if (pueblo) pueblo.satisfaction = Math.max(0, pueblo.satisfaction - 2);
-        const comerciantes = (state.factions||[]).find(f=>f.id==='comerciantes');
-        if (comerciantes) comerciantes.satisfaction = Math.max(0, comerciantes.satisfaction - 1);
+
       } else if (tax < 10) {
-        const burocracia = (state.factions||[]).find(f=>f.id==='burocracia');
-        if (burocracia) burocracia.satisfaction = Math.max(0, burocracia.satisfaction - 1);
       }
       if (moralTaxDelta !== 0)
         state.morale = Math.max(0, Math.min(100, Math.round(state.morale + moralTaxDelta)));
@@ -165,18 +145,6 @@ window.Systems = window.Systems || {
       if (state.economy.debt > 200)  state.economy.inflation = Math.min(100, state.economy.inflation + 3);
       if (state.economy.inflation > 0 && rates.gold > 0) state.economy.inflation = Math.max(0, state.economy.inflation - 1);
       if (state.economy.inflation > 40) state.resources.gold = Math.floor(state.resources.gold * 0.97);
-
-      // Rutas comerciales: moral/estabilidad bonus
-      (state.activeTradeRoutes || []).forEach(rt => {
-        if (rt.income && rt.income.morale)    state.morale    = Math.min(100, state.morale    + rt.income.morale);
-        if (rt.income && rt.income.stability) state.stability = Math.min(100, state.stability + rt.income.stability);
-        if (rt.income && rt.income.food)      state.resources.food = Math.max(0, state.resources.food + rt.income.food);
-        // Mejora de relación por turno
-        if (rt.nationId && rt.relationBonus) {
-          const n = (state.diplomacy || []).find(n => n.id === rt.nationId);
-          if (n) n.relation = Math.min(100, n.relation + rt.relationBonus);
-        }
-      });
 
       // Hambruna
       if (state.resources.food <= 0) {
@@ -191,7 +159,7 @@ window.Systems = window.Systems || {
 
     updateCorruption(state) {
       const gov = GOVERNMENT_TYPES[state.government];
-      let delta = (gov.corruptionPenalty / 20) - (state.activePolicies.includes('education') ? 1.5 : 0);
+      let delta = (gov.corruptionPenalty / 20) - (false ? 1.5 : 0);
       state.economy.corruption = Math.max(0, Math.min(100, state.economy.corruption + delta));
     }
   },
@@ -309,131 +277,29 @@ window.Systems = window.Systems || {
   },
 
   // ============================================================
-  // FACCIONES
-  // ============================================================
-  Factions: {
-    init(civData) {
-      return civData.factions.map(fId => {
-        const def = FACTION_DEFINITIONS[fId];
-        return {
-          id: fId, name: def.name, icon: def.icon, color: def.color,
-          satisfaction: 50 + Math.floor(Math.random() * 20) - 10,
-          influence: def.baseInfluence + Math.floor(Math.random() * 10),
-          loyalTurns: 0, angryTurns: 0,
-          currentDemand: this.generateDemand(fId)
-        };
-      });
-    },
-
-    generateDemand(fId) {
-      const d = {
-        ejercito:['Aumenta presupuesto militar','Declara guerra a un vecino','Equipa 200 soldados más'],
-        pueblo:['Reduce los impuestos','Construye graneros','Aplica bienestar social'],
-        comerciantes:['Firma acuerdo comercial','Reduce regulaciones','Construye ruta de comercio'],
-        senado:['Reforma las leyes','Convoca consultas','Limita el poder ejecutivo'],
-        iglesia:['Construye un templo','Declara ciudad sagrada','Expulsa influencias extranjeras'],
-        nobleza:['Concede tierras','Exime de impuestos','Refuerza privilegios nobiliarios'],
-        burocracia:['Reforma la administración','Aumenta salarios de funcionarios','Implementa censo'],
-        chamanes:['Protege ritos tradicionales','Mantén territorios sagrados','No modernices sin consultar'],
-        jarls:['Respeta autonomía de clanes','Comparte botín de guerra','No centralices el poder'],
-        guerreros:['Organiza una campaña','Aumenta el pillaje permitido','Arma a los mejores'],
-        escaldos:['Financia épicas de guerra','Organiza torneos','Preserva la tradición oral'],
-        sacerdotes:['Organiza sacrificio ritual','Expande territorio sagrado','Construye pirámide']
-      };
-      const list = d[fId] || ['Sin demanda'];
-      return list[Math.floor(Math.random() * list.length)];
-    },
-
-    update(state) {
-      const extreme = state.climate.activeExtreme ? EXTREME_CLIMATE_EVENTS[state.climate.activeExtreme] : null;
-      state.factions.forEach(f => {
-        let delta = 0;
-        if (state.morale > 70) delta += 2;
-        if (state.morale < 40) delta -= 3;
-        if (state.resources.food < 100) delta -= 5;
-        if (state.stability < 30) delta -= 4;
-        // Clima extremo afecta a pueblo y ejército
-        if (extreme) {
-          if (f.id === 'pueblo' && extreme.moraleMod < -15) delta -= 3;
-          if (f.id === 'ejercito' && extreme.armyMod < -15) delta -= 2;
-        }
-        switch(f.id) {
-          case 'ejercito':
-            if (state.army > 500) delta += 2;
-            if (state.army < 200) delta -= 3;
-            if (state.activePolicies.includes('war_economy'))   delta += 3;
-            if (state.activePolicies.includes('standing_army')) delta += 4;
-            break;
-          case 'pueblo':
-            if (state.resources.food > 400) delta += 2;
-            if (state.resources.food < 150) delta -= 5;
-            if (state.activePolicies.includes('bread_circus'))  delta += 4;
-            if (state.activePolicies.includes('forced_labor'))  delta -= 6;
-            if (state.economy.corruption > 60) delta -= 3;
-            break;
-          case 'comerciantes':
-            if (state.economy.trade_income > 50)  delta += 3;
-            if ((state.activeTradeRoutes||[]).length > 0) delta += 2;
-            if (state.activePolicies.includes('free_market'))   delta += 4;
-            if (state.activePolicies.includes('state_control')) delta -= 4;
-            if (state.economy.inflation > 50) delta -= 5;
-            break;
-          case 'senado': case 'burocracia':
-            if (state.stability > 60) delta += 2;
-            if (state.economy.corruption < 30) delta += 2;
-            if (state.economy.corruption > 60) delta -= 3;
-            break;
-          case 'iglesia': case 'sacerdotes':
-            if (state.morale > 65) delta += 3;
-            if (state.morale < 35) delta -= 4;
-            break;
-          case 'nobleza': case 'jarls':
-            if (state.activePolicies.includes('free_market')) delta += 2;
-            break;
-        }
-        f.satisfaction = Math.max(0, Math.min(100, f.satisfaction + delta));
-        if (f.satisfaction < 20) f.angryTurns = (f.angryTurns || 0) + 1;
-        else f.angryTurns = Math.max(0, (f.angryTurns || 0) - 1);
-        if (f.satisfaction > 60) f.loyalTurns = (f.loyalTurns || 0) + 1;
-      });
-    },
-
-    calculatePoliticalPower(state) {
-      const totalInfluence = state.factions.reduce((s, f) => s + f.influence, 0);
-      const weighted = state.factions.reduce((s, f) => s + f.satisfaction * f.influence, 0);
-      return Math.floor(weighted / totalInfluence);
-    }
-  },
-
-  // ============================================================
   // SOCIEDAD
   // ============================================================
   Society: {
     update(state) {
       const climSummary = Systems.Climate.getSummary(state);
-      const factionPower = Systems.Factions.calculatePoliticalPower(state);
+      const factionPower = 50; // factions removed
 
       // MORAL
       let moralDelta = climSummary.totalMoralMod * 0.4; // clima: efecto moderado
       if (state.resources.food > state.population / 8) moralDelta += 2;
       if (state.resources.food < state.population / 20) moralDelta -= 6;
       if (state.economy.corruption > 60) moralDelta -= 2;
-      if (state.activePolicies.includes('bread_circus')) moralDelta += 5;
-      if (state.activePolicies.includes('forced_labor')) moralDelta -= 4;
-      if (state.activePolicies.includes('education'))    moralDelta += 1;
+      if (false) moralDelta += 5;
+      if (false) moralDelta -= 4;
+      if (false)    moralDelta += 1;
       if (factionPower > 65) moralDelta += 2;
       if (factionPower < 35) moralDelta -= 3;
-      // Rutas comerciales
-      (state.activeTradeRoutes||[]).forEach(rt => { if(rt.income&&rt.income.morale) moralDelta += rt.income.morale * 0.5; });
       state.morale = Math.max(0, Math.min(100, Math.round(state.morale + moralDelta)));
 
       // ESTABILIDAD
       const gov = GOVERNMENT_TYPES[state.government];
       let stabDelta = gov.stabilityBonus / 10;
-      const angryFactions  = state.factions.filter(f => f.satisfaction < 25).length;
-      const happyFactions  = state.factions.filter(f => f.satisfaction > 65).length;
-      stabDelta -= angryFactions * 2;
-      stabDelta += happyFactions * 1.5;
+      // factions removed — stability is self-regulating
       if (state.morale < 30) stabDelta -= 3;
       if (state.morale > 70) stabDelta += 1;
       if (state.economy.debt > 500) stabDelta -= 2;
@@ -501,9 +367,9 @@ window.Systems = window.Systems || {
         if (!def) return;
         const terrBonus = def.terrainBonus[terrain] || 1.0;
         const civBonus  = (state.civData && state.civData.unitBonuses && state.civData.unitBonuses[unit.typeId]) || 1.0;
-        const policyMod = state.activePolicies.includes('standing_army') ? 1.3 :
-                          state.activePolicies.includes('militia')       ? 0.8 :
-                          state.activePolicies.includes('mercenaries')   ? 1.5 : 1.0;
+        const policyMod = false ? 1.3 :
+                          false       ? 0.8 :
+                          false   ? 1.5 : 1.0;
         totalStrength += def.strength * unit.count * terrBonus * civBonus * policyMod;
       });
 
@@ -786,80 +652,6 @@ window.Systems = window.Systems || {
 
   // ============================================================
   // COMERCIO
-  // ============================================================
-  Trade: {
-    openRoute(state, routeId, targetNationId) {
-      const route = TRADE_ROUTES[routeId];
-      const nation = (state.diplomacy || []).find(n => n.id === targetNationId);
-      if (!route || !nation) return { ok: false, msg: 'Ruta o nación inválida.' };
-
-      // Verificar relación mínima
-      if (nation.relation < route.requires.relation) {
-        return { ok: false, msg: `Relación insuficiente. Necesitas ${route.requires.relation}, tienes ${nation.relation}.` };
-      }
-      if (route.requires.alliance && !(nation.treaties || []).includes('alliance')) {
-        return { ok: false, msg: 'Esta ruta requiere alianza formal.' };
-      }
-      if (nation.atWar) {
-        return { ok: false, msg: 'No puedes comerciar con una nación en guerra.' };
-      }
-
-      // Coste de apertura
-      const cost = route.cost;
-      for (const [res, val] of Object.entries(cost)) {
-        if (state.resources[res] < val) return { ok: false, msg: `Falta ${res}: necesitas ${val}` };
-      }
-      for (const [res, val] of Object.entries(cost)) state.resources[res] -= val;
-
-      // Registrar ruta activa
-      state.activeTradeRoutes = state.activeTradeRoutes || [];
-      const alreadyOpen = state.activeTradeRoutes.find(r => r.routeId === routeId && r.nationId === targetNationId);
-      if (alreadyOpen) return { ok: false, msg: 'Esta ruta ya está activa.' };
-
-      state.activeTradeRoutes.push({
-        routeId, nationId: targetNationId,
-        nationName: nation.name,
-        routeName: route.name,
-        income: route.income,
-        relationBonus: route.relationBonus,
-        icon: route.icon
-      });
-
-      Systems.Log.add(state, `${route.icon} Ruta "${route.name}" abierta con ${nation.name}.`, 'good');
-      return { ok: true };
-    },
-
-    closeRoute(state, routeId, nationId) {
-      state.activeTradeRoutes = (state.activeTradeRoutes || []).filter(
-        r => !(r.routeId === routeId && r.nationId === nationId)
-      );
-      Systems.Log.add(state, `Ruta comercial cerrada con ${nationId}.`, 'info');
-    },
-
-    // Si la nación entra en guerra, cerrar sus rutas
-    decayRouteHealth(state) {
-      (state.activeTradeRoutes||[]).forEach(rt => {
-        if (rt.health === undefined) rt.health = 100;
-        // Decay if under attack or guards below threshold
-        const underAttack = (state.diplomacy||[]).some(n=>n.atWar && n.id===rt.nationId);
-        if (underAttack) rt.health = Math.max(0, rt.health - 8);
-        // Guards slow decay
-        if (rt.guards > 200) rt.health = Math.min(100, rt.health + 3);
-        // Auto-repair
-        if (!underAttack && rt.health < 100) rt.health = Math.min(100, rt.health + 5);
-      });
-    },
-
-    closeRoutesForNation(state, nationId) {
-      const closed = (state.activeTradeRoutes || []).filter(r => r.nationId === nationId);
-      if (closed.length) {
-        state.activeTradeRoutes = state.activeTradeRoutes.filter(r => r.nationId !== nationId);
-        Systems.Log.add(state, `⚠ Rutas comerciales cerradas con ${nationId} por conflicto.`, 'warn');
-      }
-    }
-  },
-
-  // ============================================================
   // POBLACIÓN
   // ============================================================
   Population: {
@@ -976,85 +768,4 @@ window.Systems = window.Systems || {
 // ============================================================
 // COMERCIO BILATERAL — intercambio de recursos entre naciones
 // ============================================================
-var TradeExchange = {
-
-  RESOURCES: ['gold','food','iron','stone','wood'],
-  LABELS: { gold:'Oro', food:'Grano', iron:'Hierro', stone:'Piedra', wood:'Madera' },
-  ICONS:  { gold:'💰', food:'🌾', iron:'⚔️', stone:'🪨', wood:'🪵' },
-
-  // Propone un intercambio (jugador -> IA)
-  propose(state, nationId, offer, request) {
-    // offer = { gold:X, food:Y, ... }  — lo que el jugador da
-    // request = { gold:X, food:Y, ... } — lo que el jugador pide
-    const nation = (state.diplomacy||[]).find(n => n.id === nationId);
-    if (!nation) return { ok:false, msg:'Nación no encontrada.' };
-    if (nation.atWar)   return { ok:false, msg:'No puedes comerciar con una nación en guerra.' };
-    if (nation.relation < -40) return { ok:false, msg:'La relación es demasiado mala para comerciar.' };
-
-    // Check player can afford the offer
-    for (const [res, amt] of Object.entries(offer)) {
-      if (amt > 0 && (state.resources[res]||0) < amt) {
-        return { ok:false, msg:'No tienes suficiente ' + (this.LABELS[res]||res) + '.' };
-      }
-    }
-
-    // AI accepts if the deal value favors them slightly or is balanced
-    const offerValue   = this._value(offer);
-    const requestValue = this._value(request);
-    const ratio = offerValue / Math.max(1, requestValue);
-
-    // Acceptance threshold: >=0.7 ratio (player offers at least 70% of what they ask)
-    // Allies accept at 0.6, neutrals at 0.8
-    const threshold = nation.allied ? 0.6 : (nation.relation >= 10 ? 0.72 : 0.85);
-
-    if (ratio < threshold) {
-      return { ok:false, msg: nation.name + ' rechaza el trato. Ofrece mas a cambio.' };
-    }
-
-    // Execute the exchange
-    for (const [res, amt] of Object.entries(offer)) {
-      if (amt > 0) state.resources[res] = Math.max(0, (state.resources[res]||0) - amt);
-    }
-    for (const [res, amt] of Object.entries(request)) {
-      if (amt > 0) state.resources[res] = (state.resources[res]||0) + amt;
-    }
-
-    // Relation bonus for fair trades, small penalty for extractive ones
-    const relDelta = ratio >= 1.1 ? -3 : ratio >= 0.9 ? 5 : 2;
-    nation.relation = Math.max(-100, Math.min(100, (nation.relation||0) + relDelta));
-
-    Systems.Log.add(state, '🤝 Comercio con ' + nation.name + ': entregaste ' +
-      this._summary(offer) + ' y recibiste ' + this._summary(request), 'good');
-
-    return { ok:true, msg:'Trato cerrado con ' + nation.name + '.' };
-  },
-
-  _value(bundle) {
-    // Rough exchange values (relative to gold)
-    const rates = { gold:1, food:0.4, iron:0.7, stone:0.5, wood:0.35 };
-    return Object.entries(bundle).reduce((sum,[res,amt]) => sum + (amt||0) * (rates[res]||0.5), 0);
-  },
-
-  _summary(bundle) {
-    const icons = { gold:'💰', food:'🌾', iron:'⚔️', stone:'🪨', wood:'🪵' };
-    return Object.entries(bundle)
-      .filter(([,v]) => v > 0)
-      .map(([k,v]) => v + (icons[k]||k))
-      .join(' + ') || 'nada';
-  },
-
-  // Get AI nation's estimated available resources for display
-  getAIResources(nation) {
-    // Estimate based on army size and relation
-    const base = Math.max(100, (nation.army||200) * 0.5);
-    return {
-      gold:  Math.floor(base * 1.5 + (nation.relation||0) * 2),
-      food:  Math.floor(base * 2),
-      iron:  Math.floor(base * 0.8),
-      stone: Math.floor(base * 0.6),
-      wood:  Math.floor(base * 0.7),
-    };
-  },
-};
-
 var Systems = window.Systems;
